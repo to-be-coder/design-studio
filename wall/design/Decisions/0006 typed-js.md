@@ -3,7 +3,8 @@ id: 0006
 stage: build
 status: decided
 date: 2026-07-02
-rests_on: "[[0003 route-and-stack]]"
+rests_on:
+relates_to: "[[0003 route-and-stack]]"
 supersedes:
 superseded_by:
 tags: [decision]

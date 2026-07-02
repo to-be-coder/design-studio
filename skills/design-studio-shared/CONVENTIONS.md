@@ -153,7 +153,9 @@ id: 0000
 stage: debrief            # which skill produced this
 status: proposed          # proposed | decided | deferred | superseded
 date: YYYY-MM-DD          # use the known current date; never invent one
+owner:                    # the accountable approver — whose call this records (not the proposer)
 rests_on:                 # [[link]] to the assumption this depends on, if any
+relates_to:               # [[links]] to related decisions — lateral edges between entries
 supersedes:               # [[0000 ...]] if this replaces an earlier decision
 superseded_by:            # filled in later when this gets replaced
 tags: [decision]
@@ -172,6 +174,10 @@ tags: [decision]
 
 **Status note.** e.g. "Deferred to v3 until we learn X" / "Superseded by [[0007 ...]] after validation."
 ```
+
+Edges: `rests_on` points at an *assumption*; a dependency on another *decision* is
+`relates_to`; temporal replacement is `supersedes`/`superseded_by`. Both new fields are
+optional — existing entries are never rewritten.
 
 ### Status semantics
 - `proposed` — drafted/awaiting confirmation.

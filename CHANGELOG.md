@@ -7,6 +7,8 @@ All notable, user-visible changes to the design-studio skills are documented her
 - **Typed JS for the wall** — shapes in `wall/types.d.ts`, JSDoc annotations enforced by
   `tsc --noEmit` (strict) as a contributor check gate. Zero runtime dependencies and the
   zero-build `node wall/server.js` promise unchanged (decision 0006).
+- **ADR edges** — decision entries gain optional `owner` (the accountable approver) and
+  `relates_to` (lateral links between decisions; `rests_on` stays assumptions-only).
 
 ## v1.1.0 — 2026-07-02
 
