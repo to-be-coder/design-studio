@@ -26,10 +26,19 @@ standalone.
    only** — never flag content. Lint reports that debt exists; the content stays behind the
    membrane until `harvest` crosses it properly.
 2. **Checks:**
+   - **Schema integrity** — every page carries the full frontmatter contract with valid values;
+     `raw/` untouched-since-added; `CLAUDE.md` present and current.
    - **Contradictions** — two pages making opposing claims → propose a supersede or a fork (one
      page's "Breaks when" grows).
+   - **Duplicates** — two pages that are one lesson wearing two names → propose a merge (the
+     merged-away page gets `status: superseded`, pointing at the survivor).
    - **Orphans** — live pages missing from every view, or with no inbound links → propose the
      missing index line, or retirement (`status` change) if the page never earned its place.
+   - **Coverage gaps** — a concept several pages reference that has no page of its own → propose
+     it; **missing cross-references** between pages that clearly relate → propose the links.
+   - **Fillable gaps** — thin pages and open questions the web could answer → suggest the next
+     questions to investigate and sources to look for (a `design-studio-research` sweep can
+     execute); proposals only, never auto-ingested.
    - **Stale claims** — `last_confirmed` older than ~12 months on `mechanism`/`standard` pages →
      re-verify against the primary source, adversarially (same spirit as `design-studio-verify`),
      then bump the date or amend the page.

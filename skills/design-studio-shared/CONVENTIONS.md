@@ -240,19 +240,28 @@ right at studio scale).
 ### Layout
 ```
 <vault>/Studio Wiki/
+  CLAUDE.md     ← the wiki's schema file: rules + read protocol for ANY session (ships in starter-wiki)
   _index.md     ← entity view: one line per page (maintained by harvest)
   _plays.md     ← problem-shaped view: plays & traps, matched by problem shape
   _sparks.md    ← the sparks shelf: orphaned ideas, browseable
   log.md        ← append-only, parseable: "## [YYYY-MM-DD] harvest|lint|ingest — <source>"
-  raw/          ← immutable source captures (transcripts, excerpts, clippings)
+  raw/          ← immutable source captures (transcripts, excerpts, images; add-only)
   wiki/         ← the pages, flat (no deep nesting)
 ```
+
+### Read protocol — index-first
+Views first (`_index.md` by entity, `_plays.md` by problem shape, `_sparks.md`), then drill into
+only the matched pages — never scan `wiki/` wholesale. Analyses worth keeping don't die in chat
+history: capture the material to `raw/` and cross via `harvest` ingest — or, if project-specific,
+flag them in that project's `Harvest.md` instead. If the wiki ever outgrows flat indexes
+(hundreds of pages), bolt on a local markdown search tool (e.g. qmd) as a *reader* — the pages
+and the membrane don't change.
 
 ### Page contract
 ```yaml
 ---
 type: wiki-page
-entity: pattern      # pattern|play|trap|spark|standard|craft|client|tool
+entity: pattern      # pattern|play|trap|spark|standard|craft|client|tool|source
 applies: mechanism   # mechanism = safe everywhere | taste = invited only (greenfield) | process
 origin: harvest      # harvest | starter | manual
 born:                # project slug the lesson/idea came from
@@ -270,8 +279,12 @@ it applies / Source of truth. Supersede, never overwrite — ADR semantics apply
 - **Few pages, each earns its place.** Prefer editing an existing page over minting a new one. A
   junk drawer serves everything in theory and nothing in practice.
 - `applies: taste` is never applied to client-brand work uninvited; `mechanism` is always safe.
-- `design-studio-wiki-lint` prunes: contradictions, orphans, stale pages, sparks that never got
-  used, harvest debt (done projects with undistilled flags).
+- `design-studio-wiki-lint` prunes: contradictions, orphans, duplicates, coverage gaps, stale
+  pages, sparks that never got used, harvest debt (done projects with undistilled flags).
+- No page without provenance: every page cites `sources` (raw captures, decisions) — synthesis is
+  filed only after its material lands in `raw/`.
+- Version the vault (or at least `Studio Wiki/`) in git once real pages exist — history, blame,
+  and collaboration for free.
 
 ### Seeding — two user types, one mechanic
 `harvest` seeds an empty wiki by input mode: **starter** (copy the shipped mechanism-only pages

@@ -28,7 +28,9 @@ Runs standalone. The ONLY skill that writes the wiki; main thread only, never a 
 ## Process
 
 1. **Resolve the wiki.** If `<vault>/Studio Wiki/` is missing, offer to initialize it per the
-   CONVENTIONS layout, and ask which seed mode fits:
+   CONVENTIONS layout — always including the wiki's `CLAUDE.md` schema file from
+   `../design-studio-shared/starter-wiki/`, whatever the seed mode (it's what keeps sessions
+   without these skills behaving) — and ask which seed mode fits:
    - **starter** — copy `../design-studio-shared/starter-wiki/` in: mechanism-only pages that make
      day-one reaches return something and teach the page format by example. (The one taste-class
      card in it is an example — it says so, and says to delete it once the user's own exists.)
@@ -42,8 +44,11 @@ Runs standalone. The ONLY skill that writes the wiki; main thread only, never a 
    Log the init in `log.md`.
 2. **Gather the source.** Close-out/milestone: the project's `Harvest.md` flags, `Decisions/`
    (cuts and supersedes especially), rejected directions in `04 Directions.md`, findings in
-   `05 Validation.md`. Ingest mode: capture the excerpt into `raw/` first (immutable), then work
-   from the capture.
+   `05 Validation.md`. Ingest mode: capture the excerpt into `raw/` first (immutable; save images
+   locally rather than hotlinking, and read a capture's text before viewing its images — they
+   don't come through in one pass), then work from the capture. An ingest crossing includes one
+   brief **source page** (`entity: source`): a paragraph of what it says, a link to the raw
+   capture, and what it changed in the wiki.
 3. **Draft the crossing** (🟡). For each candidate lesson:
    - **De-clientify** — strip names, numbers, strategy; keep the mechanism. Test: the page must be
      safe to show any other client.
