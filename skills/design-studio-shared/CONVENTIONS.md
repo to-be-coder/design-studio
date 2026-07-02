@@ -52,7 +52,8 @@ SORT file.mtime ASC
 ```
 ````
 
-- `Home.md` at the vault root is the **Homepage**-plugin landing note and links here.
+- `Home.md` at the vault root is the **Homepage**-plugin landing note and links here (and to
+  `Studio Wiki/_index.md` once the wiki exists).
 - **Bases** (core plugin, Obsidian 1.9+) reads the same `type: design-project` frontmatter — create
   a base filtered `type == "design-project"` with columns `status / stage / client / started`, and a
   second view grouped by `status` for a board. (Replaces the discontinued Projects plugin.)
@@ -244,7 +245,7 @@ right at studio scale).
   _index.md     ← entity view: one line per page (maintained by harvest)
   _plays.md     ← problem-shaped view: plays & traps, matched by problem shape
   _sparks.md    ← the sparks shelf: orphaned ideas, browseable
-  log.md        ← append-only, parseable: "## [YYYY-MM-DD] harvest|lint|ingest — <source>"
+  log.md        ← append-only, parseable: "## [YYYY-MM-DD] init|harvest|lint|ingest — <source>"
   raw/          ← immutable source captures (transcripts, excerpts, images; add-only)
   wiki/         ← the pages, flat (no deep nesting)
 ```
@@ -265,7 +266,7 @@ entity: pattern      # pattern|play|trap|spark|standard|craft|client|tool|source
 applies: mechanism   # mechanism = safe everywhere | taste = invited only (greenfield) | process
 origin: harvest      # harvest | starter | manual
 born:                # project slug the lesson/idea came from
-sources: []          # [[links]] to project decisions / raw captures
+sources: []          # [[links]] to project decisions / raw captures (plain strings when a page ships outside a vault)
 status: live         # live | superseded | aged-out
 last_confirmed: YYYY-MM-DD
 ---
@@ -287,8 +288,9 @@ it applies / Source of truth. Supersede, never overwrite — ADR semantics apply
   and collaboration for free.
 
 ### Seeding — two user types, one mechanic
-`harvest` seeds an empty wiki by input mode: **starter** (copy the shipped mechanism-only pages
-from `design-studio-shared/starter-wiki/`), **backfill** (retro-harvest past projects — cap 3,
+`harvest` seeds an empty wiki by input mode: **starter** (copy the shipped pages from
+`design-studio-shared/starter-wiki/` — mechanism and process class only, plus one clearly-marked
+taste example card that asks to be deleted), **backfill** (retro-harvest past projects — cap 3,
 best-remembered first: the user's memory of what mattered is the curation signal), **derive**
 (existing product → baseline pages describing what is). Taste pages are never shipped and never
 backfilled from someone else's work — taste is grown; that's the point.

@@ -31,9 +31,10 @@ Runs standalone. The ONLY skill that writes the wiki; main thread only, never a 
    CONVENTIONS layout — always including the wiki's `CLAUDE.md` schema file from
    `../design-studio-shared/starter-wiki/`, whatever the seed mode (it's what keeps sessions
    without these skills behaving) — and ask which seed mode fits:
-   - **starter** — copy `../design-studio-shared/starter-wiki/` in: mechanism-only pages that make
-     day-one reaches return something and teach the page format by example. (The one taste-class
-     card in it is an example — it says so, and says to delete it once the user's own exists.)
+   - **starter** — copy `../design-studio-shared/starter-wiki/` in: mechanism- and process-class
+     pages that make day-one reaches return something and teach the page format by example. (The
+     one taste-class card in it is a format example — it says so, and says to delete it once the
+     user's own exists. Real taste never ships.)
    - **backfill** — the user picks **up to 3 past projects, best-remembered first**. Their memory
      of what mattered IS the curation signal — never offer bulk ingestion. Read whatever exists
      per project (files, docs, repos, Figma via MCP); interview the user briefly for what the

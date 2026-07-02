@@ -35,8 +35,8 @@ the skills installed.
   prefer locally saved images over hotlinked URLs.
 - `_index.md` / `_plays.md` / `_sparks.md` — the views; harvest keeps them current on every
   crossing.
-- `log.md` — append-only timeline: `## [YYYY-MM-DD] harvest|lint|ingest — <source>`. Parseable
-  with unix tools: `grep "^## \[" log.md | tail -5`.
+- `log.md` — append-only timeline: `## [YYYY-MM-DD] init|harvest|lint|ingest — <source>`.
+  Parseable with unix tools: `grep "^## \[" log.md | tail -5`.
 
 ## Filing answers back
 

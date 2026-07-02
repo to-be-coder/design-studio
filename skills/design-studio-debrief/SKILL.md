@@ -69,7 +69,8 @@ At the start of a design project. Runs standalone. The only skill that creates a
 9. **Ensure the portfolio dashboard exists.** If `<vault>/Design Studio/_Design Studio.md` is
    missing, create it with the Dataview portfolio queries from CONVENTIONS. It auto-discovers this
    and all future projects by frontmatter — no row to append. Ensure a `Home.md` exists at the vault
-   root (Homepage landing note) linking to the portfolio.
+   root (Homepage landing note) linking to the portfolio — and to `Studio Wiki/_index.md` if the
+   wiki exists.
 
 10. **Update `00 Dashboard.md`** with stage = debrief done, next step = research (or per route).
 

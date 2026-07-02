@@ -3,7 +3,8 @@
 A spec-first product-design pipeline for [Claude Code](https://claude.com/claude-code), delivered as
 a set of installable [skills](https://docs.claude.com/en/docs/claude-code/skills). It takes a design
 brief from first framing all the way to a validated, handoff-ready prototype spec — one stage at a
-time, with the human in the loop at every hard decision.
+time, with the human in the loop at every hard decision — and compounds what every project teaches
+into a studio-wide wiki.
 
 ## The pipeline
 
@@ -46,9 +47,10 @@ pulls patterns and sparks, `converge` checks traps, `design-system` pulls craft.
 | `design-studio-harvest` | The wiki's only writer: distills a finished project — or seeds an empty wiki (starter pages / backfill up to 3 past projects / derive from an existing product) — into de-clientified pages you review before anything crosses. |
 | `design-studio-wiki-lint` | Health check: contradictions, orphans, stale claims, aging sparks, harvest debt. Run it weekly-ish. |
 
-A mechanism-only **starter wiki** ships in `skills/design-studio-shared/starter-wiki/` so day-one
-reaches return something. Taste pages are never shipped — they're grown from your own projects;
-that's the point.
+A **starter wiki** ships in `skills/design-studio-shared/starter-wiki/` so day-one reaches return
+something — mechanism- and process-class pages only, plus one clearly-marked taste *example* card
+that asks to be deleted once your own exists. Real taste is never shipped — it's grown from your
+own projects; that's the point.
 
 ## Install
 
@@ -59,16 +61,16 @@ whole set.
 **Option A — install script (macOS / Linux):**
 
 ```sh
-git clone https://github.com/<your-username>/design-studio-skills.git
-cd design-studio-skills
+git clone https://github.com/<your-username>/design-studio.git
+cd design-studio
 ./install.sh
 ```
 
 **Option B — manual copy:**
 
 ```sh
-git clone https://github.com/<your-username>/design-studio-skills.git
-cp -R design-studio-skills/skills/design-studio-* ~/.claude/skills/
+git clone https://github.com/<your-username>/design-studio.git
+cp -R design-studio/skills/design-studio-* ~/.claude/skills/
 ```
 
 Then restart Claude Code (or start a new session) and the skills appear. Kick things off with:
@@ -88,7 +90,7 @@ Then restart Claude Code (or start a new session) and the skills appear. Kick th
 ## Updating
 
 ```sh
-cd design-studio-skills
+cd design-studio
 git pull
 ./install.sh
 ```
