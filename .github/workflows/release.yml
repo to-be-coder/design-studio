@@ -1,0 +1,46 @@
+name: Release
+
+# Creates a git tag + GitHub release for the current main, with notes pulled
+# from the matching CHANGELOG.md section. Run it from the Actions tab
+# (workflow_dispatch) whenever a release-worthy change lands.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to create (e.g. v1.0.0) — must match a '## <tag>' section in CHANGELOG.md"
+        required: true
+        default: "v1.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract release notes from CHANGELOG.md
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          awk -v tag="$TAG" '
+            index($0, "## " tag) == 1 { p = 1; next }
+            /^## / { p = 0 }
+            p
+          ' CHANGELOG.md > notes.md
+          if ! [ -s notes.md ]; then
+            echo "No CHANGELOG section found for $TAG — using a pointer instead." >&2
+            echo "See CHANGELOG.md for details." > notes.md
+          fi
+
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            --target "${{ github.sha }}" \
+            --title "$TAG" \
+            --notes-file notes.md
