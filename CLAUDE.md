@@ -17,6 +17,9 @@ right order.
 
 ## Developing this repo
 
+- **Docs map:** `README.md` — the user-facing story; `skills/design-studio-shared/CONVENTIONS.md`
+  — the law every skill follows; `skills/design-studio-shared/starter-wiki/CLAUDE.md` — the
+  wiki's own schema; `CHANGELOG.md` — release history (update it with every user-visible change).
 - `skills/design-studio-shared/CONVENTIONS.md` is the single source of truth every skill reads
   first. Change a convention there, nowhere else.
 - Consistency rules to preserve when editing:
@@ -28,3 +31,5 @@ right order.
   - Every `[[wikilink]]` in `design-studio-shared/starter-wiki/` must resolve to a page in its
     `wiki/` folder, and every starter page carries the full frontmatter contract from CONVENTIONS.
   - Each skill folder's name equals its SKILL.md frontmatter `name:`.
+  - The README's pipeline table and utility-skill mentions stay in sync with the actual folders
+    under `skills/`.

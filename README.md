@@ -24,6 +24,9 @@ The skills are meant to be run roughly in order, though several can be used on d
 | 10 | `design-studio-validate` | Test the built prototype against the success criteria; loop back if a finding invalidates a decision. |
 | — | `design-studio-compile-spec` | Render the decision log into an audience-shaped spec (align / stakeholder / engineering). Use on demand. |
 
+Three utility skills sit outside the numbered pipeline: `design-studio-setup` (first-run
+onboarding), and `design-studio-harvest` / `design-studio-wiki-lint` (see *Studio memory* below).
+
 `design-studio-shared/CONVENTIONS.md` is shared reference material every skill reads first. It is not
 a skill itself — leave it in place alongside the others.
 
@@ -32,6 +35,21 @@ from Google Labs: design tokens in YAML front matter plus design rationale in pr
 AI-readable file. `design-studio-design-system` authors and lints it (WCAG contrast included),
 `design-studio-build` moves it into the prototype repo so every screen — and every parallel build
 agent — draws from the same language, and `design-studio-validate` diffs it for drift.
+
+## How a project runs
+
+- **Two routes.** `debrief` proposes one from how ambiguous the brief is: **Full** — the whole
+  pipeline, for meaty, net-new problems — or **Lite** (`debrief → explore-directions → build →
+  compile-spec`, inserting `design-system` when the look matters) for routine, scoped work.
+- **The human owns the hard calls.** Every skill carries an autonomy level: 🟢 execute, 🟡 draft
+  for your edit, 🔴 scaffold-only. At 🔴 moments — the reframe, the spine, the cuts — the skill
+  structures the evidence, asks the question, and stops. It never supplies the verdict.
+- **Everything lands in your vault.** Each project gets a dashboard, an immutable ADR decision log
+  (superseded, never deleted — loop-backs stay visible), research files, a `DESIGN.md` visual
+  contract that moves into the prototype repo when build starts, and a `Harvest.md` flag inbox
+  that feeds the Studio Wiki.
+- **The prototype is a separate code repo**, built spec-first against `DESIGN.md`; the project
+  dashboard links to it.
 
 ## Studio memory
 
@@ -90,6 +108,9 @@ cd design-studio
 git pull
 ./install.sh
 ```
+
+Updates replace the skills only — your vault (projects and wiki) is never touched. User-visible
+changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
