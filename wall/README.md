@@ -30,6 +30,9 @@ Requires Node 18+, zero npm dependencies. The server prints the URL
   cannot run a ritual).
 - **Honest states.** No vault → setup card. No `claude` CLI → runs disabled with a hint.
   Empty portfolio/wiki → told plainly, with the command that fixes it.
+- **Deviations are counted, not judged.** The portfolio tile and each project drill-in show
+  deviations against total decisions, read straight from `deviation`-tagged entries in the
+  decision log. Zero is displayed, not hidden — zero is the number worth questioning.
 
 ## Security model
 

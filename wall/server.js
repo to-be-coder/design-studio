@@ -117,6 +117,20 @@ function harvestFlagCount(projectDir) {
   return (undistilled.match(/^- /gm) || []).length;
 }
 
+/** @param {string} projectDir @returns {{decisions: number, deviations: number}} */
+function decisionCounts(projectDir) {
+  let decisions = 0, deviations = 0;
+  try {
+    for (const f of fs.readdirSync(path.join(projectDir, 'Decisions'))) {
+      if (!f.endsWith('.md')) continue;
+      const fm = frontmatter(safeRead(path.join(projectDir, 'Decisions', f)) || '');
+      decisions++;
+      if ((fm.tags || '').includes('deviation')) deviations++;
+    }
+  } catch { /* no Decisions/ yet */ }
+  return { decisions, deviations };
+}
+
 // ── vault readers ──
 /** @returns {WallState} */
 function readState() {
@@ -137,12 +151,14 @@ function readState() {
     const fm = frontmatter(safeRead(path.join(pdir, '00 Dashboard.md')) || '');
     if (fm.type !== 'design-project') continue;
     const idleDays = (Date.now() - newestMtime(pdir)) / 86_400_000;
+    const counts = decisionCounts(pdir);
     state.portfolio.push({
       slug, status: fm.status || 'active', stage: fm.stage || '—',
       client: fm.client || '', route: fm.route || '', started: fm.started || '',
       prototype_repo: fm.prototype_repo || '',
       idleDays: Math.round(idleDays * 10) / 10,
       flags: harvestFlagCount(pdir),
+      decisions: counts.decisions, deviations: counts.deviations,
       health: fm.status !== 'active' ? 'ok' : idleDays > 5 ? 'warn' : 'ok',
     });
     if (fm.prototype_repo) state.prototypes.push({ slug, repo: fm.prototype_repo });

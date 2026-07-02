@@ -17,6 +17,9 @@ All notable, user-visible changes to the design-studio skills are documented her
   conventional" is a legal answer.
 - **Gate taxonomy** — CONVENTIONS classifies every checkpoint (hard floor-check / rationale
   gate / protected zone / staleness check) and bans conformance gates by name.
+- **Wall: deviation count** — project drill-ins and the portfolio tile show deviations against
+  total decisions, from the decision log. A count, not a gauge — and zero is shown, because
+  zero is the number worth questioning.
 
 ## v1.1.0 — 2026-07-02
 

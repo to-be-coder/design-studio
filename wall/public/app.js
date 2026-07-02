@@ -97,6 +97,14 @@ function renderPortfolio(s) {
     .map(([st, n], i) => `<span class="chip${i === 0 ? ' active' : ''}">${esc(st)} ${n}</span>`).join('')
     || `<span class="chip">no active projects</span>`;
 
+  // deviations against decisions, studio-wide — a count, not a gauge; zero is shown on purpose
+  const decisions = items.reduce((n, p) => n + p.decisions, 0);
+  const deviations = items.reduce((n, p) => n + p.deviations, 0);
+  const dev = $('pf-dev');
+  dev.hidden = decisions === 0;
+  dev.textContent = decisions === 0 ? '' :
+    `${deviations} deviation${deviations === 1 ? '' : 's'} across ${decisions} decision${decisions === 1 ? '' : 's'}`;
+
   const MAX = 8;
   const rows = items.slice(0, MAX).map((p, i) => `
     <button class="t-row" data-drill="${i}" role="listitem">
@@ -253,6 +261,7 @@ function drillProject(p) {
       <dt>started</dt><dd>${esc(p.started || '—')}</dd>
       <dt>idle</dt><dd>${p.idleDays} days</dd>
       <dt>harvest flags</dt><dd>${p.flags}</dd>
+      <dt>deviations</dt><dd>${p.deviations} — of ${p.decisions} decisions</dd>
       <dt>prototype</dt><dd>${p.prototype_repo ? `<a href="${esc(p.prototype_repo)}" target="_blank" rel="noopener">${esc(p.prototype_repo)}</a>` : '—'}</dd>
     </dl>`);
 }

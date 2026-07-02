@@ -12,6 +12,8 @@ export interface Project {
   prototype_repo: string;
   idleDays: number;
   flags: number;
+  decisions: number;
+  deviations: number;
   health: 'ok' | 'warn';
 }
 
