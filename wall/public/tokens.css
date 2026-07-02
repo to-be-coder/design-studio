@@ -1,0 +1,42 @@
+:root {
+  --color-primary: #ff8a3d;
+  --color-primary-pressed: #e87729;
+  --color-primary-dim: #402917;
+  --color-canvas: #141009;
+  --color-surface: #1b150d;
+  --color-elevated: #231b11;
+  --color-card: #2b2216;
+  --color-hairline: #3b2f1d;
+  --color-ink: #e8dcc9;
+  --color-ink-dim: #ad9e80;
+  --color-dot-ok: #63c78a;
+  --color-dot-warn: #d9a441;
+  --color-dot-err: #d96a6a;
+  --font-display: "Inter";
+  --font-metric: "Inter";
+  --font-body: "Inter";
+  --font-micro: "Inter";
+  --font-mono: "ui-monospace";
+  --text-display: 40px;
+  --text-metric: 28px;
+  --text-body: 14px;
+  --text-micro: 11px;
+  --text-mono: 13px;
+  --tracking-display: -0.01em;
+  --tracking-micro: 0.09em;
+  --font-weight-display: 600;
+  --font-weight-metric: 600;
+  --font-weight-body: 400;
+  --font-weight-micro: 600;
+  --font-weight-mono: 400;
+  --radius-sm: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 48px;
+  --spacing-section: 56px;
+}
+

@@ -51,8 +51,9 @@ a broken or moved vault pointer. Runs standalone.
    **for after their first pipeline run**, not now: reaching a first real project beats depth on
    day one, and the wiki is built to grow.
 7. **Finish verified, with one next action.** Re-read the pointer, list what now exists (vault
-   path; `Design Studio/`; `Studio Wiki/` with its page count), and end with exactly one
-   instruction: **"Bring a brief and run `/design-studio-debrief`."**
+   path; `Design Studio/`; `Studio Wiki/` with its page count; a footnote that the optional
+   dashboard is one command away — `node wall/server.js` from the cloned repo), and end with
+   exactly one instruction: **"Bring a brief and run `/design-studio-debrief`."**
 
 ## Handoff
 `design-studio-debrief` for the first project. Re-run this skill anytime the vault moves.
