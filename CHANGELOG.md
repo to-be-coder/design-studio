@@ -12,6 +12,9 @@ All notable, user-visible changes to the design-studio skills are documented her
 - **Deviations** — off-script is now legal and recorded: overriding a rationale gate writes a
   decision entry tagged `deviation` plus a Harvest flag; harvest promotes recurring deviations
   to patterns and failed ones to traps. Only the user pulls the wire.
+- **Deviation thesis** — debrief now captures the one thing each project should feel like that
+  the precedents don't; explore-directions and design-system read it. "None — deliberately
+  conventional" is a legal answer.
 
 ## v1.1.0 — 2026-07-02
 

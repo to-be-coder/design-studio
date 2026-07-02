@@ -24,6 +24,8 @@ For any hard, non-obvious decision — especially the ones `scope-and-sequence` 
    up to 3 sparks from `_sparks.md` that smell like this problem — unprompted; sparks die if
    retrieval depends on someone remembering to look. Then **generate N structurally-different
    directions** (🟡) — not variations on one idea; genuinely different approaches. Aim for 3+.
+   Read the deviation thesis from `01 Brief & Problem.md`: at least one direction should take
+   it seriously. It is an input to generation, not a gate — no direction is judged against it.
 2. **Price true cost** for each: **build cost AND support cost** (ongoing maintenance, data to keep
    forever), explicitly weighted by team size. Cost-to-support-forever is the part that's easy to
    forget — force it.

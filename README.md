@@ -44,6 +44,9 @@ agent — draws from the same language, and `design-studio-validate` diffs it fo
 - **The human owns the hard calls.** Every skill carries an autonomy level: 🟢 execute, 🟡 draft
   for your edit, 🔴 scaffold-only. At 🔴 moments — the reframe, the spine, the cuts — the skill
   structures the evidence, asks the question, and stops. It never supplies the verdict.
+- **Every project names its departure.** `debrief` captures a deviation thesis — the one thing
+  this product should feel like that the studio's precedents don't ("none — deliberately
+  conventional" is a legal answer); `explore-directions` and `design-system` build against it.
 - **Everything lands in your vault.** Each project gets a dashboard, an immutable ADR decision log
   (superseded, never deleted — loop-backs stay visible), research files, a `DESIGN.md` visual
   contract that moves into the prototype repo when build starts, and a `Harvest.md` flag inbox

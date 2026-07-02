@@ -40,7 +40,7 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
    `applies: taste` pages are invited only — greenfield/unbranded work, never client-brand.
 3. **Draft candidate languages** (🟡). If the direction is genuinely open, draft 2–3 contrasting
    token sets, each with a stated stance in one line ("editorial calm", "dense instrument") laddered
-   to the spine. If the identity was derived in step 2, draft one faithful set and skip to step 5.
+   to the spine and the deviation thesis. If the identity was derived in step 2, draft one faithful set and skip to step 5.
 4. **Render specimen boards — never ask the user to judge YAML.** For each candidate, generate a
    self-contained HTML page *from its tokens*: the type scale set in the product's real vocabulary
    (from `02 Research/`), the palette in use (text on backgrounds, the primary button, borders), and
@@ -60,7 +60,9 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
 8. **Lint gate** (🟢): `npx @google/design.md lint DESIGN.md` until clean. It checks WCAG contrast
    as well as structure — a contrast failure is a design problem to solve, not a warning to mute.
 9. **User sign-off.** Walk the user through the tokens and the Do's/Don'ts; adjust until they'd
-   defend it as theirs. Record the committed language as a decision entry (rejected boards and why;
+   defend it as theirs. On the specimen-board path only, ask before sign-off: *what makes this
+   expression distinct from the last build on a similar system?* Derive-mode client work is
+   exempt — a derived identity is judged on fidelity, not distinctness. Record the committed language as a decision entry (rejected boards and why;
    `rests_on` any brand assumption). Not a full 🔴 — drafting is the skill's job — but build must
    never consume an unreviewed language. Then **update `00 Dashboard.md`** (stage = design-system,
    next = build).

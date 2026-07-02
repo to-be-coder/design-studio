@@ -46,7 +46,8 @@ Runs standalone. The ONLY skill that writes the wiki; main thread only, never a 
 2. **Gather the source.** Close-out/milestone: the project's `Harvest.md` flags, `Decisions/`
    (cuts, supersedes, and `deviation`-tagged entries especially — a recurring deviation is a
    pattern candidate; a superseded one is a trap candidate), rejected directions in
-   `04 Directions.md`, findings in `05 Validation.md`. Ingest mode: capture the excerpt into `raw/` first (immutable; save images
+   `04 Directions.md`, findings in `05 Validation.md`, and the deviation thesis — did it hold?
+   A held thesis is an `applies: taste` page candidate. Ingest mode: capture the excerpt into `raw/` first (immutable; save images
    locally rather than hotlinking, and read a capture's text before viewing its images — they
    don't come through in one pass), then work from the capture. An ingest crossing includes one
    brief **source page** (`entity: source`): a paragraph of what it says, a link to the raw

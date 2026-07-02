@@ -67,7 +67,7 @@ SORT file.mtime ASC
 ```
 <vault>/Design Studio/<slug>/
   00 Dashboard.md          ← project home note; YAML below; links every artifact + the repo
-  01 Brief & Problem.md    ← restated problem, rubric, principle, success criteria (provisional early)
+  01 Brief & Problem.md    ← restated problem, rubric, principle, deviation thesis, success criteria (provisional early)
   02 Research/             ← Company.md / Pain.md / Standards.md / Landscape.md
   03 Scope.md              ← full scope + staged sequence + migration plan
   04 Directions.md         ← directions + data-model comparison

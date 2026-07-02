@@ -1,6 +1,6 @@
 ---
 name: design-studio-debrief
-description: Start a new product-design project from a brief. Restates the brief as a problem (not a task), extracts the hidden rubric and guiding principle, sets provisional success criteria, seeds the risk register, and initializes the Obsidian project folder under Design Studio/ with a dashboard and decision log. Use at the very start of a design project, when handed a brief, spec, or feature request to design. First stage of the design-studio pipeline.
+description: Start a new product-design project from a brief. Restates the brief as a problem (not a task), extracts the hidden rubric, guiding principle, and deviation thesis, sets provisional success criteria, seeds the risk register, and initializes the Obsidian project folder under Design Studio/ with a dashboard and decision log. Use at the very start of a design project, when handed a brief, spec, or feature request to design. First stage of the design-studio pipeline.
 ---
 
 # design-studio-debrief
@@ -41,15 +41,22 @@ At the start of a design project. Runs standalone. The only skill that creates a
    the brief/stakeholders state it, record it. If not, write `PROVISIONAL — confirm in research`.
    Do not invent a principle to look complete.
 
-5. **Set provisional success criteria** (gap #4) — how you'd know it worked once shipped. Mark
+5. **Capture the deviation thesis** — the one thing this product should feel like that the
+   precedents don't. The precedent check just surfaced what earlier projects did; ask the user
+   what this one departs from. Record it in `01 Brief & Problem.md` beside the guiding
+   principle. `PROVISIONAL — revisit at explore-directions` is fine; **"none — deliberately
+   conventional" is a legal answer and gets recorded as such.** Never invent a thesis to look
+   complete — a manufactured departure is the same failure as a manufactured principle.
+
+6. **Set provisional success criteria** (gap #4) — how you'd know it worked once shipped. Mark
    `PROVISIONAL — revisit after research`. Rough is fine now; `validate` uses them later.
 
-6. **Seed the risk register** (gap #8) — the assumptions the framing already rests on, status `untested`.
+7. **Seed the risk register** (gap #8) — the assumptions the framing already rests on, status `untested`.
 
-7. **Recommend a route** (fix #1): based on how ambiguous/net-new the brief is, suggest **Full** or
+8. **Recommend a route** (fix #1): based on how ambiguous/net-new the brief is, suggest **Full** or
    **Lite** (`debrief → explore-directions → build → compile-spec`). Let the user decide; record it.
 
-8. **Write the workspace** under `<vault>/Design Studio/<slug>/`:
+9. **Write the workspace** under `<vault>/Design Studio/<slug>/`:
    - `00 Dashboard.md` — project home note. YAML per the CONVENTIONS dashboard contract
      (`type: design-project`, `status: active`, `stage: debrief`, `client`, `route`, `started`,
      `prototype_repo:` empty). Body: Current stage, Next step, Artifacts list (links), and a
@@ -60,7 +67,8 @@ At the start of a design project. Runs standalone. The only skill that creates a
      ```
      ````
    - `01 Brief & Problem.md` — original brief verbatim, the restated problem, the rubric as a
-     checklist, the guiding principle, success criteria. Mark provisional items clearly.
+     checklist, the guiding principle, the deviation thesis, success criteria. Mark provisional
+     items clearly.
    - `Assumptions & Risks.md` — the seeded register.
    - `Harvest.md` — empty flag inbox for Studio Wiki keepers (capture is free; see CONVENTIONS).
    - `Decisions/0001 <framing-slug>.md` — the framing decision (status `decided` once confirmed,
@@ -68,13 +76,13 @@ At the start of a design project. Runs standalone. The only skill that creates a
    - Create empty `02 Research/` and `_assets/` so later skills have a home.
    - Set `<vault>/.design-studio-active` to the slug.
 
-9. **Ensure the portfolio dashboard exists.** If `<vault>/Design Studio/_Design Studio.md` is
+10. **Ensure the portfolio dashboard exists.** If `<vault>/Design Studio/_Design Studio.md` is
    missing, create it with the Dataview portfolio queries from CONVENTIONS. It auto-discovers this
    and all future projects by frontmatter — no row to append. Ensure a `Home.md` exists at the vault
    root (Homepage landing note) linking to the portfolio — and to `Studio Wiki/_index.md` if the
    wiki exists.
 
-10. **Update `00 Dashboard.md`** with stage = debrief done, next step = research (or per route).
+11. **Update `00 Dashboard.md`** with stage = debrief done, next step = research (or per route).
 
 ## Handoff
 Point to `design-studio-research` (Full) or `design-studio-explore-directions` (Lite).
