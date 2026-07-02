@@ -20,3 +20,6 @@ One-liners for the Studio Wiki; distilled at project close by `design-studio-har
   harness AND the odd-install escape hatch. — craft candidate.
 - Trap: a test that strips PATH can still find the real binary — the real `claude` hung a
   90-second harness. Stub external CLIs explicitly; never assume absence. — trap candidate.
+- Wells step to `surface`, never `canvas`: a canvas-dark input inside an overlay reads as a hole
+  punched through the interface — encode "canvas is the page and nothing else" as a ladder law.
+  — craft candidate (from user feedback on the run modal).
