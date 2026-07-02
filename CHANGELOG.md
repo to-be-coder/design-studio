@@ -2,6 +2,12 @@
 
 All notable, user-visible changes to the design-studio skills are documented here.
 
+## Unreleased
+
+- **Typed JS for the wall** — shapes in `wall/types.d.ts`, JSDoc annotations enforced by
+  `tsc --noEmit` (strict) as a contributor check gate. Zero runtime dependencies and the
+  zero-build `node wall/server.js` promise unchanged (decision 0006).
+
 ## v1.1.0 — 2026-07-02
 
 ### Added

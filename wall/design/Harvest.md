@@ -23,3 +23,6 @@ One-liners for the Studio Wiki; distilled at project close by `design-studio-har
 - Wells step to `surface`, never `canvas`: a canvas-dark input inside an overlay reads as a hole
   punched through the interface — encode "canvas is the page and nothing else" as a ladder law.
   — craft candidate (from user feedback on the run modal).
+- Typed JS (JSDoc + tsc --noEmit against a shared types.d.ts) = the type contract without the
+  build step — the checker is a lint gate, the medium stays native. Gotcha: JSDoc import() paths
+  need explicit .js extensions under NodeNext resolution. — craft candidate.
