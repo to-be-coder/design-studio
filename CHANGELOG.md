@@ -9,6 +9,9 @@ All notable, user-visible changes to the design-studio skills are documented her
   zero-build `node wall/server.js` promise unchanged (decision 0006).
 - **ADR edges** — decision entries gain optional `owner` (the accountable approver) and
   `relates_to` (lateral links between decisions; `rests_on` stays assumptions-only).
+- **Deviations** — off-script is now legal and recorded: overriding a rationale gate writes a
+  decision entry tagged `deviation` plus a Harvest flag; harvest promotes recurring deviations
+  to patterns and failed ones to traps. Only the user pulls the wire.
 
 ## v1.1.0 — 2026-07-02
 

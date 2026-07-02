@@ -30,8 +30,9 @@ After `build`. Runs standalone.
    also get a one-line flag in `Harvest.md`.
 3. **Design-drift check**: run `npx @google/design.md diff` between the prototype's `DESIGN.md` at
    build start (from the repo's git history) and the current file, and spot-check screens for
-   hardcoded values that bypass the tokens. Drift or a bypass with no matching decision entry is a
-   finding like any other — capture it in `05 Validation.md`.
+   hardcoded values that bypass the tokens. Divergence with no matching decision entry is
+   **drift** — a finding like any other; divergence *with* a deviation entry is legal — check
+   the entry instead of flagging the change. Capture findings in `05 Validation.md`.
 4. **Loop back** (fix #1, fix #2): if a finding invalidates a prior decision, don't patch silently —
    go to `explore-directions`/`converge` (or `design-system` for the visual language), make the new
    decision, and **supersede** the old entry (`status: superseded`, link `superseded_by`/`supersedes`).

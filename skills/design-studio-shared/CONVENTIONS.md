@@ -139,6 +139,32 @@ You may *sharpen* their thinking (name the trade-off, point out a fourth framing
 
 ---
 
+## Deviations — off-script is legal, and recorded
+
+Gates here check that decisions are deliberate and owned — never which choice was made. So any
+rationale gate can be set aside; setting one aside trips a wire: say why, on the record, with
+your name on it.
+
+- **Drift** is *unrecorded* divergence — a defect. `validate` treats a bypass with no matching
+  decision entry as a finding.
+- A **deviation** is the same act *with its decision entry*: an ordinary ADR in `Decisions/`,
+  `tags: [decision, deviation]`, `owner` filled, the **Why** naming the rule being set aside.
+  Also flag it as one line in `Harvest.md` (capture is free).
+- **Tripwire moments** (a closed list — grow it reluctantly): overriding a precondition warning
+  to proceed; a knowing token-discipline exception; reshaping a signed-off visual language
+  mid-build.
+- **Only the user pulls the wire.** A skill never records a deviation to route around a 🔴
+  stop. Hard floor-checks (lint, WCAG contrast, states/edge/a11y) are not tripwire-able — you
+  don't get to ship a broken focus state.
+- Deviations are the studio's R&D: one that **recurs** across projects is a pattern/play
+  candidate; one that **fails** (gets superseded) is a trap candidate. `harvest` gathers both.
+- An **accepted risk** (`verify`) is a different species — proceeding *without evidence*, not
+  *against a rule*. It keeps its own register and is **not** tagged `deviation`.
+- Zero deviations on one project is fine. Zero across many projects is a corridor problem
+  wearing the mask of discipline — the Wall surfaces the count for exactly this reason.
+
+---
+
 ## Decision log — the spine (ADR pattern)
 
 Every skill that makes/records a decision appends ONE file to the project's `Decisions/`. Capture it

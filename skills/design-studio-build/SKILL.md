@@ -21,7 +21,8 @@ a verified load-bearing assumption + chosen direction. **If the thinking is miss
 so** — building cheap UI before the understanding exists is the exact junior failure this pipeline
 prevents. If only `DESIGN.md` is missing, offer `design-studio-design-system` first — one shared
 visual contract is what keeps parallel agents from each inventing their own UI. The user may
-override, but make the gap explicit.
+override, but make the gap explicit — and record the override as a deviation entry
+(CONVENTIONS: Deviations).
 
 ## Process
 
@@ -45,8 +46,10 @@ override, but make the gap explicit.
    components and patterns: `DESIGN.md` codifies that system; don't invent divergent ones.
 6. **Provenance honesty** (if starting from a starter app): track kept-vs-built; every "I built this"
    claim must be literally true against the source.
-7. **Record** build-shaping decisions (what the spec cut or reshaped, what was inherited). Link
-   `00 Dashboard.md` to the repo path.
+7. **Record** build-shaping decisions (what the spec cut or reshaped, what was inherited). When
+   the user corrected a plausible-but-wrong model default — a state, a pattern, a token
+   application — flag the correction as one line in `Harvest.md`: these overrides are the
+   wiki's craft- and trap-feedstock. Link `00 Dashboard.md` to the repo path.
 8. **Update `00 Dashboard.md`** (stage = build, next = validate).
 
 ## Handoff
