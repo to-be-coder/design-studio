@@ -1,6 +1,6 @@
 ---
 name: design-studio-validate
-description: Test the built prototype against the success criteria — with real users when they exist, or a structured expert/heuristic review when they don't — capture findings, and loop back to supersede any decision a finding invalidates. Use after build, to close the loop before handoff. Ninth stage of the design-studio pipeline.
+description: Test the built prototype against the success criteria — with real users when they exist, or a structured expert/heuristic review when they don't — check for visual drift against DESIGN.md, capture findings, and loop back to supersede any decision a finding invalidates. Use after build, to close the loop before handoff. Tenth stage of the design-studio pipeline.
 ---
 
 # design-studio-validate
@@ -26,10 +26,15 @@ After `build`. Runs standalone.
      evaluation (Nielsen heuristics), a cognitive walkthrough of the core task, and an
      accessibility pass. Mark findings as expert-judgment, not user-validated.
 2. **Capture findings** in `05 Validation.md`: what held, what broke, against which success criterion.
-3. **Loop back** (fix #1, fix #2): if a finding invalidates a prior decision, don't patch silently —
-   go to `explore-directions`/`converge`, make the new decision, and **supersede** the old entry
-   (`status: superseded`, link `superseded_by`/`supersedes`). The log shows the real path.
-4. **Update `00 Dashboard.md`** (stage = validate, next = compile-spec or iterate).
+3. **Design-drift check**: run `npx @google/design.md diff` between the prototype's `DESIGN.md` at
+   build start (from the repo's git history) and the current file, and spot-check screens for
+   hardcoded values that bypass the tokens. Drift or a bypass with no matching decision entry is a
+   finding like any other — capture it in `05 Validation.md`.
+4. **Loop back** (fix #1, fix #2): if a finding invalidates a prior decision, don't patch silently —
+   go to `explore-directions`/`converge` (or `design-system` for the visual language), make the new
+   decision, and **supersede** the old entry (`status: superseded`, link `superseded_by`/`supersedes`).
+   The log shows the real path.
+5. **Update `00 Dashboard.md`** (stage = validate, next = compile-spec or iterate).
 
 ## Handoff
 Point to `design-studio-compile-spec` (stakeholder or eng-handoff mode), or loop back to iterate.

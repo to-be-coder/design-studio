@@ -1,6 +1,6 @@
 ---
 name: design-studio-compile-spec
-description: Render the decision log into an audience-shaped document — an early align one-pager to socialize a reframe with stakeholders, a why-first stakeholder spec, or a what-plus-acceptance engineering handoff. Use on demand whenever you need to communicate decisions. Tenth stage of the design-studio pipeline.
+description: Render the decision log into an audience-shaped document — an early align one-pager to socialize a reframe with stakeholders, a why-first stakeholder spec, or a what-plus-acceptance engineering handoff. Use on demand whenever you need to communicate decisions. Eleventh stage of the design-studio pipeline.
 ---
 
 # design-studio-compile-spec
@@ -30,8 +30,10 @@ show good thinking.
 
 **3. `eng-handoff`** (what + acceptance).
 Render for engineering: the chosen directions, acceptance criteria, the states/edge/a11y notes from
-build, the data model from `04 Directions.md`, copy, and the migration plan. This is the *what/how*,
-complementing the stakeholder spec's *why*.
+build, the data model from `04 Directions.md`, copy, the migration plan, and the visual contract —
+link the prototype repo's `DESIGN.md` and attach a token export in the team's format
+(`npx @google/design.md export --format dtcg`, or `--format css-tailwind` for a Tailwind team).
+This is the *what/how*, complementing the stakeholder spec's *why*.
 
 ## Process
 1. Read all of `Decisions/`, `01 Brief & Problem.md`, and the relevant artifacts.
