@@ -26,3 +26,7 @@ One-liners for the Studio Wiki; distilled at project close by `design-studio-har
 - Typed JS (JSDoc + tsc --noEmit against a shared types.d.ts) = the type contract without the
   build step — the checker is a lint gate, the medium stays native. Gotcha: JSDoc import() paths
   need explicit .js extensions under NodeNext resolution. — craft candidate.
+- Trap: author CSS silently defeats the `hidden` attribute (any `display` rule on a togglable
+  container beats the UA's `[hidden]{display:none}`) — pair such rules with a `[hidden]` reset.
+  Shipped broken since day one; invisible to keyboard-driven demos; caught by an end-to-end
+  preview clicking with a mouse. — trap candidate.

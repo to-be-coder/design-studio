@@ -129,7 +129,7 @@ function renderWiki(s) {
     return;
   }
   $('wk-metric').textContent = `${s.wiki.pages} pages`;
-  $('wk-sub').textContent = `${s.wiki.sparks} sparks on the shelf`;
+  $('wk-sub').textContent = `${s.wiki.sparks} spark${s.wiki.sparks === 1 ? '' : 's'} on the shelf`;
   $('wk-log').innerHTML = s.wiki.log.map(l => `<span>${esc(l.replace(/^## /, ''))}</span>`).join('');
 }
 

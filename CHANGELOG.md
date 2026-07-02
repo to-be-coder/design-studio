@@ -20,6 +20,9 @@ All notable, user-visible changes to the design-studio skills are documented her
 - **Wall: deviation count** — project drill-ins and the portfolio tile show deviations against
   total decisions, from the decision log. A count, not a gauge — and zero is shown, because
   zero is the number worth questioning.
+- **Wall fix** — overlays no longer render permanently: a missing `[hidden]` reset let
+  `.overlay{display:flex}` defeat the `hidden` attribute, leaving the token gate over the board
+  and intercepting every click. Also: the wiki tile's spark count pluralizes.
 
 ## v1.1.0 — 2026-07-02
 
