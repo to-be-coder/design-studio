@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Wall</title>
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1 class="wordmark">Studio Wall</h1>
+    <p class="micro" id="today"></p>
+  </div>
+  <div class="top-right">
+    <span class="health micro" id="health"><i class="dot" data-dot="ok"></i><span>connecting…</span></span>
+    <button class="btn-primary" id="primary-action" hidden></button>
+  </div>
+</header>
+
+<main id="grid" class="grid" hidden>
+  <section class="tile" id="tile-portfolio" aria-labelledby="lbl-portfolio">
+    <div class="tile-head">
+      <h2 class="micro" id="lbl-portfolio">Portfolio</h2>
+      <button class="more" data-palette-open aria-label="More actions">⋯</button>
+    </div>
+    <p class="metric" id="pf-metric">—</p>
+    <p class="sub" id="pf-sub"></p>
+    <div class="chips" id="pf-chips"></div>
+    <div class="table" id="pf-table" role="list"></div>
+  </section>
+
+  <section class="tile" id="tile-wiki" aria-labelledby="lbl-wiki">
+    <div class="tile-head">
+      <h2 class="micro" id="lbl-wiki">Studio Wiki</h2>
+      <button class="more" data-palette-open aria-label="More actions">⋯</button>
+    </div>
+    <p class="metric" id="wk-metric">—</p>
+    <p class="sub" id="wk-sub"></p>
+    <div class="loglines mono" id="wk-log"></div>
+  </section>
+
+  <section class="tile" id="tile-prototypes" aria-labelledby="lbl-proto">
+    <div class="tile-head">
+      <h2 class="micro" id="lbl-proto">Prototypes</h2>
+      <button class="more" data-palette-open aria-label="More actions">⋯</button>
+    </div>
+    <div id="proto-list" class="proto-list"></div>
+  </section>
+
+  <section class="tile" id="tile-activity" aria-labelledby="lbl-activity">
+    <div class="tile-head">
+      <h2 class="micro" id="lbl-activity">Activity</h2>
+      <button class="more" data-palette-open aria-label="More actions">⋯</button>
+    </div>
+    <div class="feed" id="activity"></div>
+  </section>
+</main>
+
+<section id="setup-state" class="empty-card" hidden>
+  <h2>No vault yet</h2>
+  <p>The wall reads your design-studio vault, and none is configured on this machine.</p>
+  <p class="mono">claude → /design-studio-setup</p>
+  <p class="sub">Run setup once in Claude Code, then refresh this page.</p>
+</section>
+
+<footer class="hint micro">⌘K — run, open, or hand off</footer>
+
+<div class="overlay" id="palette-overlay" hidden>
+  <div class="palette" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="p-input">
+      <span class="caret">⌘K</span>
+      <input id="palette-input" type="text" placeholder="Run, open, or hand off…"
+             autocomplete="off" spellcheck="false">
+    </div>
+    <div id="palette-rows" role="listbox" aria-label="Actions"></div>
+  </div>
+</div>
+
+<div class="overlay" id="drill-overlay" hidden>
+  <div class="drillin" role="dialog" aria-modal="true" aria-labelledby="drill-title">
+    <div class="tile-head">
+      <h2 class="micro" id="drill-title">—</h2>
+      <button class="more" id="drill-close" aria-label="Close">esc</button>
+    </div>
+    <div id="drill-body"></div>
+  </div>
+</div>
+
+<div class="overlay" id="gate-overlay" hidden>
+  <div class="drillin gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <h2 class="micro" id="gate-title">Wall token</h2>
+    <p class="sub">Paste the token the server printed at startup. Stored only in this browser.</p>
+    <input id="gate-input" type="password" class="gate-field" autocomplete="off">
+    <button class="btn-primary" id="gate-save">Unlock</button>
+  </div>
+</div>
+
+<p class="toast micro" id="toast" role="status" aria-live="polite" hidden></p>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

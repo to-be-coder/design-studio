@@ -70,6 +70,21 @@ something — mechanism- and process-class pages only, plus one clearly-marked t
 that asks to be deleted once your own exists. Real taste is never shipped — it's grown from your
 own projects; that's the point.
 
+## The Wall
+
+The product includes its own dashboard — built through this very pipeline, as proof. **Studio
+Wall** is an ambient, single-hue dashboard over your vault (portfolio, wiki growth, prototypes,
+activity) with a token-gated control surface: `⌘K` runs the non-interactive skills from the
+browser, and conversational 🔴 stages hand off to Claude Code — a button cannot run a ritual.
+
+```sh
+node wall/server.js
+```
+
+Zero dependencies, localhost-only, two-skill allowlist. Its design record — brief, decisions,
+specimen boards, and the `DESIGN.md` visual contract (Ember: amber on warm near-black) — is
+public in [`wall/`](wall/). See [`wall/README.md`](wall/README.md) for the security model.
+
 ## Install
 
 These skills are user-level: they live in `~/.claude/skills/`. Every skill folder must stay a sibling
