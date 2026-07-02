@@ -7,10 +7,10 @@ All notable, user-visible changes to the design-studio skills are documented her
 ### Added
 
 - **Studio Wall** — an ambient dashboard and control surface over the vault, built through the
-  pipeline itself: public design record in `wall/design/` (brief, decisions 0001–0004, the two
-  specimen boards), visual contract in `wall/DESIGN.md` (Ember — single amber hue, warm
-  near-black, no pure white/black; lints clean including WCAG contrast, with the 8px
-  instrument-dot cap encoded as component tokens). Zero-dependency Node server (127.0.0.1 +
+  pipeline itself: public design record in `wall/design/` (brief, decisions 0001–0005 including
+  a superseded language pick, the two specimen boards), visual contract in `wall/DESIGN.md`
+  (Bloom — single sci-fi-pink hue, warm plum-black, no pure white/black; lints clean including
+  WCAG contrast, with the 8px instrument-dot cap encoded as component tokens). Zero-dependency Node server (127.0.0.1 +
   bearer token + Origin check; two-skill allowlist — `wiki-lint` report and `harvest` draft
   preview; one run at a time, streamed live, logged). Zero-build front end: ambient by default
   (no visible buttons), ⌘K command palette for every secondary action with press-Enter-again

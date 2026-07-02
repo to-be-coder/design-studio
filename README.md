@@ -82,8 +82,8 @@ node wall/server.js
 ```
 
 Zero dependencies, localhost-only, two-skill allowlist. Its design record — brief, decisions,
-specimen boards, and the `DESIGN.md` visual contract (Ember: amber on warm near-black) — is
-public in [`wall/`](wall/). See [`wall/README.md`](wall/README.md) for the security model.
+specimen boards, and the `DESIGN.md` visual contract (Bloom: sci-fi pink on warm plum-black) —
+is public in [`wall/`](wall/). See [`wall/README.md`](wall/README.md) for the security model.
 
 ## Install
 
