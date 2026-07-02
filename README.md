@@ -97,4 +97,4 @@ git pull
 
 ## License
 
-Add a license of your choosing (e.g. MIT) before publishing.
+[MIT](LICENSE)
