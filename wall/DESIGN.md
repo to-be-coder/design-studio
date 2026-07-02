@@ -91,6 +91,11 @@ components:
     backgroundColor: "{colors.card}"
     rounded: "{rounded.lg}"
     padding: "{spacing.lg}"
+  field:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    padding: "{spacing.md}"
   divider:
     backgroundColor: "{colors.hairline}"
     height: 1px
@@ -145,10 +150,12 @@ whitespace is the differentiator against the cluttered dashboards this product c
 
 ## Elevation & Depth
 
-Surface ladder only: `canvas` (page) → `surface` (tiles) → `elevated` (palette, inputs, chips) →
-`card` (highest, rare). Hairline borders (`{colors.hairline}`) define edges. **No drop shadows,
-no glow, no blur.** Overlays (palette, drill-ins) dim the page beneath with canvas at high
-opacity, never black.
+Surface ladder only: `canvas` (page) → `surface` (tiles, and recessed wells inside overlays) →
+`elevated` (palette, chips) → `card` (highest, rare). Hairline borders (`{colors.hairline}`)
+define edges. **No drop shadows, no glow, no blur.** Overlays (palette, drill-ins) dim the page
+beneath with canvas at high opacity, never black. Recessed fields and output wells inside an
+overlay sit on `surface` (the `field` component) — **`canvas` is the page and nothing else**; a
+canvas-dark well inside a card reads as a hole punched through the interface.
 
 ## Shapes
 
@@ -169,6 +176,8 @@ hover/focus. `chip-active` is the only other place the tint appears.
 - Do keep the ambient view button-free; controls appear on intent (hover, focus, ⌘K).
 - Do compute one primary action; if two things feel primary, neither is — pick.
 - Do use the surface ladder for all depth; if a shadow feels needed, step the ladder instead.
+- Don't drop to `canvas` inside an overlay — wells and inputs in `elevated`/`card` contexts use
+  `{colors.surface}` (the `field` component).
 - Don't use pure `#FFFFFF` or `#000000` anywhere, for anything.
 - Don't let semantic color exceed an 8px dot — no red text, no green fills, no amber banners.
 - Don't add a second accent hue; illustration, charts, and focus states all derive from pink

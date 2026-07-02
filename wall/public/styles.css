@@ -144,14 +144,14 @@ input{font:inherit;color:var(--color-ink);background:none;border:none;outline:no
 }
 .drillin pre{
   font-family:var(--font-mono),SFMono-Regular,Menlo,monospace;font-size:var(--text-mono);
-  color:var(--color-ink);background:var(--color-canvas);border:1px solid var(--color-hairline);
+  color:var(--color-ink);background:var(--color-surface);border:1px solid var(--color-hairline);
   border-radius:var(--radius-sm);padding:var(--spacing-md);
   overflow:auto;flex:1;white-space:pre-wrap;min-height:200px;
 }
 .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 16px;font-size:13px;padding:var(--spacing-sm) 0}
 .kv dt{color:var(--color-ink-dim)}
 .gate{max-width:420px;gap:var(--spacing-md)}
-.gate-field{background:var(--color-canvas);border:1px solid var(--color-hairline);
+.gate-field{background:var(--color-surface);border:1px solid var(--color-hairline);
   border-radius:var(--radius-sm);padding:10px 14px}
 
 /* toast */
