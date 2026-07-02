@@ -20,8 +20,10 @@ For any hard, non-obvious decision — especially the ones `scope-and-sequence` 
 
 ## Process
 
-1. **Generate N structurally-different directions** (🟡) — not variations on one idea; genuinely
-   different approaches. Aim for 3+.
+1. **Pull the wiki, then generate.** Read relevant pattern pages from `Studio Wiki/` and surface
+   up to 3 sparks from `_sparks.md` that smell like this problem — unprompted; sparks die if
+   retrieval depends on someone remembering to look. Then **generate N structurally-different
+   directions** (🟡) — not variations on one idea; genuinely different approaches. Aim for 3+.
 2. **Price true cost** for each: **build cost AND support cost** (ongoing maintenance, data to keep
    forever), explicitly weighted by team size. Cost-to-support-forever is the part that's easy to
    forget — force it.
@@ -34,7 +36,8 @@ For any hard, non-obvious decision — especially the ones `scope-and-sequence` 
    possibility; don't assert the answer.
 6. **The user picks** (🔴 ritual). Present directions + costs + the data-model comparison, then stop
    and let them choose. Record the chosen direction with all rejected directions and their
-   disqualifying reasons; link `rests_on` to any assumption it depends on.
+   disqualifying reasons; link `rests_on` to any assumption it depends on. Auto-flag each rejected
+   direction as one line in `Harvest.md` — rejected directions are pre-packaged sparks.
 7. **Update `00 Dashboard.md`** (stage = explore-directions, next = converge or another hard decision).
 
 ## Handoff

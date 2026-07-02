@@ -14,6 +14,8 @@ nesting); number-prefixed stage files; an immutable ADR decision log.**
 - Vault root: `/Users/topherscoffeeshop/Desktop/hermes/`
 - **All design projects live under one parent folder:** `<vault>/Design Studio/`
   (it sits beside the user's other top-level homes — `Notes/`, `Memory/`, `Daily/`, `careerbot/`, `Cron/`).
+- **Studio knowledge lives beside them** in `<vault>/Studio Wiki/` — one Obsidian graph across
+  projects and knowledge. See *Studio Wiki — the compounding memory* below.
 - One **subfolder per project** inside `Design Studio/`. That per-project folder is the only place
   nesting goes deep (one extra level for `Decisions/`, `02 Research/`, `_assets/`). Nothing deeper.
 - Skills write markdown **directly** to disk — no REST API, no plugins required. Keep everything
@@ -50,7 +52,8 @@ SORT file.mtime ASC
 ```
 ````
 
-- `Home.md` at the vault root is the **Homepage**-plugin landing note and links here.
+- `Home.md` at the vault root is the **Homepage**-plugin landing note and links here (and to
+  `Studio Wiki/_index.md` once the wiki exists).
 - **Bases** (core plugin, Obsidian 1.9+) reads the same `type: design-project` frontmatter — create
   a base filtered `type == "design-project"` with columns `status / stage / client / started`, and a
   second view grouped by `status` for a board. (Replaces the discontinued Projects plugin.)
@@ -70,6 +73,7 @@ SORT file.mtime ASC
   Decisions/               ← ADR log: NNNN <slug>.md, immutable, superseded-not-deleted
   Assumptions & Risks.md   ← living register (verified / partial / unverified / accepted)
   DESIGN.md                ← the visual contract (design.md format); moves to the prototype repo at build
+  Harvest.md               ← flag inbox: one-line keepers for the Studio Wiki (project-local until harvest)
   _assets/                 ← attachments scoped to this project (incl. boards/ specimen pages)
 ```
 
@@ -207,6 +211,92 @@ especially across parallel build agents.
 
 ---
 
+## Studio Wiki — the compounding memory
+
+One knowledge base for the whole studio, beside the projects: `<vault>/Studio Wiki/`. It
+accumulates what projects *teach* — patterns, plays, traps, sparks, standards, taste — so project
+N+1 starts smarter. **Projects are case files; the wiki is case law:** pages hold lessons stripped
+of client particulars, each citing back to its source project. Follows Karpathy's LLM-wiki pattern
+(flat markdown pages + thin indexes + append-only log + periodic lint; no RAG, no embeddings —
+right at studio scale).
+
+### Topology — hub-and-spoke, one-way membrane
+- **Projects read the wiki freely.** Skills reach in at their natural moments (each skill names its
+  hook). An empty result is honest, never an error: "no precedents yet — this project seeds them."
+- **The wiki is written only through `design-studio-harvest`** — a reviewed distillation. Never
+  directly from a working session, never by a sub-agent (single-writer, same rule as decisions).
+- **Projects never read each other.** Not even "for reference." The only path between projects is
+  a deliberately abstracted wiki page. This is what keeps unrelated client work unsmushed — and
+  confidential.
+
+### Capture vs distillation — two acts, different costs
+- **Capture is free and continuous.** Every project has a `Harvest.md` flag inbox: one-liners with
+  context links, zero processing, project-local (the membrane stays intact). Skills auto-flag their
+  byproducts — rejected directions, the cut list, validation findings that generalize — and the
+  user can flag anything: "that's a keeper."
+- **Distillation is deliberate and reviewed (🔴).** At project close (or at milestones on long
+  engagements), `harvest` drafts the crossing — new pages, edits, supersedes — de-clientified, and
+  the user approves it like a PR. Nothing crosses the membrane any other way.
+
+### Layout
+```
+<vault>/Studio Wiki/
+  CLAUDE.md     ← the wiki's schema file: rules + read protocol for ANY session (ships in starter-wiki)
+  _index.md     ← entity view: one line per page (maintained by harvest)
+  _plays.md     ← problem-shaped view: plays & traps, matched by problem shape
+  _sparks.md    ← the sparks shelf: orphaned ideas, browseable
+  log.md        ← append-only, parseable: "## [YYYY-MM-DD] init|harvest|lint|ingest — <source>"
+  raw/          ← immutable source captures (transcripts, excerpts, images; add-only)
+  wiki/         ← the pages, flat (no deep nesting)
+```
+
+### Read protocol — index-first
+Views first (`_index.md` by entity, `_plays.md` by problem shape, `_sparks.md`), then drill into
+only the matched pages — never scan `wiki/` wholesale. Analyses worth keeping don't die in chat
+history: capture the material to `raw/` and cross via `harvest` ingest — or, if project-specific,
+flag them in that project's `Harvest.md` instead. If the wiki ever outgrows flat indexes
+(hundreds of pages), bolt on a local markdown search tool (e.g. qmd) as a *reader* — the pages
+and the membrane don't change.
+
+### Page contract
+```yaml
+---
+type: wiki-page
+entity: pattern      # pattern|play|trap|spark|standard|craft|client|tool|source
+applies: mechanism   # mechanism = safe everywhere | taste = invited only (greenfield) | process
+origin: harvest      # harvest | starter | manual
+born:                # project slug the lesson/idea came from
+sources: []          # [[links]] to project decisions / raw captures (plain strings when a page ships outside a vault)
+status: live         # live | superseded | aged-out
+last_confirmed: YYYY-MM-DD
+---
+```
+Body shapes — **pattern**: Works when / Breaks when / Seen in. **play**: The move / When it
+applies / Cost. **trap**: What happened / The decision shape that triggers it / Counter-move.
+**spark**: The idea / Why it was cut / What it needs to live. **standard**: The primitive / Where
+it applies / Source of truth. Supersede, never overwrite — ADR semantics apply to wiki pages too.
+
+### Write discipline — what keeps it alive
+- **Few pages, each earns its place.** Prefer editing an existing page over minting a new one. A
+  junk drawer serves everything in theory and nothing in practice.
+- `applies: taste` is never applied to client-brand work uninvited; `mechanism` is always safe.
+- `design-studio-wiki-lint` prunes: contradictions, orphans, duplicates, coverage gaps, stale
+  pages, sparks that never got used, harvest debt (done projects with undistilled flags).
+- No page without provenance: every page cites `sources` (raw captures, decisions) — synthesis is
+  filed only after its material lands in `raw/`.
+- Version the vault (or at least `Studio Wiki/`) in git once real pages exist — history, blame,
+  and collaboration for free.
+
+### Seeding — two user types, one mechanic
+`harvest` seeds an empty wiki by input mode: **starter** (copy the shipped pages from
+`design-studio-shared/starter-wiki/` — mechanism and process class only, plus one clearly-marked
+taste example card that asks to be deleted), **backfill** (retro-harvest past projects — cap 3,
+best-remembered first: the user's memory of what mattered is the curation signal), **derive**
+(existing product → baseline pages describing what is). Taste pages are never shipped and never
+backfilled from someone else's work — taste is grown; that's the point.
+
+---
+
 ## Autonomy levels
 
 - 🟢 **execute** — the skill does it (research, scaffolding, rendering).
@@ -230,3 +320,7 @@ especially across parallel build agents.
 |  | `design-studio-compile-spec` | 🟢 (modes: align / stakeholder / eng-handoff) |
 
 Any stage may loop back; loop-backs are recorded as superseded decisions.
+
+**Utility skills (not pipeline stages):** `design-studio-harvest` — the only writer of the Studio
+Wiki (🟡 draft + 🔴 crossing review); `design-studio-wiki-lint` — wiki health check (🟢,
+report-first).
