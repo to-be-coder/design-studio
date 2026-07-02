@@ -5,10 +5,12 @@
   "description": "Zero-dependency dashboard + control surface for the design-studio vault. Users run `node server.js` — no install. devDependencies are contributor tooling only (type checking).",
   "scripts": {
     "start": "node server.js",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "node test/wall.test.js"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "playwright": "^1.56.0"
   }
 }

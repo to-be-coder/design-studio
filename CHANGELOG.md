@@ -23,6 +23,9 @@ All notable, user-visible changes to the design-studio skills are documented her
 - **Wall fix** — overlays no longer render permanently: a missing `[hidden]` reset let
   `.overlay{display:flex}` defeat the `hidden` attribute, leaving the token gate over the board
   and intercepting every click. Also: the wiki tile's spark count pluralizes.
+- **Wall regression suite** — the Playwright checks are now committed (`cd wall && npm test`):
+  auth gate, overlay visibility, mouse click-through, deviation counts, security responses,
+  streamed runs. Contributor tooling only; runtime stays zero-dependency (decision 0007).
 
 ## v1.1.0 — 2026-07-02
 

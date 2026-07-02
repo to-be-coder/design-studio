@@ -55,7 +55,14 @@ The wall is **typed JS**: the code stays `.js` and zero-build, but every shape l
 
 ```sh
 cd wall && npm install && npm run check   # tsc --noEmit, strict
+cd wall && npm test                       # end-to-end regression suite (Playwright)
 ```
+
+The suite spins real servers over a temp fixture vault, stubs the CLI through the
+`WALL_CLAUDE_BIN` seam, and asserts auth, security responses, overlay visibility,
+click-through, deviation counts, and streamed runs. First run may need
+`npx playwright install chromium` — or set `WALL_TEST_CHROMIUM` to an existing
+chromium binary (same escape-hatch idea as `WALL_CLAUDE_BIN`).
 
 This is contributor tooling only: `dependencies` is empty and users never install anything —
 `node wall/server.js` stays the whole story. Why not `.ts` source? The browser can't run it, so
@@ -70,4 +77,5 @@ same rigor, medium unchanged.
   (`npx @google/design.md export --format css-tailwind DESIGN.md | sed 's/^@theme {/:root {/'`)
   — regenerate it after any token change; hand-editing it is a defect
 - `DESIGN.md` — the visual contract (lints clean, incl. WCAG contrast)
-- `design/` — the project record: brief, decisions 0001–0004, specimen boards, harvest flags
+- `test/` — the committed regression suite (`npm test`)
+- `design/` — the project record: brief, decisions, specimen boards, harvest flags

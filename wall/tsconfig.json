@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["server.js", "public/app.js", "types.d.ts"]
+  "include": ["server.js", "public/app.js", "types.d.ts", "test/wall.test.js"]
 }
