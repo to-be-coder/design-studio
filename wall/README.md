@@ -5,9 +5,9 @@ with a small, safe control surface for running non-interactive skills from the b
 
 Built through the design-studio pipeline itself — the design record (brief, decisions, specimen
 boards) is public in [`design/`](design/), and every visual value derives from
-[`DESIGN.md`](DESIGN.md) (Ember: amber on warm near-black). That's the point: this dashboard is
-the product's own proof that agent-built UI under a visual contract comes out designed, not
-generated.
+[`DESIGN.md`](DESIGN.md) (Bloom: sci-fi pink on warm plum-black; it superseded Ember in decision
+0005 with a single token edit — which is the thesis working). This dashboard is the product's
+own proof that agent-built UI under a visual contract comes out designed, not generated.
 
 ## Run
 

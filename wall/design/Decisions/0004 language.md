@@ -1,11 +1,11 @@
 ---
 id: 0004
 stage: design-system
-status: decided
+status: superseded
 date: 2026-07-02
 rests_on:
 supersedes:
-superseded_by:
+superseded_by: "[[0005 language-pink]]"
 tags: [decision]
 ---
 

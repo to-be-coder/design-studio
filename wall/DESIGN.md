@@ -1,17 +1,17 @@
 ---
 version: alpha
-name: Studio Wall — Ember
+name: Studio Wall — Bloom
 colors:
-  primary: "#FF8A3D"
-  primary-pressed: "#E87729"
-  primary-dim: "#402917"
-  canvas: "#141009"
-  surface: "#1B150D"
-  elevated: "#231B11"
-  card: "#2B2216"
-  hairline: "#3B2F1D"
-  ink: "#E8DCC9"
-  ink-dim: "#AD9E80"
+  primary: "#FF5C8A"
+  primary-pressed: "#E84A76"
+  primary-dim: "#441F2E"
+  canvas: "#170B12"
+  surface: "#1F1119"
+  elevated: "#281620"
+  card: "#311C28"
+  hairline: "#46283A"
+  ink: "#EDD9E3"
+  ink-dim: "#B792A6"
   dot-ok: "#63C78A"
   dot-warn: "#D9A441"
   dot-err: "#D96A6A"
@@ -107,24 +107,27 @@ components:
 
 ## Overview
 
-Ember: amber phosphor on warm near-black — an instrument panel, not a light show. The wall is
+Bloom: pink phosphor on warm plum-black — an instrument panel, not a light show. The wall is
 ambient by default (a glanceable status surface and the social screenshot) and an operator
 surface on intent (⌘K palette, hover affordances). One hue carries the whole interface; calm is
-the product. Chosen from specimen boards against a blue candidate (Orbital) on 2026-07-02 —
-see `wall/design/Decisions/0004 language.md`.
+the product. Language history: boards were run blue vs amber (Orbital vs Ember, decision 0004);
+at the release gate the user redirected to pink — see
+`wall/design/Decisions/0005 language-pink.md`. The re-skin cost one token edit, which is the
+thesis working.
 
 ## Colors
 
-Amber (`{colors.primary}`) is chrome, action, and focus — there is no second accent. The four
+Pink (`{colors.primary}`) is chrome, action, and focus — there is no second accent. The four
 background steps (`canvas → surface → elevated → card`) are the **surface ladder**: all elevation
-comes from stepping up the ladder, never from shadows. `ink` and `ink-dim` are warm — never pure
-white; `canvas` is warm — never pure black. `primary-dim` marks selection and active chips: it
-is 13% amber **precomposited over `elevated`** into a solid, so its contrast pairings are
-verifiable in this contract rather than depending on what an alpha value happens to sit on.
-The three `dot-*` colors are **instrument lights**: they exist only as the `status-dot-*`
-components, size-capped at 8px in the contract itself — never fills, text, chart strokes, or
-borders. The known risk of an amber brand hue is reading as a warning state; the dot-size cap
-and the single-primary-action rule are what prevent that.
+comes from stepping up the ladder, never from shadows. `ink` and `ink-dim` are warm and
+pink-cast — never pure white; `canvas` is a plum-black — never pure black. `primary-dim` marks
+selection and active chips: it is 13% pink **precomposited over `elevated`** into a solid, so
+its contrast pairings are verifiable in this contract rather than depending on what an alpha
+value happens to sit on. The three `dot-*` colors are **instrument lights**: they exist only as
+the `status-dot-*` components, size-capped at 8px in the contract itself — never fills, text,
+chart strokes, or borders. The known risk of a pink brand hue is drifting from instrument to
+candy — and the err-dot sits near the brand hue; the dot-size cap, the warm-dark ladder, and
+the single-primary-action rule are what keep Bloom technical.
 
 ## Typography
 
@@ -168,7 +171,7 @@ hover/focus. `chip-active` is the only other place the tint appears.
 - Do use the surface ladder for all depth; if a shadow feels needed, step the ladder instead.
 - Don't use pure `#FFFFFF` or `#000000` anywhere, for anything.
 - Don't let semantic color exceed an 8px dot — no red text, no green fills, no amber banners.
-- Don't add a second accent hue; illustration, charts, and focus states all derive from amber
+- Don't add a second accent hue; illustration, charts, and focus states all derive from pink
   and its tints.
 - Don't animate for delight; motion only communicates state change, and respects
   `prefers-reduced-motion`.
