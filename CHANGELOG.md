@@ -15,6 +15,8 @@ All notable, user-visible changes to the design-studio skills are documented her
 - **Deviation thesis** — debrief now captures the one thing each project should feel like that
   the precedents don't; explore-directions and design-system read it. "None — deliberately
   conventional" is a legal answer.
+- **Gate taxonomy** — CONVENTIONS classifies every checkpoint (hard floor-check / rationale
+  gate / protected zone / staleness check) and bans conformance gates by name.
 
 ## v1.1.0 — 2026-07-02
 

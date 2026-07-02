@@ -43,7 +43,9 @@ agent — draws from the same language, and `design-studio-validate` diffs it fo
   compile-spec`, inserting `design-system` when the look matters) for routine, scoped work.
 - **The human owns the hard calls.** Every skill carries an autonomy level: 🟢 execute, 🟡 draft
   for your edit, 🔴 scaffold-only. At 🔴 moments — the reframe, the spine, the cuts — the skill
-  structures the evidence, asks the question, and stops. It never supplies the verdict.
+  structures the evidence, asks the question, and stops. It never supplies the verdict. Gates
+  hold a floor without capping the ceiling: they check that calls were made and owned, never
+  which call was made.
 - **Every project names its departure.** `debrief` captures a deviation thesis — the one thing
   this product should feel like that the studio's precedents don't ("none — deliberately
   conventional" is a legal answer); `explore-directions` and `design-system` build against it.

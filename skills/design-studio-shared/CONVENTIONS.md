@@ -332,6 +332,22 @@ backfilled from someone else's work — taste is grown; that's the point.
 
 ---
 
+## Gate taxonomy — how to read (and add) a checkpoint
+
+> Gate the process, never the output — except where the output has a known-right answer.
+
+| Type | Checks | Behavior | In this pipeline |
+|---|---|---|---|
+| **Hard floor-check** | Objectively correct/broken output | Blocks, no exceptions | design.md lint + WCAG; build's states/edge/a11y pass; token discipline |
+| **Rationale gate** | That a deliberate, owned decision exists — never which one | Requires rationale + owner, then passes | every 🔴 ritual; converge's cut records; deviation entries |
+| **Protected zone** | Nothing — deliberately under-constrained | No gate | direction generation in explore-directions; board drafting |
+| **Staleness check** | Executable docs vs. reality | Flags divergence | validate's DESIGN.md drift diff; wiki-lint's stale claims |
+
+Gates are scarce and load-bearing — every gate narrows the corridor. A new gate must name its
+type. A gate that checks *which* choice was made rather than *whether one was made* is a
+conformance gate: a defect, whatever it improves locally. Staleness checks apply only to
+executable docs (DESIGN.md, tokens) — never to decision memory; history doesn't go stale.
+
 ## Autonomy levels
 
 - 🟢 **execute** — the skill does it (research, scaffolding, rendering).
