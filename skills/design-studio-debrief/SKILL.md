@@ -16,7 +16,9 @@ At the start of a design project. Runs standalone. The only skill that creates a
 (under `<vault>/Design Studio/`) and sets `.design-studio-active`.
 
 ## Preconditions
-- None. If a folder for this project already exists under `Design Studio/`, do NOT clobber it — ask
+- No vault pointer (`~/.design-studio-vault`)? Suggest `/design-studio-setup` first — or accept a
+  vault path from the user and proceed; this skill stays the safety net for skipped setup.
+- If a folder for this project already exists under `Design Studio/`, do NOT clobber it — ask
   whether to resume.
 
 ## Process
