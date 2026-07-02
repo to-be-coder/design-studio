@@ -28,7 +28,8 @@ After exploration, before `build`. Runs standalone.
    path). The cut list is a deliverable, not a deletion. Include darlings cut for good reasons.
 5. **Write** `Cut list` (inside `03 Scope.md` or its own note), the spine decision, and a decision entry
    per significant cut.
-6. **Update `00 Dashboard.md`** (stage = converge, next = build).
+6. **Update `00 Dashboard.md`** (stage = converge, next = design-system).
 
 ## Handoff
-Point to `design-studio-build`.
+Point to `design-studio-design-system` (or straight to `design-studio-build` if a signed-off
+`DESIGN.md` already exists).

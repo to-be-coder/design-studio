@@ -69,7 +69,8 @@ SORT file.mtime ASC
   06 Spec.md               ← stakeholder / eng render of the log (on demand)
   Decisions/               ← ADR log: NNNN <slug>.md, immutable, superseded-not-deleted
   Assumptions & Risks.md   ← living register (verified / partial / unverified / accepted)
-  _assets/                 ← attachments scoped to this project
+  DESIGN.md                ← the visual contract (design.md format); moves to the prototype repo at build
+  _assets/                 ← attachments scoped to this project (incl. boards/ specimen pages)
 ```
 
 The **clickable prototype** is a separate code repo, NOT in the vault. `00 Dashboard.md` links to it.
@@ -81,7 +82,7 @@ The **clickable prototype** is a separate code repo, NOT in the vault. `00 Dashb
 ---
 type: design-project
 status: active        # active | blocked | done | archived
-stage: debrief        # debrief|research|verify|reframe|scope|directions|converge|build|validate|spec
+stage: debrief        # debrief|research|verify|reframe|scope|directions|converge|design-system|build|validate|spec
 client:
 route: full           # full | lite
 started: YYYY-MM-DD
@@ -105,7 +106,8 @@ The pipeline is a **default path, not a mandatory ritual.** Every skill must:
 
 ### Two routes
 - **Full** — meaty, ambiguous, net-new problems: the whole pipeline.
-- **Lite** — routine/scoped work: `debrief → explore-directions → build → compile-spec`.
+- **Lite** — routine/scoped work: `debrief → explore-directions → build → compile-spec`
+  (insert `design-system` before `build` whenever the look matters and no client system exists).
   `debrief` proposes the route from how ambiguous the brief is; the user decides.
 
 ---
@@ -173,13 +175,45 @@ tags: [decision]
 
 ---
 
+## DESIGN.md — the visual contract
+
+Every prototype's visual language is codified in a `DESIGN.md` using the
+[google-labs-code/design.md](https://github.com/google-labs-code/design.md) format: **design tokens
+in YAML front matter** (exact values) plus **rationale in the markdown body** (when and why to apply
+them). One file both the user and coding agents read — it is what keeps a prototype consistent,
+especially across parallel build agents.
+
+- **Format** (alpha — get the spec before authoring: `npx @google/design.md spec`, or since that's
+  broken in v0.3.0, the repo's `docs/spec.md`; trust it over memory): token groups
+  `colors` / `typography` / `spacing` / `rounded` / `components`, cross-referenced as
+  `{colors.primary}`, state variants (hover/active/disabled) as separate named entries. Component
+  sub-tokens are a fixed vocabulary (`backgroundColor`, `textColor`, `typography`, `rounded`,
+  `padding`, `size`, `height`, `width` — not arbitrary CSS). Body sections in fixed order:
+  Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts.
+- **Single copy, moving home.** `design-studio-design-system` authors `<project>/DESIGN.md` in the
+  vault — canonical while no repo exists. `build` **moves** it to the prototype repo root as its
+  first committed act and leaves a link note in the vault. There is never a second copy to sync.
+- **Token discipline.** Prototype UI takes every color / type / spacing / radius value from a token,
+  directly or via an export (`npx @google/design.md export --format css-tailwind|json-tailwind|dtcg`).
+  A hardcoded value that bypasses the tokens is a defect, not a shortcut.
+- **Gates.** `npx @google/design.md lint DESIGN.md` must pass (structure + WCAG contrast) before
+  `build` consumes the file. `validate` diffs the build-start version (from the repo's git history)
+  against the current file (`npx @google/design.md diff`); drift without a matching decision entry
+  is a finding.
+- **Changes are decisions.** Additive tokens are normal growth; reshaping the committed language
+  supersedes the language decision like any other loop-back.
+- No `npx`? Author against the format summary above, hand-check contrast, and say so on the
+  dashboard instead of silently skipping the gate.
+
+---
+
 ## Autonomy levels
 
 - 🟢 **execute** — the skill does it (research, scaffolding, rendering).
 - 🟡 **draft** — first version the user edits.
 - 🔴 **scaffold** — the skill must NOT produce the answer; run the 🔴 ritual.
 
-## The pipeline (10 skills)
+## The pipeline (11 skills)
 
 | Stage | Skill | Autonomy |
 |---|---|---|
@@ -190,7 +224,8 @@ tags: [decision]
 |  | `design-studio-scope-and-sequence` | 🟡→🔴 (gate: existing-user migration) |
 |  | `design-studio-explore-directions` | 🟡→🔴 (includes data-model comparison) |
 |  | `design-studio-converge` | 🔴 + records |
-| Build | `design-studio-build` | 🟢 (gate: states/edge/a11y + design-system) |
+| Build | `design-studio-design-system` | 🟡 + gate (lint + user sign-off) |
+|  | `design-studio-build` | 🟢 (gate: states/edge/a11y + DESIGN.md) |
 |  | `design-studio-validate` | 🟡 (users OR expert review; back-edge) |
 |  | `design-studio-compile-spec` | 🟢 (modes: align / stakeholder / eng-handoff) |
 
