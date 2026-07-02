@@ -21,11 +21,15 @@ After exploration, before `build`. Runs standalone.
 1. **Lay out every candidate** feature/direction in one place.
 2. **Sort, with the user** (🔴 ritual) into: **build deeply / build lightly / design-only / cut.**
    Present the list and the trade-offs; do not pre-sort it for them and call it done — make them cut.
+   Before they commit, run the **trap check**: match the decisions on the table against the traps
+   in `Studio Wiki/_plays.md` and surface any hits — this reach is implicit; the user won't know
+   to ask.
 3. **Commit the spine** (🔴 — the most important 🔴 moment). The single organizing idea everything
    hangs off, in one sentence. Do NOT write it for the user. Feed them the synthesized inputs and
    interrogate until they say it. If they can't yet, it's not ready — record `proposed` and stop.
 4. **Record every cut** with its reason (out-of-scope / wrong-persona / true-cost / not-on-critical-
-   path). The cut list is a deliverable, not a deletion. Include darlings cut for good reasons.
+   path). The cut list is a deliverable, not a deletion. Include darlings cut for good reasons —
+   and flag those darlings as one-liners in `Harvest.md`: spark candidates for the wiki.
 5. **Write** `Cut list` (inside `03 Scope.md` or its own note), the spine decision, and a decision entry
    per significant cut.
 6. **Update `00 Dashboard.md`** (stage = converge, next = design-system).

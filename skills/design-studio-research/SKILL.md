@@ -19,6 +19,9 @@ After `debrief`. Runs standalone (resolve the project from `.design-studio-activ
 
 ## Process
 
+**Wiki first:** before researching, check `Studio Wiki/` for existing standard/pattern pages that
+already answer part of the question — cite them and research only the gaps.
+
 Run four sweeps **in parallel** (spawn sub-agents; only the main thread writes files/decisions).
 Every claim must carry a source; a claim with no source is flagged `unverified` for `verify`.
 
@@ -34,7 +37,9 @@ Every claim must carry a source; a claim with no source is flagged `unverified` 
 
 5. **Flag — don't decide.** If research surfaces a possible reframe ("these three things are one
    primitive") or a load-bearing assumption, note it at the top of the relevant file and tell the
-   user. Deciding the reframe is `reframe`'s job; verifying is `verify`'s.
+   user. Deciding the reframe is `reframe`'s job; verifying is `verify`'s. Findings that
+   generalize beyond this project — a pattern with lineage, a standard, a trap — also get a
+   one-line flag in `Harvest.md` (capture is free; distillation comes later).
 
 6. **Update the risk register** with any new assumptions, and update `00 Dashboard.md` (stage = research,
    next = verify).

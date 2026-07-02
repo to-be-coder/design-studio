@@ -26,6 +26,8 @@ After `build`. Runs standalone.
      evaluation (Nielsen heuristics), a cognitive walkthrough of the core task, and an
      accessibility pass. Mark findings as expert-judgment, not user-validated.
 2. **Capture findings** in `05 Validation.md`: what held, what broke, against which success criterion.
+   Findings that generalize beyond this project — a pattern that broke, a newly discovered trap —
+   also get a one-line flag in `Harvest.md`.
 3. **Design-drift check**: run `npx @google/design.md diff` between the prototype's `DESIGN.md` at
    build start (from the repo's git history) and the current file, and spot-check screens for
    hardcoded values that bypass the tokens. Drift or a bypass with no matching decision entry is a

@@ -30,7 +30,10 @@ At the start of a design project. Runs standalone. The only skill that creates a
 
 3. **Restate the brief as a problem, not a task** (🔴 moment). Draft a one-paragraph restatement,
    then run the 🔴 ritual: present it, ask the user to confirm or correct the framing, and don't
-   finalize until they agree. The framing is theirs.
+   finalize until they agree. The framing is theirs. Once agreed, run the **precedent check**:
+   query the Studio Wiki (`_plays.md`, then `_index.md`) with the restated problem *shape* and
+   bring back anything relevant. An empty wiki is honest — "no precedents yet; this project seeds
+   them." No `Studio Wiki/` at all → suggest `design-studio-harvest` to seed one.
 
 4. **Capture the guiding principle / product spine** — the one idea everything ladders back to. If
    the brief/stakeholders state it, record it. If not, write `PROVISIONAL — confirm in research`.
@@ -57,6 +60,7 @@ At the start of a design project. Runs standalone. The only skill that creates a
    - `01 Brief & Problem.md` — original brief verbatim, the restated problem, the rubric as a
      checklist, the guiding principle, success criteria. Mark provisional items clearly.
    - `Assumptions & Risks.md` — the seeded register.
+   - `Harvest.md` — empty flag inbox for Studio Wiki keepers (capture is free; see CONVENTIONS).
    - `Decisions/0001 <framing-slug>.md` — the framing decision (status `decided` once confirmed,
      else `proposed`).
    - Create empty `02 Research/` and `_assets/` so later skills have a home.

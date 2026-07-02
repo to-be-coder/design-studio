@@ -32,6 +32,24 @@ AI-readable file. `design-studio-design-system` authors and lints it (WCAG contr
 `design-studio-build` moves it into the prototype repo so every screen — and every parallel build
 agent — draws from the same language, and `design-studio-validate` diffs it for drift.
 
+## Studio memory
+
+The pipeline compounds. Beside the projects lives a **`Studio Wiki/`** — an LLM-maintained
+knowledge base (Karpathy's wiki pattern: flat markdown pages, thin indexes, an append-only log,
+a periodic lint) that accumulates what projects *teach*: patterns, plays, traps, orphaned ideas,
+standards, taste. Projects read it freely — `debrief` checks precedents, `explore-directions`
+pulls patterns and sparks, `converge` checks traps, `design-system` pulls craft. It is written
+**only** through a reviewed harvest, so unrelated client projects never bleed into each other.
+
+| Skill | What it does |
+|---|---|
+| `design-studio-harvest` | The wiki's only writer: distills a finished project — or seeds an empty wiki (starter pages / backfill up to 3 past projects / derive from an existing product) — into de-clientified pages you review before anything crosses. |
+| `design-studio-wiki-lint` | Health check: contradictions, orphans, stale claims, aging sparks, harvest debt. Run it weekly-ish. |
+
+A mechanism-only **starter wiki** ships in `skills/design-studio-shared/starter-wiki/` so day-one
+reaches return something. Taste pages are never shipped — they're grown from your own projects;
+that's the point.
+
 ## Install
 
 These skills are user-level: they live in `~/.claude/skills/`. Every skill folder must stay a sibling

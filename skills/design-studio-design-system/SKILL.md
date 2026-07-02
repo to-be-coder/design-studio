@@ -36,6 +36,8 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
    `02 Research/Company.md`, the spine, and any a11y requirements. **Derive before you invent** —
    if a visual identity exists, DESIGN.md codifies it faithfully; redesigning it was nobody's brief.
    If a studio-default DESIGN.md exists and the project is greenfield, offer it as the fork base.
+   Pull the Studio Wiki too: `applies: mechanism` craft/pattern pages always apply;
+   `applies: taste` pages are invited only — greenfield/unbranded work, never client-brand.
 3. **Draft candidate languages** (🟡). If the direction is genuinely open, draft 2–3 contrasting
    token sets, each with a stated stance in one line ("editorial calm", "dense instrument") laddered
    to the spine. If the identity was derived in step 2, draft one faithful set and skip to step 5.
