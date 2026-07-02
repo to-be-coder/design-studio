@@ -29,3 +29,5 @@ First shippable release: the full pipeline, the visual contract, studio memory, 
   CONVENTIONS gained the vault-resolution rule (no more hardcoded paths), the repo gained a root
   `CLAUDE.md` so it onboards itself when opened in Claude Code, and the README quickstart became
   three steps.
+- **Release workflow** — `.github/workflows/release.yml`: creates a tag + GitHub release from the
+  Actions tab, with notes extracted from the matching CHANGELOG section.
