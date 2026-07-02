@@ -17,4 +17,6 @@ for dir in "$SRC"/design-studio-*; do
 done
 
 echo ""
-echo "Done. Restart Claude Code (or start a new session), then run /design-studio-debrief"
+echo "Done. Restart Claude Code (or start a new session), then run:"
+echo "  /design-studio-setup    (first time on this machine)"
+echo "  /design-studio-debrief  (start a project)"

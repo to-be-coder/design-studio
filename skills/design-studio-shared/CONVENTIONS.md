@@ -11,9 +11,12 @@ nesting); number-prefixed stage files; an immutable ADR decision log.**
 
 ## The vault & the design-projects home
 
-- Vault root: `/Users/topherscoffeeshop/Desktop/hermes/`
+- **Vault root — resolve, never assume:** read `~/.design-studio-vault` (one line, an absolute
+  path; written by `design-studio-setup`). Pointer missing or stale → offer to run
+  `design-studio-setup`, or accept a path the user states and write it to the pointer. Never
+  hard-block.
 - **All design projects live under one parent folder:** `<vault>/Design Studio/`
-  (it sits beside the user's other top-level homes — `Notes/`, `Memory/`, `Daily/`, `careerbot/`, `Cron/`).
+  (it sits beside whatever else the user keeps at their vault root).
 - **Studio knowledge lives beside them** in `<vault>/Studio Wiki/` — one Obsidian graph across
   projects and knowledge. See *Studio Wiki — the compounding memory* below.
 - One **subfolder per project** inside `Design Studio/`. That per-project folder is the only place
@@ -321,6 +324,7 @@ backfilled from someone else's work — taste is grown; that's the point.
 
 Any stage may loop back; loop-backs are recorded as superseded decisions.
 
-**Utility skills (not pipeline stages):** `design-studio-harvest` — the only writer of the Studio
-Wiki (🟡 draft + 🔴 crossing review); `design-studio-wiki-lint` — wiki health check (🟢,
-report-first).
+**Utility skills (not pipeline stages):** `design-studio-setup` — first-run onboarding: vault
+pointer, scaffold, starter wiki (🟡, once per machine); `design-studio-harvest` — the only writer
+of the Studio Wiki (🟡 draft + 🔴 crossing review); `design-studio-wiki-lint` — wiki health check
+(🟢, report-first).

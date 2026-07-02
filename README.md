@@ -58,32 +58,28 @@ These skills are user-level: they live in `~/.claude/skills/`. Every skill folde
 of the others (they reference `../design-studio-shared/CONVENTIONS.md` by relative path), so copy the
 whole set.
 
-**Option A — install script (macOS / Linux):**
-
 ```sh
 git clone https://github.com/<your-username>/design-studio.git
 cd design-studio
 ./install.sh
 ```
 
-**Option B — manual copy:**
+(Or open the cloned folder in Claude Code and ask it to install the skills — the repo knows how.)
 
-```sh
-git clone https://github.com/<your-username>/design-studio.git
-cp -R design-studio/skills/design-studio-* ~/.claude/skills/
-```
+Then:
 
-Then restart Claude Code (or start a new session) and the skills appear. Kick things off with:
-
-```
-/design-studio-debrief
-```
+1. **Restart Claude Code** — skills load at session start.
+2. Run `/design-studio-setup` once. It finds or creates your vault, writes the pointer every
+   skill resolves, and seeds the starter wiki.
+3. Bring a brief and run `/design-studio-debrief`.
 
 ## Requirements
 
 - Claude Code
-- The pipeline writes its project workspace into an **Obsidian vault** under a `Design Studio/`
-  folder. Any Obsidian vault works; the debrief stage sets up the folder structure on first run.
+- **[Obsidian](https://obsidian.md) — recommended; this runs most efficiently with it.** The
+  workspace is an Obsidian vault: the graph view ties projects to the Studio Wiki, and the
+  Dataview community plugin makes the portfolio dashboards live. Everything is plain markdown, so
+  a bare folder works too — `/design-studio-setup` handles either.
 - Node.js — `npx @google/design.md` lints `DESIGN.md` (structure + WCAG contrast), diffs versions,
   and exports tokens (Tailwind / DTCG). Recommended; the skills degrade gracefully without it.
 
