@@ -45,6 +45,21 @@ The control surface is deliberately boring:
   `~/.design-studio-wall.log` and shown in the Activity panel.
 - No arbitrary prompt passthrough, by design. Anything conversational belongs in Claude Code.
 
+## Type safety
+
+The wall is **typed JS**: the code stays `.js` and zero-build, but every shape lives in
+[`types.d.ts`](types.d.ts) and JSDoc annotations are enforced by TypeScript's checker —
+
+```sh
+cd wall && npm install && npm run check   # tsc --noEmit, strict
+```
+
+This is contributor tooling only: `dependencies` is empty and users never install anything —
+`node wall/server.js` stays the whole story. Why not `.ts` source? The browser can't run it, so
+full TypeScript means a build step or committed compiled output — both break the zero-build
+promise (decision 0006 has the full reasoning). The checker is a gate, like the design.md lint:
+same rigor, medium unchanged.
+
 ## Files
 
 - `server.js` — zero-dependency Node server (static + read APIs + SSE + run API)

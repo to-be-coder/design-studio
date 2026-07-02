@@ -38,3 +38,6 @@ right order.
     generated (`npx @google/design.md export --format css-tailwind wall/DESIGN.md | sed
     's/^@theme {/:root {/'`) — regenerate it, never hand-edit; a hex value anywhere else in
     `wall/` is a defect.
+  - The wall is typed JS (decision 0006): shapes live in `wall/types.d.ts`, code stays `.js` with
+    JSDoc, and `cd wall && npm run check` must pass after any wall change. No `.ts` source files;
+    `wall/package.json` `dependencies` stays empty forever.
