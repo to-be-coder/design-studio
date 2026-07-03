@@ -138,6 +138,19 @@ async function main() {
       (await api('/api/run/wiki-lint', { method: 'POST', headers: AUTH })).status === 409);
     check('run output streams to completion', (await first.text()).includes('completed'));
 
+    // ── HTTP: aborting a run frees the one-run slot ──
+    const ac = new AbortController();
+    const abortable = await api('/api/run/wiki-lint', { method: 'POST', headers: AUTH, signal: ac.signal });
+    check('abortable run starts', abortable.status === 200);
+    ac.abort();
+    let freed = false;
+    for (let i = 0; i < 20 && !freed; i++) {
+      const r = await api('/api/run/wiki-lint', { method: 'POST', headers: AUTH });
+      if (r.status === 200) { freed = true; await r.text(); }
+      else await new Promise(rr => setTimeout(rr, 200));
+    }
+    check('aborting a run frees the slot for the next one', freed);
+
     // ── Browser: the overlay contract (the regression this suite exists for) ──
     // WALL_TEST_CHROMIUM: same escape-hatch philosophy as WALL_CLAUDE_BIN — point it
     // at a system chromium in sandboxes/CI images that pre-provision browsers.
@@ -178,6 +191,37 @@ async function main() {
     await page.keyboard.press('Control+k');
     await page.waitForSelector('#palette-overlay:not([hidden])');
     check('⌘K opens the command palette', await page.isVisible('#palette-overlay'));
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    check('focus stays trapped inside the palette', await page.evaluate(() =>
+      !!document.activeElement && !!document.getElementById('palette-overlay')?.contains(document.activeElement)));
+    await page.keyboard.press('Escape');
+
+    check('non-http prototype_repo renders as text, not a link',
+      (await page.locator('a[href^="javascript:"]').count()) === 0
+      && (await page.textContent('#proto-list'))?.includes('javascript:alert(1)') === true);
+
+    // Escape mid-run aborts the stream and frees the wall (the stub run lasts ~1s)
+    await page.keyboard.press('Control+k');
+    await page.fill('#palette-input', 'wiki-lint');
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('#run-out');
+    await page.keyboard.press('Escape');
+    let uiFreed = false;
+    for (let i = 0; i < 15 && !uiFreed; i++) {
+      await page.keyboard.press('Control+k');
+      await page.fill('#palette-input', 'wiki-lint');
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('#run-out');
+      await page.waitForTimeout(250);
+      const txt = (await page.textContent('#run-out')) || '';
+      if (txt.includes('refused')) { await page.keyboard.press('Escape'); await page.waitForTimeout(250); }
+      else uiFreed = true;
+    }
+    await page.waitForFunction(() => document.getElementById('run-out')?.textContent?.includes('completed'), null, { timeout: 20000 });
+    check('Escape during a run frees the wall for the next run', uiFreed);
     await page.keyboard.press('Escape');
 
     const noVaultPage = await ctx.newPage();

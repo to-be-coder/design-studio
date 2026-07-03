@@ -22,6 +22,10 @@ let paletteIndex = 0;
 let confirmArmed = null; // action id awaiting second Enter
 /** @type {EventSource | null} */
 let es = null;
+/** @type {AbortController | null} */
+let runAbort = null;
+/** @type {HTMLElement | null} */
+let lastFocus = null;
 
 // ── api ──
 /** @param {string} path @param {RequestInit} [opts] @returns {Promise<Response>} */
@@ -136,8 +140,9 @@ function renderWiki(s) {
 /** @param {WallState} s */
 function renderPrototypes(s) {
   $('proto-list').innerHTML = s.prototypes.length
-    ? s.prototypes.map(p =>
-        `<a href="${esc(p.repo)}" target="_blank" rel="noopener">${esc(p.slug)}<p class="sub">${esc(p.repo)}</p></a>`).join('')
+    ? s.prototypes.map(p => httpUrl(p.repo)
+        ? `<a href="${esc(p.repo)}" target="_blank" rel="noopener">${esc(p.slug)}<p class="sub">${esc(p.repo)}</p></a>`
+        : `<div>${esc(p.slug)}<p class="sub">${esc(p.repo)} — not a link (non-http)</p></div>`).join('')
     : `<p class="empty-inline">No prototype repos linked yet — <span class="mono">build</span> fills these in.</p>`;
 }
 
@@ -149,6 +154,32 @@ function renderActivity(s) {
         return `<div class="f-row"><time>${t}</time><span>${esc(a.text)}</span></div>`;
       }).join('')
     : `<p class="empty-inline">Quiet. Activity from runs and the wiki log lands here.</p>`;
+}
+
+// ── overlay helpers: focus is remembered, trapped, and restored ──
+/** @param {string} u @returns {boolean} */
+const httpUrl = (u) => /^https?:\/\//i.test(u);
+function rememberFocus() {
+  lastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+}
+function restoreFocus() { lastFocus?.focus(); lastFocus = null; }
+/** @returns {HTMLElement | null} */
+function openOverlay() {
+  for (const id of ['gate-overlay', 'palette-overlay', 'drill-overlay']) {
+    if (!$(id).hidden) return $(id);
+  }
+  return null;
+}
+/** @param {KeyboardEvent} e @param {HTMLElement} overlay */
+function trapTab(e, overlay) {
+  const items = /** @type {HTMLElement[]} */ ([...overlay.querySelectorAll('button, input, a[href]')])
+    .filter(el => !el.hidden && el.offsetParent !== null);
+  if (!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  const active = document.activeElement;
+  if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+  else if (!overlay.contains(active)) { e.preventDefault(); first.focus(); }
 }
 
 // ── command palette: the home of every secondary action ──
@@ -170,6 +201,7 @@ function paletteActions() {
 
 /** @param {string | null} [preselect] */
 function openPalette(preselect = null) {
+  rememberFocus();
   confirmArmed = null;
   $('palette-overlay').hidden = false;
   const input = /** @type {HTMLInputElement} */ ($('palette-input'));
@@ -179,7 +211,7 @@ function openPalette(preselect = null) {
   renderPalette();
   input.focus();
 }
-function closePalette() { $('palette-overlay').hidden = true; confirmArmed = null; }
+function closePalette() { $('palette-overlay').hidden = true; confirmArmed = null; restoreFocus(); }
 
 function renderPalette() {
   const q = (/** @type {HTMLInputElement} */ ($('palette-input'))).value.toLowerCase();
@@ -189,8 +221,8 @@ function renderPalette() {
     const confirming = confirmArmed === a.id;
     return `<button class="p-row${a.disabled ? ' disabled' : ''}${confirming ? ' confirm' : ''}"
       role="option" aria-selected="${i === paletteIndex}" data-i="${i}">
-      <span class="tag">${a.tag}</span>
-      <span class="lbl">${confirming ? `Press Enter again to ${esc(a.label)}` : esc(a.label)}</span>
+      <span class="tag">${esc(a.tag)}</span>
+      <span class="lbl">${confirming ? `Confirm — ${esc(a.label)}` : esc(a.label)}</span>
       <span class="k">${a.kind === 'run' ? (confirming ? '⏎ confirm' : '⏎') : a.kind === 'copy' ? '⌘C' : '→'}</span>
     </button>`;
   }).join('') || `<p class="empty-inline" style="padding:12px 18px">Nothing matches.</p>`;
@@ -222,8 +254,10 @@ async function doRun(skill, label) {
   openDrill(label, `<pre id="run-out" aria-live="polite">…</pre>`);
   const out = $('run-out');
   out.textContent = '';
+  const ctrl = new AbortController();
+  runAbort = ctrl;
   try {
-    const res = await api(`/api/run/${skill}`, { method: 'POST' });
+    const res = await api(`/api/run/${skill}`, { method: 'POST', signal: ctrl.signal });
     if (!res.ok) { out.textContent = `Run refused: ${(await res.json()).error}`; return; }
     if (!res.body) { out.textContent = 'Run started but the stream is unavailable.'; return; }
     const reader = res.body.getReader();
@@ -235,20 +269,28 @@ async function doRun(skill, label) {
       out.scrollTop = out.scrollHeight;
     }
   } catch (e) {
-    if (e instanceof Error && e.message !== 'unauthorized') out.textContent += `\n▸ connection lost`;
+    if (ctrl.signal.aborted) { /* panel closed — the server kills the child on disconnect */ }
+    else if (e instanceof Error && e.message !== 'unauthorized') out.textContent += `\n▸ connection lost`;
   }
+  if (runAbort === ctrl) runAbort = null;
   load();
 }
 
 // ── drill-ins ──
 /** @param {string} title @param {string} bodyHTML */
 function openDrill(title, bodyHTML) {
+  rememberFocus();
   $('drill-title').textContent = title;
   $('drill-body').innerHTML = bodyHTML;
   $('drill-overlay').hidden = false;
   $('drill-close').focus();
 }
-function closeDrill() { $('drill-overlay').hidden = true; }
+function closeDrill() {
+  $('drill-overlay').hidden = true;
+  runAbort?.abort(); // closing the panel releases the one-run-at-a-time slot
+  runAbort = null;
+  restoreFocus();
+}
 
 /** @param {Project | undefined} p */
 function drillProject(p) {
@@ -262,18 +304,20 @@ function drillProject(p) {
       <dt>idle</dt><dd>${p.idleDays} days</dd>
       <dt>harvest flags</dt><dd>${p.flags}</dd>
       <dt>deviations</dt><dd>${p.deviations} — of ${p.decisions} decisions</dd>
-      <dt>prototype</dt><dd>${p.prototype_repo ? `<a href="${esc(p.prototype_repo)}" target="_blank" rel="noopener">${esc(p.prototype_repo)}</a>` : '—'}</dd>
+      <dt>prototype</dt><dd>${p.prototype_repo ? (httpUrl(p.prototype_repo) ? `<a href="${esc(p.prototype_repo)}" target="_blank" rel="noopener">${esc(p.prototype_repo)}</a>` : esc(p.prototype_repo)) : '—'}</dd>
     </dl>`);
 }
 
 // ── token gate ──
 function showGate() {
+  rememberFocus();
   $('gate-overlay').hidden = false;
   $('gate-input').focus();
 }
 $('gate-save').addEventListener('click', () => {
   localStorage.setItem('wall-token', (/** @type {HTMLInputElement} */ ($('gate-input'))).value.trim());
   $('gate-overlay').hidden = true;
+  restoreFocus();
   load();
 });
 $('gate-input').addEventListener('keydown', e => {
@@ -293,6 +337,11 @@ function toast(msg) {
 
 // ── keyboard ──
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    const ov = openOverlay();
+    if (ov) trapTab(e, ov);
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
     if ($('palette-overlay').hidden) openPalette(); else closePalette();
@@ -305,7 +354,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if ($('palette-overlay').hidden) return;
-  if (e.key === 'ArrowDown') { e.preventDefault(); paletteIndex = Math.min(paletteIndex + 1, paletteRowsVisible.length - 1); confirmArmed = null; renderPalette(); }
+  if (e.key === 'ArrowDown') { e.preventDefault(); paletteIndex = Math.max(0, Math.min(paletteIndex + 1, paletteRowsVisible.length - 1)); confirmArmed = null; renderPalette(); }
   if (e.key === 'ArrowUp') { e.preventDefault(); paletteIndex = Math.max(paletteIndex - 1, 0); confirmArmed = null; renderPalette(); }
   if (e.key === 'Enter') { e.preventDefault(); activate(paletteRowsVisible[paletteIndex]); }
 });
