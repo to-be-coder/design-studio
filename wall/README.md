@@ -62,6 +62,21 @@ full TypeScript means a build step or committed compiled output — both break t
 promise (decision 0006 has the full reasoning). The checker is a gate, like the design.md lint:
 same rigor, medium unchanged.
 
+## Tests
+
+A Playwright smoke suite ([`test/wall.spec.js`](test/wall.spec.js)) drives the real thing the
+way a person does: the token gate (with **visibility** assertions — the class of bug DOM-state
+checks miss), the ambient render, the ⌘K palette, drill-ins, the press-Enter-again run flow
+streamed to completion, and the API refusals (401/403/404). It spins up its own server on a
+random port against a throwaway vault, a scratch token file, and a stubbed `claude` CLI —
+nothing touches your real vault, token, or run log. CI runs it on every change under `wall/`
+([`wall-checks.yml`](../.github/workflows/wall-checks.yml)).
+
+```sh
+cd wall && npm install && npx playwright install chromium   # once
+npm test
+```
+
 ## Files
 
 - `server.js` — zero-dependency Node server (static + read APIs + SSE + run API)
@@ -74,6 +89,7 @@ same rigor, medium unchanged.
   } > public/tokens.css
   ```
 - `DESIGN.md` — the visual contract (lints clean, incl. WCAG contrast)
+- `test/` + `playwright.config.js` — the smoke suite (see *Tests* above)
 - `design/` — the project record: brief, decisions 0001–0006, specimen boards, harvest flags.
   The boards render the two *candidates* (Orbital blue, Ember amber); the shipped Bloom pink
   arrived at the release gate — decision 0005 tells that story

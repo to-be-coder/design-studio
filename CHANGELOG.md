@@ -4,6 +4,15 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ## Unreleased
 
+### Added
+
+- **Committed wall smoke suite + CI** — `wall/test/wall.spec.js` (Playwright, contributor
+  tooling only; runtime dependencies stay zero) drives the real server and UI against a
+  throwaway vault with a stubbed CLI: the token gate with *visibility* assertions (the class of
+  bug that shipped), ambient render, ⌘K palette, drill-ins, the confirm-to-run stream, and the
+  API refusals. `.github/workflows/wall-checks.yml` runs the type check and the suite on every
+  change under `wall/`.
+
 ### Fixed
 
 - **Wall overlays now actually dismiss** — the token gate, ⌘K palette, drill-ins, and toasts

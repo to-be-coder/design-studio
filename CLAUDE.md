@@ -40,5 +40,7 @@ right order.
     the specimen boards are frozen design-record artifacts rendering the two *candidate*
     palettes (both since superseded); they deliberately don't draw from the shipped contract.
   - The wall is typed JS (decision 0006): shapes live in `wall/types.d.ts`, code stays `.js` with
-    JSDoc, and `cd wall && npm run check` must pass after any wall change. No `.ts` source files;
-    `wall/package.json` `dependencies` stays empty forever.
+    JSDoc. After any wall change, `cd wall && npm run check` AND `npm test` (the Playwright smoke
+    suite in `wall/test/`; CI runs both via `.github/workflows/wall-checks.yml`) must pass. No
+    `.ts` source files; `wall/package.json` `dependencies` stays empty forever — type/test
+    tooling is devDependencies.

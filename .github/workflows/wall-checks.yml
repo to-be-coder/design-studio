@@ -1,0 +1,39 @@
+name: Wall checks
+
+# Type check + Playwright smoke suite for the Studio Wall. Runs on anything
+# that touches wall/ so a UI regression (like the day-one [hidden] gate bug)
+# can't ship silently.
+
+on:
+  push:
+    branches: [main]
+    paths: ["wall/**", ".github/workflows/wall-checks.yml"]
+  pull_request:
+    paths: ["wall/**", ".github/workflows/wall-checks.yml"]
+
+jobs:
+  wall:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wall
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wall/package-lock.json
+
+      - name: Install contributor tooling
+        run: npm ci
+
+      - name: Type check (typed JS, decision 0006)
+        run: npm run check
+
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke suite
+        run: npm test
