@@ -59,23 +59,32 @@ const ALLOWLIST = {
 };
 
 const CLAUDE_BIN = process.env.WALL_CLAUDE_BIN || 'claude';
+// probing an external CLI is slow and synchronous — cache it so no request pays per-call
+/** @type {{at: number, ok: boolean}} */
+let claudeCheck = { at: 0, ok: false };
 /** @returns {boolean} */
 function claudeAvailable() {
-  try { return spawnSync(CLAUDE_BIN, ['--version'], { timeout: 4000 }).status === 0; }
-  catch { return false; }
+  if (Date.now() - claudeCheck.at > 60_000) {
+    let ok = false;
+    try { ok = spawnSync(CLAUDE_BIN, ['--version'], { timeout: 4000 }).status === 0; }
+    catch { ok = false; }
+    claudeCheck = { at: Date.now(), ok };
+  }
+  return claudeCheck.ok;
 }
 
 // ── tiny frontmatter reader (dashboard contract only) ──
 /** @param {string} text @returns {Record<string, string>} */
 function frontmatter(text) {
-  const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+  const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text.replace(/^﻿/, '').trimStart());
   if (!m) return {};
   /** @type {Record<string, string>} */
   const out = {};
   for (const line of m[1].split(/\r?\n/)) {
     const kv = /^([A-Za-z_][\w-]*):\s*(.*)$/.exec(line);
     if (!kv) continue;
-    out[kv[1]] = kv[2].split('#')[0].trim().replace(/^["']|["']$/g, '');
+    // a YAML comment needs whitespace before '#' — bare '#' (URLs, "C#") is data
+    out[kv[1]] = kv[2].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
   }
   return out;
 }
@@ -89,21 +98,18 @@ function listDirs(p) {
   catch { return []; }
 }
 
-/** @param {string} dir @returns {number} */
-function newestMtime(dir) {
+/** @param {string} dir @param {number} [depth] @returns {number} */
+function newestMtime(dir, depth = 3) {
+  // depth 3 reaches <slug>/Decisions/<file>, so editing an existing decision refreshes the wall
   let t = 0;
   try {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       if (e.name.startsWith('.')) continue;
-      const st = fs.statSync(path.join(dir, e.name));
-      t = Math.max(t, st.mtimeMs);
-      if (e.isDirectory()) {
-        try {
-          for (const f of fs.readdirSync(path.join(dir, e.name))) {
-            t = Math.max(t, fs.statSync(path.join(dir, e.name, f)).mtimeMs);
-          }
-        } catch { /* skip */ }
-      }
+      const p = path.join(dir, e.name);
+      try {
+        t = Math.max(t, fs.statSync(p).mtimeMs);
+        if (e.isDirectory() && depth > 1) t = Math.max(t, newestMtime(p, depth - 1));
+      } catch { /* skip */ }
     }
   } catch { /* skip */ }
   return t;
@@ -124,8 +130,10 @@ function decisionCounts(projectDir) {
     for (const f of fs.readdirSync(path.join(projectDir, 'Decisions'))) {
       if (!f.endsWith('.md')) continue;
       const fm = frontmatter(safeRead(path.join(projectDir, 'Decisions', f)) || '');
+      const tags = fm.tags || '';
+      if (!tags.includes('decision')) continue; // templates/readmes don't inflate the count
       decisions++;
-      if ((fm.tags || '').includes('deviation')) deviations++;
+      if (tags.includes('deviation')) deviations++;
     }
   } catch { /* no Decisions/ yet */ }
   return { decisions, deviations };
@@ -179,7 +187,7 @@ function readState() {
     .map(l => { try { return /** @type {RunLogEntry} */ (JSON.parse(l)); } catch { return null; } });
   const runs = /** @type {RunLogEntry[]} */ (runLines.filter(Boolean));
   state.activity = [
-    ...runs.map(r => ({ ts: r.ts, text: `${r.skill} — ${r.ok ? 'completed' : 'failed'} · run from wall · ${Math.round(r.ms / 1000)}s` })),
+    ...runs.reverse().map(r => ({ ts: r.ts, text: `${r.skill} — ${r.ok ? 'completed' : 'failed'} · run from wall · ${Math.round(r.ms / 1000)}s` })),
     ...(state.wiki ? state.wiki.log.map(l => ({ ts: null, text: l.replace(/^## /, '') })) : []),
   ].slice(0, 8);
 
@@ -211,9 +219,10 @@ function authorized(req, url) {
   const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
   const supplied = bearer || url.searchParams.get('token');
   if (!supplied) return false;
-  return crypto.timingSafeEqual(
-    Buffer.from(supplied.padEnd(64).slice(0, 64)),
-    Buffer.from(TOKEN.padEnd(64).slice(0, 64)));
+  // hash first: digests are fixed-length, so multibyte input can never make
+  // timingSafeEqual throw on mismatched buffer sizes (which would kill the process)
+  const digest = (/** @type {string} */ s) => crypto.createHash('sha256').update(s).digest();
+  return crypto.timingSafeEqual(digest(supplied), digest(TOKEN));
 }
 
 // ── SSE: state-change poller ──
@@ -250,8 +259,9 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 
 /** @param {http.ServerResponse} res @param {string} name */
 function serveStatic(res, name) {
-  const file = path.join(__dirname, 'public', name === '/' ? 'index.html' : name);
-  if (!file.startsWith(path.join(__dirname, 'public'))) { res.writeHead(404); res.end(); return; }
+  const pubDir = path.join(__dirname, 'public');
+  const file = path.join(pubDir, name === '/' ? 'index.html' : name);
+  if (!file.startsWith(pubDir + path.sep)) { res.writeHead(404); res.end(); return; }
   const body = safeRead(file);
   if (body === null) { res.writeHead(404); res.end('not found'); return; }
   res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'text/plain' });
@@ -259,6 +269,17 @@ function serveStatic(res, name) {
 }
 
 const server = http.createServer((req, res) => {
+  try { handle(req, res); }
+  catch { // a request must never take the wall down
+    try {
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: 'internal error' }));
+    } catch { /* headers already sent */ }
+  }
+});
+
+/** @param {http.IncomingMessage} req @param {http.ServerResponse} res */
+function handle(req, res) {
   const url = new URL(req.url || '/', `http://${HOST}:${PORT}`);
 
   if (!url.pathname.startsWith('/api/')) {
@@ -323,7 +344,7 @@ const server = http.createServer((req, res) => {
 
   res.writeHead(404, { 'content-type': 'application/json' });
   res.end(JSON.stringify({ error: 'not found' }));
-});
+}
 
 server.listen(PORT, HOST, () => {
   const vault = resolveVault();

@@ -42,12 +42,21 @@ function makeFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'wall-test-'));
   const proj = path.join(root, 'vault', 'Design Studio', 'demo');
   write(path.join(proj, '00 Dashboard.md'),
-    '---\ntype: design-project\nstatus: active\nstage: build\nclient: acme\nroute: full\nstarted: 2026-01-01\n---\n');
+    '---\ntype: design-project\nstatus: active\nstage: build\nclient: C#Corp\nroute: full\nstarted: 2026-01-01\nprototype_repo: https://github.com/x/demo#readme\n---\n');
   write(path.join(proj, 'Decisions', '0001 plain.md'),
     '---\nid: 0001\nstage: debrief\nstatus: decided\nowner: test\ntags: [decision]\n---\n# 0001\n');
   write(path.join(proj, 'Decisions', '0002 deviation.md'),
     '---\nid: 0002\nstage: build\nstatus: decided\nowner: test\ntags: [decision, deviation]\n---\n# 0002\n');
   write(path.join(proj, 'Harvest.md'), '# Harvest\n- a flag. (build)\n');
+  // a tagless scratch file must not count as a decision
+  write(path.join(proj, 'Decisions', '_scratch.md'), '# notes, not an ADR\n');
+  // a BOM-prefixed dashboard must still be recognized
+  write(path.join(root, 'vault', 'Design Studio', 'withbom', '00 Dashboard.md'),
+    '﻿---\ntype: design-project\nstatus: active\nstage: debrief\nprototype_repo: javascript:alert(1)\n---\n');
+  // two pre-seeded runs, oldest first on disk — activity must surface the newest first
+  write(path.join(root, 'runlog'),
+    JSON.stringify({ ts: '2026-01-01T10:00:00.000Z', skill: 'wiki-lint', ms: 1000, ok: true }) + '\n'
+    + JSON.stringify({ ts: '2026-01-02T10:00:00.000Z', skill: 'harvest-draft', ms: 2000, ok: true }) + '\n');
   write(path.join(root, 'vault', 'Studio Wiki', 'wiki', 'A page.md'),
     '---\ntype: wiki-page\nentity: pattern\napplies: mechanism\norigin: starter\nborn: test\nsources: []\nstatus: live\nlast_confirmed: 2026-01-01\n---\n# A page\n');
   write(path.join(root, 'vault', 'Studio Wiki', '_sparks.md'), '# Sparks\n- [[A page]] — one spark.\n');
@@ -103,12 +112,24 @@ async function main() {
       (await api('/api/run/not-a-skill', { method: 'POST', headers: AUTH })).status === 403);
 
     // ── HTTP: state carries the decision/deviation counts ──
+    // é is 1 char but 2 UTF-8 bytes — exactly what made timingSafeEqual throw pre-fix
+    // (stays ≤U+00FF so fetch's ByteString header rule allows it through)
+    check('non-ASCII token is rejected, not a crash',
+      (await api('/api/state', { headers: { authorization: 'Bearer ééééé' } })).status === 403);
+    check('server is still alive after the multibyte token',
+      (await api('/api/state', { headers: AUTH })).status === 200);
+
     const state = /** @type {WallState} */ (await (await api('/api/state', { headers: AUTH })).json());
     const demo = state.portfolio.find(p => p.slug === 'demo');
     check('fixture project appears in the portfolio', !!demo);
-    check('decision count read from Decisions/', demo?.decisions === 2);
+    check('decision count reads tagged entries only (2 of 3 files)', demo?.decisions === 2);
     check('deviation-tagged entries counted', demo?.deviations === 1);
     check('harvest flags counted', demo?.flags === 1);
+    check('values containing # survive frontmatter parsing',
+      demo?.client === 'C#Corp' && demo?.prototype_repo === 'https://github.com/x/demo#readme');
+    check('BOM-prefixed dashboard still appears', state.portfolio.some(p => p.slug === 'withbom'));
+    const runTs = state.activity.filter(a => a.ts).map(a => String(a.ts));
+    check('activity lists the newest run first', runTs.length >= 2 && runTs[0] > runTs[1]);
 
     // ── HTTP: one run at a time ──
     const first = await api('/api/run/wiki-lint', { method: 'POST', headers: AUTH });
@@ -147,7 +168,7 @@ async function main() {
     check('wiki spark count is singular when it should be',
       (await page.textContent('#wk-sub'))?.trim() === '1 spark on the shelf');
 
-    await page.click('#pf-table .t-row'); // the exact mouse click the [hidden] bug intercepted
+    await page.locator('#pf-table .t-row', { hasText: 'demo' }).click(); // the exact mouse click the [hidden] bug intercepted
     await page.waitForSelector('#drill-overlay:not([hidden])');
     check('clicking a project row opens the drill-in', await page.isVisible('#drill-overlay'));
     check('drill-in shows deviations against decisions',
