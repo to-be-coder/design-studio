@@ -33,4 +33,6 @@ the run instruction to one line. Laddered to the principle: the artifact proves 
 dependency updates forever.
 
 **Status note.** Stage numbering in the product is untouched; the wall is a product surface,
-not a pipeline stage.
+not a pipeline stage. Correction (2026-07-02): the stack line above names `fs.watch`; the
+shipped server uses interval polling (`POLL_MS`) instead — see the state-change poller in
+`server.js`.

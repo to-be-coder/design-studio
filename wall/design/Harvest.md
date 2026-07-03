@@ -30,3 +30,11 @@ One-liners for the Studio Wiki; distilled at project close by `design-studio-har
   container beats the UA's `[hidden]{display:none}`) — pair such rules with a `[hidden]` reset.
   Shipped broken since day one; invisible to keyboard-driven demos; caught by an end-to-end
   preview clicking with a mouse. — trap candidate.
+- Trap: `timingSafeEqual` on unhashed user input throws on multibyte (char count ≠ byte count),
+  and an uncaught throw kills the process — hash to fixed length before comparing, always.
+  — trap candidate.
+- Synchronous spawn in a request path stalls the whole event loop on every request — cache
+  external CLI probes with a TTL. — craft candidate.
+- Token drift: styles.css carries sub-scale literals with no matching token (4/6px radii,
+  10/12/13px sizes). Needs a deliberate DESIGN.md token pass (additive growth + re-export +
+  decision), not a hot swap. — flag for the next design-system session.

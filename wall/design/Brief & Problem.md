@@ -69,5 +69,6 @@ DESIGN.md is deliberately the first stroke of the house language.
 
 ## Route
 
-**Lite, with `design-system` inserted** (the look is the point), per CONVENTIONS. Stage order:
+**Lite, with `design-system` inserted** (the look is the point), adapted from the CONVENTIONS
+Lite route. Stage order:
 debrief (this record) → design-system (boards → DESIGN.md) → build → validate → ship.

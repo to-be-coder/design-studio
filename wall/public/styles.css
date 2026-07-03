@@ -1,4 +1,4 @@
-/* Studio Wall — Ember. Every color/size here derives from tokens.css (wall/DESIGN.md).
+/* Studio Wall — Bloom. Every color/size here derives from tokens.css (wall/DESIGN.md).
    Hardcoded colors are defects. */
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -63,7 +63,7 @@ input{font:inherit;color:var(--color-ink);background:none;border:none;outline:no
 .tile-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--spacing-sm)}
 .more{
   color:var(--color-ink-dim);border:1px solid var(--color-hairline);border-radius:6px;
-  padding:0 8px;font-size:14px;line-height:20px;background:var(--color-elevated);
+  padding:0 8px;font-size:var(--text-body);line-height:20px;background:var(--color-elevated);
   opacity:0;
 }
 .tile:hover .more,.tile:focus-within .more,.drillin .more{opacity:1}

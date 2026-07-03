@@ -68,7 +68,9 @@ At the start of a design project. Runs standalone. The only skill that creates a
      ````
    - `01 Brief & Problem.md` — original brief verbatim, the restated problem, the rubric as a
      checklist, the guiding principle, the deviation thesis, success criteria. Mark provisional
-     items clearly.
+     items clearly. Write the named parts as `##` sections (Guiding principle, Deviation
+     thesis, Success criteria) so decision links like `[[01 Brief & Problem#Guiding principle]]`
+     resolve.
    - `Assumptions & Risks.md` — the seeded register.
    - `Harvest.md` — empty flag inbox for Studio Wiki keepers (capture is free; see CONVENTIONS).
    - `Decisions/0001 <framing-slug>.md` — the framing decision (status `decided` once confirmed,

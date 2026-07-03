@@ -26,6 +26,18 @@ All notable, user-visible changes to the design-studio skills are documented her
 - **Wall regression suite** — the Playwright checks are now committed (`cd wall && npm test`):
   auth gate, overlay visibility, mouse click-through, deviation counts, security responses,
   streamed runs. Contributor tooling only; runtime stays zero-dependency (decision 0007).
+- **Wall server hardening** — a non-ASCII token no longer crashes the server (hash-then-compare
+  plus a request-level catch); values containing `#` and BOM-prefixed dashboards parse
+  correctly; the activity feed lists newest first; only decision-tagged files count toward the
+  deviation line; editing an existing decision refreshes the board; the CLI probe is cached
+  instead of blocking every state read.
+- **Wall front end** — closing the run panel aborts the run (no more minutes-long "a run is
+  already active" lockout); dialogs trap and restore focus so `aria-modal` is true; prototype
+  links render only for http(s) URLs.
+- **Record corrections** — explore-directions writes the contract's `stage = directions`; the
+  README numbers all 11 stages; v1.1.0's test claim corrected (decision 0007); decision 0003's
+  stack note amended to match the shipped poller; debrief pins `##` section headings so ADR
+  template links resolve; the wall stylesheet header finally says Bloom.
 
 ## v1.1.0 — 2026-07-02
 
@@ -40,7 +52,8 @@ All notable, user-visible changes to the design-studio skills are documented her
   preview; one run at a time, streamed live, logged). Zero-build front end: ambient by default
   (no visible buttons), ⌘K command palette for every secondary action with press-Enter-again
   confirm, project drill-ins, handoff cards for 🔴 stages, designed empty/offline/no-CLI states,
-  20+-project overflow. Playwright-tested end to end (16 checks + security curls).
+  20+-project overflow. Exercised end to end during its build; the committed regression
+  suite came later (decision 0007).
 
 ## v1.0.0 — 2026-07-02
 
