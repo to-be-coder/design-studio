@@ -9,8 +9,9 @@ the skills installed.
 ## The two rules that matter most
 
 1. **One writer.** Pages are created and edited only through the `design-studio-harvest` skill —
-   a distillation the user reviews before anything lands — or an approved `wiki-lint` fix. Main
-   thread only, never a sub-agent. If you are not running one of those, you are a READER here.
+   a distillation the user reviews before anything lands — an approved `wiki-lint` fix, or the
+   one-time starter seeding by `design-studio-setup`. Main thread only, never a sub-agent. If
+   you are not running one of those, you are a READER here.
 2. **The membrane.** Pages hold de-clientified lessons — mechanisms, not client particulars.
    Project content lives in `Design Studio/<project>/` and never crosses into the wiki except
    through harvest's reviewed crossing. Projects never read each other; this wiki is the only
@@ -35,8 +36,8 @@ the skills installed.
   prefer locally saved images over hotlinked URLs.
 - `_index.md` / `_plays.md` / `_sparks.md` — the views; harvest keeps them current on every
   crossing.
-- `log.md` — append-only timeline: `## [YYYY-MM-DD] init|harvest|lint|ingest — <source>`.
-  Parseable with unix tools: `grep "^## \[" log.md | tail -5`.
+- `log.md` — append-only timeline: `## [YYYY-MM-DD] init|harvest|lint|ingest — <source>` (a
+  short summary may follow the source). Parseable with unix tools: `grep "^## \[" log.md | tail -5`.
 
 ## Filing answers back
 

@@ -4,9 +4,42 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ## Unreleased
 
+### Added
+
+- **Committed wall smoke suite + CI** — `wall/test/wall.spec.js` (Playwright, contributor
+  tooling only; runtime dependencies stay zero) drives the real server and UI against a
+  throwaway vault with a stubbed CLI: the token gate with *visibility* assertions (the class of
+  bug that shipped), ambient render, ⌘K palette, drill-ins, the confirm-to-run stream, and the
+  API refusals. `.github/workflows/wall-checks.yml` runs the type check and the suite on every
+  change under `wall/`.
+
+### Fixed
+
+- **Wall overlays now actually dismiss** — the token gate, ⌘K palette, drill-ins, and toasts
+  toggle the `hidden` attribute, but the stylesheet's own `display` rules overrode the
+  browser's `[hidden]` default, so the token gate never left the screen and overlays rendered
+  permanently. One reset rule (`[hidden]{display:none!important}`) restores the intended
+  behavior everywhere. Also hardened the server: static-file prefix guard now requires a path
+  separator, and the run stream no longer writes to a response the client already closed.
+- **`explore-directions` wrote an out-of-enum dashboard value** — it told the dashboard
+  `stage = explore-directions`; the CONVENTIONS enum (which the portfolio Dataview/Bases
+  queries filter on) says `directions`.
+
+### Changed
+
 - **Typed JS for the wall** — shapes in `wall/types.d.ts`, JSDoc annotations enforced by
   `tsc --noEmit` (strict) as a contributor check gate. Zero runtime dependencies and the
   zero-build `node wall/server.js` promise unchanged (decision 0006).
+- **Docs consistency pass** — README numbers `compile-spec` as stage 11 (matching its
+  "Eleventh stage" description) and uses the repo's real clone URL; the wall README lists
+  decisions through 0006, explains why the specimen boards show candidate palettes rather than
+  the shipped pink, and carries the `tokens.css` regeneration recipe — which now stamps a
+  do-not-hand-edit provenance header into the generated file; CONVENTIONS documents
+  compile-spec's `Align.md`/`Handoff.md` outputs, the wiki log-line summary suffix, and the two
+  mechanical wiki writers beside harvest (setup's starter seeding, wiki-lint's approved fixes),
+  with the starter wiki's `CLAUDE.md` aligned; `build`'s description now says it warns and asks
+  (never hard-blocks) when upstream understanding is missing; the wall's design record gains
+  the citable "Guiding principle" section its decisions ladder to.
 
 ## v1.1.0 — 2026-07-02
 

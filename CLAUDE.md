@@ -35,9 +35,12 @@ right order.
   - The README's pipeline table and utility-skill mentions stay in sync with the actual folders
     under `skills/`.
   - The wall's visual values come ONLY from `wall/DESIGN.md`: `wall/public/tokens.css` is
-    generated (`npx @google/design.md export --format css-tailwind wall/DESIGN.md | sed
-    's/^@theme {/:root {/'`) — regenerate it, never hand-edit; a hex value anywhere else in
-    `wall/` is a defect.
+    generated — regenerate it with the command in `wall/README.md` (§Files), never hand-edit.
+    A hex value anywhere else in `wall/` is a defect. Sole exception: `wall/design/boards/` —
+    the specimen boards are frozen design-record artifacts rendering the two *candidate*
+    palettes (both since superseded); they deliberately don't draw from the shipped contract.
   - The wall is typed JS (decision 0006): shapes live in `wall/types.d.ts`, code stays `.js` with
-    JSDoc, and `cd wall && npm run check` must pass after any wall change. No `.ts` source files;
-    `wall/package.json` `dependencies` stays empty forever.
+    JSDoc. After any wall change, `cd wall && npm run check` AND `npm test` (the Playwright smoke
+    suite in `wall/test/`; CI runs both via `.github/workflows/wall-checks.yml`) must pass. No
+    `.ts` source files; `wall/package.json` `dependencies` stays empty forever — type/test
+    tooling is devDependencies.

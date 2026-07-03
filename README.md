@@ -22,7 +22,7 @@ The skills are meant to be run roughly in order, though several can be used on d
 | 8 | `design-studio-design-system` | Codify the visual language into a linted `DESIGN.md` — tokens + rationale — derived from the client's brand or chosen from rendered specimen boards. |
 | 9 | `design-studio-build` | Build the clickable prototype spec-first against `DESIGN.md`, with a gate for states, edge cases, and a11y. |
 | 10 | `design-studio-validate` | Test the built prototype against the success criteria; loop back if a finding invalidates a decision. |
-| — | `design-studio-compile-spec` | Render the decision log into an audience-shaped spec (align / stakeholder / engineering). Use on demand. |
+| 11 | `design-studio-compile-spec` | Render the decision log into an audience-shaped spec (align / stakeholder / engineering). Use on demand, at any point. |
 
 Three utility skills sit outside the numbered pipeline: `design-studio-setup` (first-run
 onboarding), and `design-studio-harvest` / `design-studio-wiki-lint` (see *Studio memory* below).
@@ -92,7 +92,7 @@ of the others (they reference `../design-studio-shared/CONVENTIONS.md` by relati
 whole set.
 
 ```sh
-git clone https://github.com/<your-username>/design-studio.git
+git clone https://github.com/to-be-coder/design-studio.git
 cd design-studio
 ./install.sh
 ```
