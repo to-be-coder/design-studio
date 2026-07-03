@@ -44,6 +44,12 @@ DESIGN.md is deliberately the first stroke of the house language.
 4. Honest: real data from the real vault, never staged.
 5. Survives as a daily ambient display without becoming a maintenance pet.
 
+## Guiding principle
+
+**The artifact must prove the claim it makes.** Every decision ladders here: if a choice can't
+be defended as making the wall better evidence that agent-built UI under a visual contract comes
+out designed — not generated — it loses. (Decisions cite this section by its heading.)
+
 ## Success criteria (PROVISIONAL — firm up at validate)
 
 - The ambient view answers "where is everything?" in one glance (portfolio stages, wiki growth,

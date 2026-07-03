@@ -1,6 +1,6 @@
 ---
 name: design-studio-build
-description: Build the clickable prototype spec-first — write per-feature specs in plain language before building, then build against them in Claude Code, with a gate for empty/error/loading states, edge cases, accessibility, and token-level consistency against the project's DESIGN.md. Refuses to run until the upstream understanding exists. Ninth stage of the design-studio pipeline.
+description: Build the clickable prototype spec-first — write per-feature specs in plain language before building, then build against them in Claude Code, with a gate for empty/error/loading states, edge cases, accessibility, and token-level consistency against the project's DESIGN.md. Gates on the upstream understanding existing — warns and asks before building without it. Ninth stage of the design-studio pipeline.
 ---
 
 # design-studio-build

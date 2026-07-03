@@ -38,7 +38,7 @@ For any hard, non-obvious decision — especially the ones `scope-and-sequence` 
    and let them choose. Record the chosen direction with all rejected directions and their
    disqualifying reasons; link `rests_on` to any assumption it depends on. Auto-flag each rejected
    direction as one line in `Harvest.md` — rejected directions are pre-packaged sparks.
-7. **Update `00 Dashboard.md`** (stage = explore-directions, next = converge or another hard decision).
+7. **Update `00 Dashboard.md`** (stage = directions, next = converge or another hard decision).
 
 ## Handoff
 Loop back into this skill for the next hard decision, or go to `design-studio-converge`.

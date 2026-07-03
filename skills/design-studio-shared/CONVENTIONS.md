@@ -72,7 +72,8 @@ SORT file.mtime ASC
   03 Scope.md              ← full scope + staged sequence + migration plan
   04 Directions.md         ← directions + data-model comparison
   05 Validation.md         ← prototype test findings
-  06 Spec.md               ← stakeholder / eng render of the log (on demand)
+  06 Spec.md               ← audience-shaped render of the log (on demand; align / eng-handoff
+                             modes may write Align.md / Handoff.md beside it)
   Decisions/               ← ADR log: NNNN <slug>.md, immutable, superseded-not-deleted
   Assumptions & Risks.md   ← living register (verified / partial / unverified / accepted)
   DESIGN.md                ← the visual contract (design.md format); moves to the prototype repo at build
@@ -228,6 +229,9 @@ right at studio scale).
   hook). An empty result is honest, never an error: "no precedents yet — this project seeds them."
 - **The wiki is written only through `design-studio-harvest`** — a reviewed distillation. Never
   directly from a working session, never by a sub-agent (single-writer, same rule as decisions).
+  Two mechanical exceptions, neither of which crosses project material: `design-studio-setup`
+  seeds the shipped starter pages at init, and `design-studio-wiki-lint` applies approved
+  mechanical fixes.
 - **Projects never read each other.** Not even "for reference." The only path between projects is
   a deliberately abstracted wiki page. This is what keeps unrelated client work unsmushed — and
   confidential.
@@ -249,6 +253,7 @@ right at studio scale).
   _plays.md     ← problem-shaped view: plays & traps, matched by problem shape
   _sparks.md    ← the sparks shelf: orphaned ideas, browseable
   log.md        ← append-only, parseable: "## [YYYY-MM-DD] init|harvest|lint|ingest — <source>"
+                  (a short summary may follow the source, e.g. ": 2 pages, 1 edit")
   raw/          ← immutable source captures (transcripts, excerpts, images; add-only)
   wiki/         ← the pages, flat (no deep nesting)
 ```

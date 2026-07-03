@@ -234,8 +234,9 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
 
 /** @param {http.ServerResponse} res @param {string} name */
 function serveStatic(res, name) {
-  const file = path.join(__dirname, 'public', name === '/' ? 'index.html' : name);
-  if (!file.startsWith(path.join(__dirname, 'public'))) { res.writeHead(404); res.end(); return; }
+  const publicDir = path.join(__dirname, 'public');
+  const file = path.join(publicDir, name === '/' ? 'index.html' : name);
+  if (!file.startsWith(publicDir + path.sep)) { res.writeHead(404); res.end(); return; }
   const body = safeRead(file);
   if (body === null) { res.writeHead(404); res.end('not found'); return; }
   res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'text/plain' });
@@ -286,8 +287,9 @@ const server = http.createServer((req, res) => {
     const child = spawn(CLAUDE_BIN, entry.argv, { cwd: vault, stdio: ['ignore', 'pipe', 'pipe'] });
     activeRun = child;
     const timeout = setTimeout(() => child.kill('SIGKILL'), RUN_TIMEOUT_MS);
-    child.stdout?.on('data', d => res.write(d));
-    child.stderr?.on('data', d => res.write(d));
+    res.on('error', () => {}); // client may abort mid-stream; the child keeps draining until killed
+    child.stdout?.on('data', d => { if (!res.destroyed) res.write(d); });
+    child.stderr?.on('data', d => { if (!res.destroyed) res.write(d); });
     let finished = false;
     /** @param {number | null} code */
     const finish = (code) => {
@@ -296,7 +298,7 @@ const server = http.createServer((req, res) => {
       clearTimeout(timeout); activeRun = null;
       const ms = Date.now() - started;
       appendRunLog({ ts: new Date().toISOString(), skill, ms, ok: code === 0 });
-      res.end(`\n▸ ${skill} ${code === 0 ? 'completed' : `exited ${code}`} in ${Math.round(ms / 1000)}s\n`);
+      if (!res.destroyed) res.end(`\n▸ ${skill} ${code === 0 ? 'completed' : `exited ${code}`} in ${Math.round(ms / 1000)}s\n`);
       lastSig = 'force-refresh'; // force a state event on next poll
     };
     child.on('error', () => finish(-1));

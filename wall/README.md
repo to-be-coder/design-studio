@@ -40,7 +40,9 @@ The control surface is deliberately boring:
   `~/.design-studio-wall-token`); Origin headers from foreign sites are rejected, so drive-by
   browser pages can't reach the API.
 - **Server-side allowlist** — exactly two runnable skills in v1: `wiki-lint` (report-only) and
-  `harvest-draft` (crossing preview; never writes the wiki). Argv arrays, no shell.
+  `harvest-draft` (crossing preview; never writes the wiki). Argv arrays, no shell. Honest
+  caveat: "report-only" is enforced by the instructions each run hands the `claude` CLI (plus
+  your review of anything it proposes), not by a filesystem sandbox.
 - One run at a time, 5-minute timeout, killed if you close the page; every run is appended to
   `~/.design-studio-wall.log` and shown in the Activity panel.
 - No arbitrary prompt passthrough, by design. Anything conversational belongs in Claude Code.
@@ -63,8 +65,15 @@ same rigor, medium unchanged.
 ## Files
 
 - `server.js` — zero-dependency Node server (static + read APIs + SSE + run API)
-- `public/` — zero-build front end; `public/tokens.css` is **generated** from `DESIGN.md`
-  (`npx @google/design.md export --format css-tailwind DESIGN.md | sed 's/^@theme {/:root {/'`)
-  — regenerate it after any token change; hand-editing it is a defect
+- `public/` — zero-build front end; `public/tokens.css` is **generated** from `DESIGN.md` —
+  hand-editing it is a defect. After any token change, regenerate it (from `wall/`):
+
+  ```sh
+  { echo '/* Generated from DESIGN.md — do not hand-edit. Regeneration command: wall/README.md. */'
+    npx @google/design.md export --format css-tailwind DESIGN.md | sed 's/^@theme {/:root {/'
+  } > public/tokens.css
+  ```
 - `DESIGN.md` — the visual contract (lints clean, incl. WCAG contrast)
-- `design/` — the project record: brief, decisions 0001–0004, specimen boards, harvest flags
+- `design/` — the project record: brief, decisions 0001–0006, specimen boards, harvest flags.
+  The boards render the two *candidates* (Orbital blue, Ember amber); the shipped Bloom pink
+  arrived at the release gate — decision 0005 tells that story

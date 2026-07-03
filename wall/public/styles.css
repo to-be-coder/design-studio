@@ -1,7 +1,8 @@
-/* Studio Wall — Ember. Every color/size here derives from tokens.css (wall/DESIGN.md).
+/* Studio Wall — Bloom. Every color/size here derives from tokens.css (wall/DESIGN.md).
    Hardcoded colors are defects. */
 
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important} /* app.js toggles .hidden; must beat any class display value */
 html{color-scheme:dark}
 body{
   background:var(--color-canvas);color:var(--color-ink);
