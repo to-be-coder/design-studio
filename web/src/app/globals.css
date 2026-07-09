@@ -1,0 +1,143 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Design Studio — dark-first, monotone with a single hint of blue.
+ * Neutrals carry a whisper of blue (very low chroma, hue ~260) so the mono
+ * reads as chosen, not defaulted. The one accent is --accent-solid.
+ */
+:root {
+  --background: oklch(0.985 0.003 260);
+  --foreground: oklch(0.21 0.012 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.012 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.012 260);
+  --primary: oklch(0.24 0.012 260);
+  --primary-foreground: oklch(0.985 0.003 260);
+  --secondary: oklch(0.96 0.004 260);
+  --secondary-foreground: oklch(0.24 0.012 260);
+  --muted: oklch(0.96 0.004 260);
+  --muted-foreground: oklch(0.5 0.01 260);
+  --accent: oklch(0.95 0.006 260);
+  --accent-foreground: oklch(0.24 0.012 260);
+  --destructive: oklch(0.58 0.2 22);
+  --border: oklch(0.9 0.006 260);
+  --input: oklch(0.9 0.006 260);
+  --ring: oklch(0.58 0.15 255);
+
+  --accent-solid: oklch(0.55 0.17 255);
+  --accent-solid-foreground: oklch(0.99 0.01 255);
+  --accent-glow: oklch(0.55 0.17 255 / 0.28);
+
+  --radius: 0.7rem;
+}
+
+.dark {
+  --background: oklch(0.155 0.008 260);
+  --foreground: oklch(0.955 0.004 260);
+  --card: oklch(0.185 0.008 260);
+  --card-foreground: oklch(0.955 0.004 260);
+  --popover: oklch(0.185 0.009 260);
+  --popover-foreground: oklch(0.955 0.004 260);
+  --primary: oklch(0.92 0.004 260);
+  --primary-foreground: oklch(0.2 0.008 260);
+  --secondary: oklch(0.255 0.009 260);
+  --secondary-foreground: oklch(0.955 0.004 260);
+  --muted: oklch(0.255 0.009 260);
+  --muted-foreground: oklch(0.7 0.008 260);
+  --accent: oklch(0.27 0.011 260);
+  --accent-foreground: oklch(0.955 0.004 260);
+  --destructive: oklch(0.62 0.2 20);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.64 0.15 255);
+
+  --accent-solid: oklch(0.64 0.16 255);
+  --accent-solid-foreground: oklch(0.99 0.01 255);
+  --accent-glow: oklch(0.64 0.16 255 / 0.35);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans antialiased;
+    overscroll-behavior: none;
+  }
+  body {
+    @apply text-foreground;
+    background: transparent;
+    overscroll-behavior: none;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [role="tab"]:not(:disabled),
+  [role="menuitem"]:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+}
+
+/*
+ * Custom utilities are declared with Tailwind v4's `@utility` so they compose
+ * with variants (hover:, group-hover:, dark:, …) — plain `@layer utilities`
+ * classes don't get variant support.
+ */
+@utility panel {
+  background: color-mix(in oklab, var(--card) 82%, transparent);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  border-radius: calc(var(--radius) * 1.6);
+}
+
+/* The single blue accent, used sparingly. */
+@utility accent-text {
+  color: var(--accent-solid);
+}
+@utility accent-fill {
+  background: var(--accent-solid);
+  color: var(--accent-solid-foreground);
+}
+@utility accent-glow {
+  box-shadow: 0 0 24px -6px var(--accent-glow);
+}
+@utility row-selected {
+  background: color-mix(in oklab, var(--accent-solid) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-solid) 32%, transparent);
+}

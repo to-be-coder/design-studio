@@ -4,6 +4,21 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ## Unreleased
 
+### Changed
+
+- **The Studio Wall is replaced by the `web/` dashboard.** The Next.js dashboard supersedes the
+  zero-dependency wall: it renders every stage's output, a knowledge graph, and the decision log
+  with its supersede chains, all from a single pipeline definition in `web/src/lib/schema.ts`.
+  `.github/workflows/web-checks.yml` runs the type check and production build on every change
+  under `web/`.
+
+### Removed
+
+- **`wall/`** — the ambient dashboard, its `⌘K` control surface for running non-interactive
+  skills from the browser, its Playwright smoke suite, and its public design record
+  (`wall/design/`). Skills are now copied into Claude Code rather than run from the browser.
+  Recoverable from history at the commit preceding this change.
+
 ### Added
 
 - **Committed wall smoke suite + CI** — `wall/test/wall.spec.js` (Playwright, contributor

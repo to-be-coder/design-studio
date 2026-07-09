@@ -70,20 +70,23 @@ something — mechanism- and process-class pages only, plus one clearly-marked t
 that asks to be deleted once your own exists. Real taste is never shipped — it's grown from your
 own projects; that's the point.
 
-## The Wall
+## The dashboard
 
-The product includes its own dashboard — built through this very pipeline, as proof. **Studio
-Wall** is an ambient, single-hue dashboard over your vault (portfolio, wiki growth, prototypes,
-activity) with a token-gated control surface: `⌘K` runs the non-interactive skills from the
-browser, and conversational 🔴 stages hand off to Claude Code — a button cannot run a ritual.
+The product includes its own dashboard — built through this very pipeline, as proof. It reads
+your vault read-only and renders the output of every stage: a portfolio of projects with the
+stage each one sits in, a knowledge graph, the decision log with its supersede chains, and the
+pipeline itself.
 
 ```sh
-node wall/server.js
+cd web && npm install && npm run dev   # http://localhost:3000
 ```
 
-Zero dependencies, localhost-only, two-skill allowlist. Its design record — brief, decisions,
-specimen boards, and the `DESIGN.md` visual contract (Bloom: sci-fi pink on warm plum-black) —
-is public in [`wall/`](wall/). See [`wall/README.md`](wall/README.md) for the security model.
+The pipeline is defined exactly once, in [`web/src/lib/schema.ts`](web/src/lib/schema.ts) —
+stages, skills, autonomy, and the stage→artifact map. The UI renders from it; nothing hardcodes
+the pipeline. Every visual value derives from [`web/DESIGN.md`](web/DESIGN.md).
+
+Each skill is offered as a command you copy into Claude Code, rather than a button that runs it:
+the conversational 🔴 stages are rituals, and a button cannot run a ritual.
 
 ## Install
 

@@ -1,0 +1,35 @@
+name: Web checks
+
+# Type check + production build for the web dashboard. Runs on anything that
+# touches web/ so a broken render or a type regression can't ship silently.
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", ".github/workflows/web-checks.yml"]
+  pull_request:
+    paths: ["web/**", ".github/workflows/web-checks.yml"]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build

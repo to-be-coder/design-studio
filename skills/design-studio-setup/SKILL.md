@@ -52,7 +52,7 @@ a broken or moved vault pointer. Runs standalone.
    day one, and the wiki is built to grow.
 7. **Finish verified, with one next action.** Re-read the pointer, list what now exists (vault
    path; `Design Studio/`; `Studio Wiki/` with its page count; a footnote that the optional
-   dashboard is one command away — `node wall/server.js` from the cloned repo), and end with
+   dashboard is one command away — `cd web && npm run dev` from the cloned repo), and end with
    exactly one instruction: **"Bring a brief and run `/design-studio-debrief`."**
 
 ## Handoff

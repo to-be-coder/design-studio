@@ -19,7 +19,7 @@ right order.
 
 - **Docs map:** `README.md` — the user-facing story; `skills/design-studio-shared/CONVENTIONS.md`
   — the law every skill follows; `skills/design-studio-shared/starter-wiki/CLAUDE.md` — the
-  wiki's own schema; `wall/README.md` — the dashboard and its security model; `CHANGELOG.md` —
+  wiki's own schema; `web/README.md` — the dashboard; `CHANGELOG.md` —
   release history (update it with every user-visible change).
 - `skills/design-studio-shared/CONVENTIONS.md` is the single source of truth every skill reads
   first. Change a convention there, nowhere else.
@@ -34,13 +34,11 @@ right order.
   - Each skill folder's name equals its SKILL.md frontmatter `name:`.
   - The README's pipeline table and utility-skill mentions stay in sync with the actual folders
     under `skills/`.
-  - The wall's visual values come ONLY from `wall/DESIGN.md`: `wall/public/tokens.css` is
-    generated — regenerate it with the command in `wall/README.md` (§Files), never hand-edit.
-    A hex value anywhere else in `wall/` is a defect. Sole exception: `wall/design/boards/` —
-    the specimen boards are frozen design-record artifacts rendering the two *candidate*
-    palettes (both since superseded); they deliberately don't draw from the shipped contract.
-  - The wall is typed JS (decision 0006): shapes live in `wall/types.d.ts`, code stays `.js` with
-    JSDoc. After any wall change, `cd wall && npm run check` AND `npm test` (the Playwright smoke
-    suite in `wall/test/`; CI runs both via `.github/workflows/wall-checks.yml`) must pass. No
-    `.ts` source files; `wall/package.json` `dependencies` stays empty forever — type/test
-    tooling is devDependencies.
+  - The web dashboard's visual values come ONLY from `web/DESIGN.md`: the tokens in
+    `web/src/app/globals.css` derive from it, never the other way round. A raw hex or `oklch()`
+    literal in a component is a defect.
+  - The pipeline is defined once, in `web/src/lib/schema.ts` — stages, skills, autonomy, runnable
+    flags, and the stage→artifact map. The UI renders from it; nothing hardcodes the pipeline.
+    Add a stage there and nowhere else.
+  - After any web change, `cd web && npx tsc --noEmit` AND `npm run build` must pass
+    (CI runs both via `.github/workflows/web-checks.yml`).
