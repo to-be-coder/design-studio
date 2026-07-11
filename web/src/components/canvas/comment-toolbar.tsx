@@ -53,6 +53,23 @@ export function CommentToolbar({ project }: { project: string }) {
         Comment <span className="ml-1 font-mono text-[0.6875rem] opacity-70">C</span>
       </button>
 
+      <button
+        type="button"
+        onClick={() => setMode(mode === "tokens" ? "read" : "tokens")}
+        aria-pressed={mode === "tokens"}
+        data-testid="mode-tokens"
+        className="rounded-pill border px-3 py-1.5 text-[0.8125rem] transition-colors"
+        style={{
+          borderColor: mode === "tokens" ? "var(--accent)" : "var(--rule)",
+          background: mode === "tokens" ? "var(--accent-wash)" : "var(--paper)",
+          color: mode === "tokens" ? "var(--accent)" : "var(--ink-muted)",
+          fontWeight: mode === "tokens" ? 600 : 400,
+        }}
+        title="Tokens mode — live DESIGN.md overrides"
+      >
+        Tokens
+      </button>
+
       {mode === "comment" ? (
         <>
           <div className="flex gap-0.5 rounded-pill border border-rule p-0.5" role="group" aria-label="Granularity">

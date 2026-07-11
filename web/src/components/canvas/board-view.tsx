@@ -7,6 +7,7 @@ import { ArtifactCard } from "./artifact-card";
 import { FramingPane } from "./framing-pane";
 import { RegisterCard } from "./register";
 import { DesignSystemBoard } from "./design-system-board";
+import { ComponentBoard } from "./component-board";
 import { PrototypeFrames } from "./prototype-frames";
 import { DecisionStream } from "./decision-stream";
 import type { RenderableBlock } from "@/lib/types";
@@ -29,6 +30,8 @@ export interface BoardViewProps {
   onToggleExpand?: (id: string) => void;
   /** Live in-place card overrides (§0): cardId → freshly-fetched blocks. */
   liveCards?: Record<string, RenderableBlock[]>;
+  /** Fly the canvas to a region (component board → frames click-to-fly). */
+  onFly?: (regionId: string) => void;
 }
 
 /**
@@ -52,6 +55,7 @@ export const BoardView = memo(function BoardView({
   expanded,
   onToggleExpand,
   liveCards,
+  onFly,
 }: BoardViewProps) {
   return (
     <div ref={worldRef} data-testid="canvas-world" className="relative flex w-max flex-col gap-6 p-16" style={{ transformOrigin: "0 0", willChange: "transform" }}>
@@ -84,6 +88,7 @@ export const BoardView = memo(function BoardView({
             expanded={expanded}
             onToggleExpand={onToggleExpand}
             liveCards={liveCards}
+            onFly={onFly}
           />
         ))}
     </div>
@@ -103,6 +108,7 @@ function PhaseSection({
   expanded,
   onToggleExpand,
   liveCards,
+  onFly,
 }: {
   phase: Phase;
   stages: SpineStage[];
@@ -116,13 +122,14 @@ function PhaseSection({
   expanded?: Set<string>;
   onToggleExpand?: (id: string) => void;
   liveCards?: Record<string, RenderableBlock[]>;
+  onFly?: (regionId: string) => void;
 }) {
   return (
     <section className="relative z-10 ml-6 border-l border-rule pl-12" data-phase={phase}>
       <h2 className="eyebrow mb-8 text-ink">{phase}</h2>
 
       {stages.map((s) => (
-        <StageRow key={s.stage} stage={s} model={model} onSelectAssumption={onSelectAssumption} selectedAssumption={selectedAssumption} highlightedDecisions={highlightedDecisions} expanded={expanded} onToggleExpand={onToggleExpand} liveCards={liveCards} />
+        <StageRow key={s.stage} stage={s} model={model} onSelectAssumption={onSelectAssumption} selectedAssumption={selectedAssumption} highlightedDecisions={highlightedDecisions} expanded={expanded} onToggleExpand={onToggleExpand} liveCards={liveCards} onFly={onFly} />
       ))}
 
       {/* The Decision Stream is the centerpiece under the Decide phase. */}
@@ -159,6 +166,7 @@ function StageRow({
   expanded,
   onToggleExpand,
   liveCards,
+  onFly,
 }: {
   stage: SpineStage;
   model: BoardModel;
@@ -168,6 +176,7 @@ function StageRow({
   expanded?: Set<string>;
   onToggleExpand?: (id: string) => void;
   liveCards?: Record<string, RenderableBlock[]>;
+  onFly?: (regionId: string) => void;
 }) {
   const label = stageName(stage.stage);
   return (
@@ -185,7 +194,12 @@ function StageRow({
             onSelect={onSelectAssumption}
           />
         ) : stage.stage === "design-system" ? (
-          <DesignSystemBoard model={model.designSystem} prototype={model.prototype} id="design-system-board" />
+          <>
+            <DesignSystemBoard model={model.designSystem} prototype={model.prototype} id="design-system-board" />
+            {model.prototype.hasTokens ? (
+              <ComponentBoard tokens={model.tokens} id="component-board" onFly={onFly} />
+            ) : null}
+          </>
         ) : stage.stage === "build" ? (
           <PrototypeFrames prototype={model.prototype} id="prototype-frames-region" />
         ) : stage.isDecisionStage ? (

@@ -290,8 +290,8 @@ test.describe("design-system board (/canvas/fixture-project)", () => {
 
     // Type presets on realistic content, and component specimens in state variants.
     await expect(page.getByTestId("type-preset").first()).toBeVisible();
-    await expect(page.locator('[data-component-base="button"]')).toBeVisible();
-    await expect(page.locator('[data-component-base="card"]')).toBeVisible();
+    await expect(board.locator('[data-component-base="button"]')).toBeVisible();
+    await expect(board.locator('[data-component-base="card"]')).toBeVisible();
 
     // Candidate boards ride alongside, with the chosen one marked.
     const chosen = page.locator('[data-testid="candidate-board"][data-chosen="true"]');
@@ -451,5 +451,82 @@ test.describe("comment + tweak + export (/canvas/fixture-project)", () => {
     expect(clip).toContain("DESIGN.md change proposal");
     expect(clip).toMatch(/RESHAPING|ADDITIVE/);
     expect(clip).toContain("superseding");
+  });
+});
+
+// ── Slice 8: component board + tokens mode ───────────────────────────────────
+
+test.describe("component board + tokens mode (/canvas/fixture-project)", () => {
+  test.use({ viewport: { width: 1600, height: 1000 } });
+
+  test("component board shows live instance counts across routes + an uncodified row", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // Mount the frames, then fit so the route rail + boards are all on-screen
+    // (a transformed canvas can't be scrolled into view by the test runner).
+    await page.getByRole("option", { name: "Build", exact: true }).click();
+    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+    await page.getByRole("button", { name: "Zoom to fit" }).click();
+    await page.waitForTimeout(500);
+
+    // Browse every route so the instance scan accumulates across routes (§7).
+    const rail = page.getByTestId("route-rail");
+    await rail.getByText("/page2", { exact: true }).click();
+    await expect(desktop.getByRole("heading", { name: "Reports" })).toBeVisible();
+    await rail.getByText("/page3", { exact: true }).click();
+    await expect(desktop.getByRole("heading", { name: "Settings" })).toBeVisible();
+    await rail.getByText("/", { exact: true }).click();
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+
+    const board = page.getByTestId("component-board");
+    await expect(board).toBeVisible();
+
+    // Button: 3 + 2 + 1 = 6 instances across 3 routes.
+    const buttonCell = board.locator('[data-component-name="button"]');
+    await expect(buttonCell).toBeVisible();
+    await expect(buttonCell.getByTestId("instance-count")).toHaveText("6");
+    await expect(buttonCell.getByTestId("component-instances")).toContainText("3 routes");
+
+    // The recurring stat-tile signature is uncodified (3+ routes, no component).
+    const uncodified = board.getByTestId("uncodified-row").filter({ hasText: "stat-tile" });
+    await expect(uncodified).toBeVisible();
+
+    expect(errors, `console/page errors on component board:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("tokens mode: editing a token restyles every loaded frame live", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    await page.getByRole("option", { name: "Build", exact: true }).click();
+    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+
+    await page.getByTestId("mode-tokens").click();
+    const panel = page.getByTestId("tokens-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByTestId("tokens-banner")).toContainText(/superseding decision/i);
+
+    // Edit colors.primary → every loaded frame's primary restyles immediately.
+    await panel
+      .locator('[data-token="colors.primary"] [data-testid="token-input"]')
+      .fill("#ff0000");
+    await expect(desktop.locator('[data-component="button"]').first()).toHaveCSS(
+      "background-color",
+      "rgb(255, 0, 0)",
+    );
+
+    // Per-token reset returns it.
+    await panel.locator('[data-token="colors.primary"]').getByRole("button").click();
+    await expect(desktop.locator('[data-component="button"]').first()).not.toHaveCSS(
+      "background-color",
+      "rgb(255, 0, 0)",
+    );
+
+    expect(errors, `console/page errors on tokens mode:\n${errors.join("\n")}`).toEqual([]);
   });
 });

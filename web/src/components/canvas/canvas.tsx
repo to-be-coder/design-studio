@@ -10,6 +10,8 @@ import { FramesProvider } from "./frames-context";
 import { SessionProvider } from "./session-context";
 import { CommentController } from "./comment-controller";
 import { CommentToolbar } from "./comment-toolbar";
+import { TokensPanel } from "./tokens-panel";
+import { useSession } from "./session-context";
 import { componentBaseNames } from "@/lib/tokens";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -464,8 +466,11 @@ export function Canvas({ model }: { model: BoardModel }) {
             expanded={expanded}
             onToggleExpand={toggleExpand}
             liveCards={liveCards}
+            onFly={flyTo}
           />
         </div>
+
+        {model.prototype.hasTokens ? <TokensDrawer tokens={model.tokens} /> : null}
 
         <ZoomHud
           pct={pct}
@@ -481,6 +486,13 @@ export function Canvas({ model }: { model: BoardModel }) {
     </SessionProvider>
     </FramesProvider>
   );
+}
+
+/** Renders the Tokens-mode drawer only when the session is in tokens mode (§13). */
+function TokensDrawer({ tokens }: { tokens: import("@/lib/types").DesignTokens }) {
+  const { mode } = useSession();
+  if (mode !== "tokens") return null;
+  return <TokensPanel tokens={tokens} />;
 }
 
 function isTypingTarget(t: EventTarget | null): boolean {

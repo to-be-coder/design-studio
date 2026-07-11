@@ -236,6 +236,23 @@ export function clearVar(doc: Document, cssVar: string): void {
 /** Shared device-frame scale so parent-side popover math matches the frames (§9). */
 export const FRAME_SCALE = 0.5;
 
+/** Briefly outline every instance of a component in a frame (click-to-flash §7). */
+export function flashComponent(doc: Document, component: string): number {
+  const els = Array.from(doc.querySelectorAll(`[data-component="${component}"]`));
+  for (const el of els) {
+    const h = el as HTMLElement;
+    const prevOutline = h.style.outline;
+    const prevOffset = h.style.outlineOffset;
+    h.style.outline = "3px solid #3b5bdb";
+    h.style.outlineOffset = "2px";
+    setTimeout(() => {
+      h.style.outline = prevOutline;
+      h.style.outlineOffset = prevOffset;
+    }, 1400);
+  }
+  return els.length;
+}
+
 // ── Instance scanning (§7) ───────────────────────────────────────────────────
 
 export interface FrameScan {
