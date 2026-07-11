@@ -16,13 +16,20 @@ export function ArtifactCard({
   card,
   slug,
   stageLabel,
+  expanded: expandedProp,
+  onToggleExpand,
 }: {
   card: CardModel;
   slug: string;
   stageLabel: string;
+  /** Controlled expand (persisted at the canvas level) — falls back to local. */
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = expandedProp ?? localExpanded;
+  const toggle = onToggleExpand ?? (() => setLocalExpanded((v) => !v));
   const [overflows, setOverflows] = useState(false);
 
   useLayoutEffect(() => {
@@ -63,7 +70,7 @@ export function ArtifactCard({
         {overflows ? (
           <button
             type="button"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={toggle}
             className="relative mt-3 rounded-pill border border-rule px-3 py-1 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
           >
             {expanded ? "Collapse" : "Expand"}

@@ -8,7 +8,8 @@ import { test, expect, type Page } from "@playwright/test";
  * is one, and every page is checked for zero console/page errors.
  *
  * The suite grows one block per canvas slice (§14). Slices present: 1
- * (substrate), 2 (the readable board), 3 (decision stream + assumption graph).
+ * (substrate), 2 (the readable board), 3 (decision stream + assumption graph),
+ * 4 (pan & zoom + sidebar index).
  */
 
 const STAGE_LABELS = [
@@ -186,5 +187,78 @@ test.describe("decision stream + assumption graph (/canvas/fixture-project)", ()
     await expect(page.locator("#d-0009")).toBeVisible();
 
     expect(errors, `console/page errors on blast radius:\n${errors.join("\n")}`).toEqual([]);
+  });
+});
+
+// ── Slice 4: pan & zoom + sidebar index ──────────────────────────────────────
+
+test.describe("pan & zoom (/canvas/fixture-project)", () => {
+  test("zoom is a CSS transform on one world container; the HUD drives it", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    const world = page.getByTestId("canvas-world");
+    // Zoom is a transform on the single world container (perf law), set on load.
+    await expect(world).toHaveAttribute("style", /scale\(/);
+
+    const hud = page.getByTestId("zoom-hud");
+    await expect(hud).toBeVisible();
+    await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
+
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await expect(page.getByTestId("zoom-pct")).not.toHaveText("100%");
+    await expect(world).toHaveAttribute("style", /scale\((?!1\))/); // scale != 1
+
+    // Click-to-reset returns to 100%.
+    await page.getByTestId("zoom-pct").click();
+    await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
+
+    expect(errors, `console/page errors on pan/zoom:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("view state persists per project across reloads", async ({ page }) => {
+    await page.goto("/canvas/fixture-project");
+    await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    await page.getByRole("button", { name: "Zoom in" }).click();
+    // Let the rAF-throttled HUD readout settle before capturing it.
+    await expect(page.getByTestId("zoom-pct")).not.toHaveText("100%");
+    await page.waitForTimeout(150);
+    const zoomed = await page.getByTestId("zoom-pct").textContent();
+    expect(zoomed).not.toBe("100%");
+
+    // Give the debounced localStorage write time to flush, then reload.
+    await page.waitForTimeout(500);
+    await page.reload();
+    await expect(page.getByTestId("zoom-pct")).toHaveText(zoomed!);
+  });
+
+  test("the sidebar is a keyboard-navigable index that flies the canvas", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    const sidebar = page.getByTestId("sidebar");
+    await expect(sidebar).toBeVisible();
+
+    const world = page.getByTestId("canvas-world");
+    const before = await world.getAttribute("style");
+
+    // Arrow through the index and fly with Enter — reachable without a drag.
+    const firstOption = sidebar.getByRole("option").first();
+    await firstOption.focus();
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(500);
+    const after = await world.getAttribute("style");
+    expect(after).not.toBe(before); // the canvas flew somewhere
+
+    // Sidebar can hide and show.
+    await page.getByRole("button", { name: /hide sidebar/i }).click();
+    await expect(page.getByTestId("sidebar")).toHaveCount(0);
+    await page.getByRole("button", { name: /show sidebar/i }).click();
+    await expect(page.getByTestId("sidebar")).toBeVisible();
+
+    expect(errors, `console/page errors on sidebar index:\n${errors.join("\n")}`).toEqual([]);
   });
 });

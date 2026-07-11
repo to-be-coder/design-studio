@@ -1,6 +1,6 @@
 "use client";
 
-import type { RefObject } from "react";
+import { memo, type RefObject } from "react";
 import type { BoardModel, Phase, SpineStage, StageMarkerState } from "@/lib/types";
 import type { RestsOnState, StreamFilter } from "./canvas";
 import { ArtifactCard } from "./artifact-card";
@@ -20,6 +20,10 @@ export interface BoardViewProps {
   restsOnState?: Record<string, RestsOnState>;
   filter?: StreamFilter;
   onFilter?: (f: StreamFilter) => void;
+  hiddenStages?: Set<string>;
+  hiddenPhases?: Set<Phase>;
+  expanded?: Set<string>;
+  onToggleExpand?: (id: string) => void;
 }
 
 /**
@@ -29,7 +33,7 @@ export interface BoardViewProps {
  * rendered honestly as "not run". This is one world container; slice 4 pans and
  * zooms it as a unit.
  */
-export function BoardView({
+export const BoardView = memo(function BoardView({
   model,
   worldRef,
   selectedAssumption,
@@ -38,9 +42,13 @@ export function BoardView({
   restsOnState,
   filter = "all",
   onFilter,
+  hiddenStages,
+  hiddenPhases,
+  expanded,
+  onToggleExpand,
 }: BoardViewProps) {
   return (
-    <div ref={worldRef} className="relative flex w-max flex-col gap-6 p-16">
+    <div ref={worldRef} data-testid="canvas-world" className="relative flex w-max flex-col gap-6 p-16" style={{ transformOrigin: "0 0", willChange: "transform" }}>
       {worldRef ? (
         <Connectors
           worldRef={worldRef}
@@ -53,23 +61,27 @@ export function BoardView({
         <ProjectHeader project={model.project} header={model.header} />
       </div>
 
-      {model.phases.map((phase) => (
-        <PhaseSection
-          key={phase}
-          phase={phase}
-          stages={model.stages.filter((s) => s.phase === phase)}
-          model={model}
-          selectedAssumption={selectedAssumption}
-          onSelectAssumption={onSelectAssumption}
-          highlightedDecisions={highlightedDecisions}
-          restsOnState={restsOnState}
-          filter={filter}
-          onFilter={onFilter}
-        />
-      ))}
+      {model.phases
+        .filter((phase) => !hiddenPhases?.has(phase))
+        .map((phase) => (
+          <PhaseSection
+            key={phase}
+            phase={phase}
+            stages={model.stages.filter((s) => s.phase === phase && !hiddenStages?.has(s.stage))}
+            model={model}
+            selectedAssumption={selectedAssumption}
+            onSelectAssumption={onSelectAssumption}
+            highlightedDecisions={highlightedDecisions}
+            restsOnState={restsOnState}
+            filter={filter}
+            onFilter={onFilter}
+            expanded={expanded}
+            onToggleExpand={onToggleExpand}
+          />
+        ))}
     </div>
   );
-}
+});
 
 function PhaseSection({
   phase,
@@ -81,6 +93,8 @@ function PhaseSection({
   restsOnState,
   filter,
   onFilter,
+  expanded,
+  onToggleExpand,
 }: {
   phase: Phase;
   stages: SpineStage[];
@@ -91,13 +105,15 @@ function PhaseSection({
   restsOnState?: Record<string, RestsOnState>;
   filter?: StreamFilter;
   onFilter?: (f: StreamFilter) => void;
+  expanded?: Set<string>;
+  onToggleExpand?: (id: string) => void;
 }) {
   return (
     <section className="relative z-10 ml-6 border-l border-rule pl-12" data-phase={phase}>
       <h2 className="eyebrow mb-8 text-ink">{phase}</h2>
 
       {stages.map((s) => (
-        <StageRow key={s.stage} stage={s} model={model} onSelectAssumption={onSelectAssumption} selectedAssumption={selectedAssumption} highlightedDecisions={highlightedDecisions} />
+        <StageRow key={s.stage} stage={s} model={model} onSelectAssumption={onSelectAssumption} selectedAssumption={selectedAssumption} highlightedDecisions={highlightedDecisions} expanded={expanded} onToggleExpand={onToggleExpand} />
       ))}
 
       {/* The Decision Stream is the centerpiece under the Decide phase. */}
@@ -131,12 +147,16 @@ function StageRow({
   selectedAssumption,
   onSelectAssumption,
   highlightedDecisions,
+  expanded,
+  onToggleExpand,
 }: {
   stage: SpineStage;
   model: BoardModel;
   selectedAssumption?: string | null;
   onSelectAssumption?: (id: string | null) => void;
   highlightedDecisions?: Set<string> | null;
+  expanded?: Set<string>;
+  onToggleExpand?: (id: string) => void;
 }) {
   const label = stageName(stage.stage);
   return (
@@ -157,7 +177,14 @@ function StageRow({
           <DecisionSlice stage={stage} model={model} />
         ) : (
           stage.cards.map((c) => (
-            <ArtifactCard key={c.id} card={c} slug={model.project.slug} stageLabel={label} />
+            <ArtifactCard
+              key={c.id}
+              card={c}
+              slug={model.project.slug}
+              stageLabel={label}
+              expanded={onToggleExpand ? expanded?.has(c.id) ?? false : undefined}
+              onToggleExpand={onToggleExpand ? () => onToggleExpand(c.id) : undefined}
+            />
           ))
         )}
       </div>
