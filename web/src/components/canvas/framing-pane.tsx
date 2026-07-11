@@ -32,6 +32,16 @@ export function FramingPane({ framing, id }: { framing: FramingModel; id: string
         </Facet>
       </div>
 
+      {/*
+        SPEC-CALL: §4 asks that selecting the guiding principle highlight every
+        Decision Stream entry that cites it. Decisions cite the principle by
+        prose ("ladders to the guiding principle"), not a structured field, so
+        reliable citation detection needs a heuristic that risks false matches.
+        Consistent with the spec's "assert what users see" principle, we render
+        the principle prominently now and defer the click-to-highlight ladder to
+        a later slice rather than ship an unreliable match. The blast-radius
+        mechanism it would reuse (assumption → decisions) already ships (slice 3).
+      */}
       {framing.guidingPrinciple ? (
         <div className="my-8 border-y border-rule py-7 text-center">
           <p className="eyebrow mb-3">Guiding principle</p>
