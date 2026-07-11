@@ -321,8 +321,18 @@ test.describe("prototype frames (/canvas/fixture-project)", () => {
     // frame. Every column is present (mounted or still queued).
     await expect(page.locator('[data-testid="route-column"]')).toHaveCount(3);
 
-    // The root column carries the desktop AND the (root-only) mobile frame.
-    const rootColumn = page.locator('[data-testid="route-column"][data-route=""]');
+    // The columns are grouped into rows by domain (§1 comb): the route's first
+    // path segment, root "" → "/". The fixture's three routes ("", page2.html,
+    // page3.html) each live in their own domain, so three labelled rows appear.
+    for (const key of ["/", "/page2", "/page3"]) {
+      const row = page.locator(`[data-testid="domain-row"][data-domain="${key}"]`);
+      await expect(row.getByTestId("domain-label")).toBeVisible();
+    }
+
+    // The root row ("/") holds the root column, and that column carries the
+    // desktop AND the (root-only) mobile frame.
+    const rootRow = page.locator('[data-testid="domain-row"][data-domain="/"]');
+    const rootColumn = rootRow.locator('[data-testid="route-column"][data-route=""]');
     await expect(rootColumn.getByTestId("frame-desktop")).toBeVisible();
     await expect(rootColumn.getByTestId("frame-mobile")).toBeVisible();
 

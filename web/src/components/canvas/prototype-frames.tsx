@@ -5,12 +5,14 @@ import type { PrototypeInfo } from "@/lib/types";
 import { useFrames } from "./frames-context";
 
 /**
- * Every page as its own live frame (§1 comb): ONE COLUMN PER ROUTE, laid out
- * horizontally, each column a desktop DeviceFrame labelled with its route path.
- * The old route rail switched a single frame between routes; now every route is
- * a simultaneous, always-alive column, so the cross-route instance scan (§7)
- * accumulates without any clicking and §7/§10–§13 can reach into all of them at
- * once (same-origin only).
+ * Every page as its own live frame (§1 comb): ONE COLUMN PER ROUTE, each column
+ * a desktop DeviceFrame labelled with its route path. The columns are grouped
+ * into ROWS BY DOMAIN — sections stacked down the spine, each section's pages
+ * running horizontally — where a row is the route's first path segment (root ""
+ * → "/"). The old route rail switched a single frame between routes; now every
+ * route is a simultaneous, always-alive column, so the cross-route instance
+ * scan (§7) accumulates without any clicking and §7/§10–§13 can reach into all
+ * of them at once (same-origin only).
  *
  * The mount discipline — the load-bearing part — comes straight from the proven
  * recipe:
@@ -65,8 +67,46 @@ function routeLabel(route: string): string {
   return route === "" ? "/" : "/" + route.replace(/\.html?$/i, "");
 }
 
+// Row (domain) key for the comb: the route's FIRST path segment, with the root
+// route "" grouping as "/". A trailing .html is stripped first, because static
+// fixtures use page2.html-style routes (so "page2.html" → "/page2", and
+// "settings/profile" → "/settings"). Grouping by this key stacks each domain's
+// pages as one horizontal row down the spine (§1 comb geometry).
+function domainKey(route: string): string {
+  if (route === "") return "/";
+  return "/" + route.replace(/\.html?$/i, "").split("/")[0];
+}
+
+interface DomainRow {
+  key: string;
+  items: { route: string; index: number }[];
+}
+
+// Group the flat route list into rows by domain (§1 comb: sections stacked down
+// the spine, each section's pages horizontal). Row order = order of first
+// appearance in routes; column order within a row = appearance order. The
+// GLOBAL mount index is assigned ROW-MAJOR here (row 0's columns first, then
+// row 1's, …) so the sequential mount queue boots exactly one frame at a time
+// across all rows, in the reading order the comb lays out.
+function groupByDomain(routes: string[]): DomainRow[] {
+  const rows: DomainRow[] = [];
+  for (const route of routes) {
+    const key = domainKey(route);
+    let row = rows.find((r) => r.key === key);
+    if (!row) {
+      row = { key, items: [] };
+      rows.push(row);
+    }
+    row.items.push({ route, index: 0 });
+  }
+  let gi = 0;
+  for (const row of rows) for (const item of row.items) item.index = gi++;
+  return rows;
+}
+
 export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; id: string }) {
   const routes = prototype.routes.length ? prototype.routes : [""];
+  const rows = groupByDomain(routes);
   const direct = !prototype.interactive;
 
   // Reload-all nonce; bumping it re-keys every column so all remount and the
@@ -205,24 +245,36 @@ export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; i
         </div>
       </header>
 
-      <div className="flex items-start gap-8" data-testid="route-comb">
-        {routes.map((route, index) => {
-          const cleared = activated && index <= mountedUpTo;
-          return cleared ? (
-            <RouteColumn
-              key={`col-${index}-${nonce}`}
-              route={route}
-              index={index}
-              isRoot={index === 0}
-              base={prototype.base}
-              direct={direct}
-              onStatus={(s) => setStatus(index, s)}
-              onSettle={() => onColumnSettle(index)}
-            />
-          ) : (
-            <QueuedColumn key={`queued-${index}`} route={route} activated={activated} />
-          );
-        })}
+      {/* Rows stack down the spine; each domain's pages run horizontally. The
+          mount queue frontier (mountedUpTo) is a GLOBAL row-major index, so
+          reading the rows top-to-bottom, left-to-right is the boot order. */}
+      <div className="flex flex-col gap-8" data-testid="route-comb">
+        {rows.map((row) => (
+          <div key={row.key} className="flex flex-col gap-2" data-testid="domain-row" data-domain={row.key}>
+            <p className="eyebrow" data-testid="domain-label">
+              {row.key}
+            </p>
+            <div className="flex items-start gap-8">
+              {row.items.map(({ route, index }) => {
+                const cleared = activated && index <= mountedUpTo;
+                return cleared ? (
+                  <RouteColumn
+                    key={`col-${index}-${nonce}`}
+                    route={route}
+                    index={index}
+                    isRoot={route === ""}
+                    base={prototype.base}
+                    direct={direct}
+                    onStatus={(s) => setStatus(index, s)}
+                    onSettle={() => onColumnSettle(index)}
+                  />
+                ) : (
+                  <QueuedColumn key={`queued-${index}`} route={route} activated={activated} />
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {prototype.degradedReason ? (

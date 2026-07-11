@@ -180,15 +180,16 @@ test.describe("token overrides", () => {
 
     // First a valid override, then garbage typed over it. Overrides now fan out
     // to EVERY route column (each a live frame), and under full-suite parallel
-    // load the re-style lands late — poll generously; solo it settles in <6s.
+    // load a CPU spike can 3x the whole suite — poll to 45s so the genuinely-async
+    // re-style lands without masking a real failure; solo it settles <8s.
     await input.fill("#00ff00");
-    await expect(btn).toHaveCSS("background-color", "rgb(0, 255, 0)", { timeout: 20000 });
+    await expect(btn).toHaveCSS("background-color", "rgb(0, 255, 0)", { timeout: 45000 });
     await input.fill("not-a-color;; }");
 
     // The garbage is flagged in the UI and NOT injected: the button falls back to
     // the prototype's own default primary — never a blanked/broken background.
     await expect(input).toHaveAttribute("data-invalid", "true");
-    await expect(btn).toHaveCSS("background-color", original, { timeout: 20000 });
+    await expect(btn).toHaveCSS("background-color", original, { timeout: 45000 });
     expect(original).not.toBe("rgba(0, 0, 0, 0)"); // sanity: default is a real color
 
     expect(errors, errors.join("\n")).toEqual([]);
