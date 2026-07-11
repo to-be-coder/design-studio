@@ -4,6 +4,13 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ## Unreleased
 
+### Added
+
+- **`ARCHITECTURE.md`** — a map of how the product actually works: the four places files live, the
+  two pointers skills resolve, the six file-based channels skills communicate through, the
+  stage→artifact table, the 🔴 ritual, the wiki membrane, and the invariants a contributor must
+  not break. Linked from the docs map in `CLAUDE.md`.
+
 ### Changed
 
 - **The Studio Wall is replaced by the `web/` dashboard.** The Next.js dashboard supersedes the

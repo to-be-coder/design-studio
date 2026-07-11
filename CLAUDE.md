@@ -17,7 +17,8 @@ right order.
 
 ## Developing this repo
 
-- **Docs map:** `README.md` — the user-facing story; `skills/design-studio-shared/CONVENTIONS.md`
+- **Docs map:** `README.md` — the user-facing story; `ARCHITECTURE.md` — where files live, how the
+  skills communicate, and the invariants; `skills/design-studio-shared/CONVENTIONS.md`
   — the law every skill follows; `skills/design-studio-shared/starter-wiki/CLAUDE.md` — the
   wiki's own schema; `web/README.md` — the dashboard; `CHANGELOG.md` —
   release history (update it with every user-visible change).

@@ -50,6 +50,9 @@ agent — draws from the same language, and `design-studio-validate` diffs it fo
   that feeds the Studio Wiki.
 - **The prototype is a separate code repo**, built spec-first against `DESIGN.md`; the project
   dashboard links to it.
+- **Want the wiring?** [`ARCHITECTURE.md`](ARCHITECTURE.md) maps where every file lives, how the
+  skills communicate (entirely through markdown on disk — nothing calls anything), and the
+  invariants that hold it together.
 
 ## Studio memory
 
