@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AssumptionState, BoardModel, Phase } from "@/lib/types";
+import type { AssumptionState, BoardModel, Phase, RenderableBlock } from "@/lib/types";
 import { BoardView } from "./board-view";
 import { Sidebar } from "./sidebar";
 import { ZoomHud } from "./hud";
+import { FramesProvider } from "./frames-context";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export type StreamFilter = "all" | "live" | "scaffold";
@@ -69,6 +70,59 @@ export function Canvas({ model }: { model: BoardModel }) {
   }, [model.assumptions]);
 
   const storageKey = `canvas-view:${model.project.slug}`;
+
+  // ── Live board (§0): the vault watcher pushes changes over SSE; the affected
+  //    card refetches and swaps its blocks in place — no full-page reload. ──────
+  const [liveCards, setLiveCards] = useState<Record<string, RenderableBlock[]>>({});
+  const fileIndex = useMemo(() => {
+    const idx: Record<string, string[]> = {};
+    for (const s of model.stages) {
+      for (const c of s.cards) {
+        if (!c.file) continue;
+        (idx[c.file] ??= []).push(c.id);
+      }
+    }
+    return idx;
+  }, [model.stages]);
+
+  useEffect(() => {
+    const slug = model.project.slug;
+    let es: EventSource | null = null;
+    try {
+      es = new EventSource(`/api/vault-events?slug=${encodeURIComponent(slug)}`);
+    } catch {
+      return;
+    }
+    const onChange = (e: MessageEvent) => {
+      let file: string | null = null;
+      try {
+        file = (JSON.parse(e.data) as { file?: string }).file ?? null;
+      } catch {
+        return;
+      }
+      if (!file) return;
+      const cardIds = fileIndex[file];
+      if (!cardIds || cardIds.length === 0) return;
+      fetch(`/api/card?slug=${encodeURIComponent(slug)}&file=${encodeURIComponent(file)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { blocks?: RenderableBlock[] } | null) => {
+          if (!data?.blocks) return;
+          setLiveCards((prev) => {
+            const next = { ...prev };
+            for (const id of cardIds) next[id] = data.blocks!;
+            return next;
+          });
+        })
+        .catch(() => {
+          /* transient — the watcher will fire again on the next write */
+        });
+    };
+    es.addEventListener("change", onChange);
+    return () => {
+      es?.removeEventListener("change", onChange);
+      es?.close();
+    };
+  }, [model.project.slug, fileIndex]);
 
   // ── Imperative transform (the perf law: no React render on pan/zoom) ─────────
   const applyView = useCallback((animate = false) => {
@@ -342,6 +396,7 @@ export function Canvas({ model }: { model: BoardModel }) {
   );
 
   return (
+    <FramesProvider>
     <div className="flex h-screen w-screen overflow-hidden bg-desk">
       {sidebarOpen ? (
         <Sidebar
@@ -400,6 +455,7 @@ export function Canvas({ model }: { model: BoardModel }) {
             hiddenPhases={hiddenPhases}
             expanded={expanded}
             onToggleExpand={toggleExpand}
+            liveCards={liveCards}
           />
         </div>
 
@@ -412,6 +468,7 @@ export function Canvas({ model }: { model: BoardModel }) {
         />
       </div>
     </div>
+    </FramesProvider>
   );
 }
 

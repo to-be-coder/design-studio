@@ -12,7 +12,7 @@ import { buildDecisionStream } from "./decision-stream";
 import { blockText, findSection, splitByH2 } from "./blocks";
 import { getDesignSystem } from "./design-system";
 import { getDesignTokens } from "./design-tokens";
-import { resolvePrototypeConfig, isEmbeddable } from "./prototype-config";
+import { resolvePrototypeConfig, isEmbeddable, discoverRoutes } from "./prototype-config";
 import type {
   ArtifactCard,
   BoardHeader,
@@ -56,6 +56,7 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
     tokenSource: tokens.source,
     hasTokens: tokens.home !== "none",
     base: `/prototype/${slug}/`,
+    routes: await discoverRoutes(config),
     degradedReason,
   };
 
@@ -124,16 +125,9 @@ async function buildCards(
   }
 
   if (stage === "build") {
-    return [
-      {
-        id: "card-build-0",
-        file: null,
-        title: "Prototype",
-        kind: "prototype-placeholder",
-        blocks: [],
-        note: "The flow ends at the running thing. Live prototype frames mount here in a later slice.",
-      },
-    ];
+    // The build tick terminates in the live prototype frames (§9) — BoardView
+    // special-cases it from the model's prototype info, no card here.
+    return [];
   }
 
   const outputs = await getStageOutput(slug, stage);

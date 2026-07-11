@@ -95,3 +95,28 @@ export const resolvePrototypeConfig = cache(
 export function isEmbeddable(cfg: PrototypeConfig): boolean {
   return !!cfg.url || cfg.staticRepo;
 }
+
+/**
+ * Discover the prototype's routes (§7/§9 navigation + cross-route scan). For a
+ * static checkout we can enumerate top-level .html files (index.html → the root
+ * route ""). For a dev server we can't enumerate, so we return just the root and
+ * let routes accrue as the reviewer navigates the frame.
+ */
+export async function discoverRoutes(cfg: PrototypeConfig): Promise<string[]> {
+  if (cfg.staticRepo && cfg.repo) {
+    try {
+      const entries = await fs.readdir(cfg.repo, { withFileTypes: true });
+      const html = entries
+        .filter((e) => e.isFile() && /\.html?$/i.test(e.name))
+        .map((e) => e.name)
+        .sort();
+      const routes = html.map((n) => (/^index\.html?$/i.test(n) ? "" : n));
+      // Root first, deduped.
+      const uniq = Array.from(new Set(["", ...routes]));
+      return uniq;
+    } catch {
+      return [""];
+    }
+  }
+  return [""];
+}

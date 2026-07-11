@@ -380,6 +380,18 @@ export async function projectDir(slug: string): Promise<string> {
 }
 
 /**
+ * Read + render a single artifact file's blocks (the live-update path §0): when
+ * the vault watcher reports a changed file, the client refetches just that card
+ * and swaps its blocks in place — no full-page reload. Not cache()d: every call
+ * is a fresh read of disk (the whole point of a live board).
+ */
+export async function getCardBlocks(slug: string, rel: string): Promise<RenderableBlock[] | null> {
+  const file = await readProjectFile(slug, rel);
+  if (!file) return null;
+  return parseMarkdownBody(file.body);
+}
+
+/**
  * Read a project-relative file and return its frontmatter-stripped body plus
  * parsed frontmatter data. Skip-on-malformed (returns null), never crash —
  * same gray-matter explicit-options contract as everything else here.

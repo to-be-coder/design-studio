@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
 /**
  * Smoke suite over the hermetic fixture vault (test/fixtures/vault). The rule
@@ -298,5 +300,61 @@ test.describe("design-system board (/canvas/fixture-project)", () => {
     await expect(page.locator('[data-testid="candidate-board"][data-chosen="false"]').first()).toBeVisible();
 
     expect(errors, `console/page errors on design-system board:\n${errors.join("\n")}`).toEqual([]);
+  });
+});
+
+// ── Slice 6: prototype frames + live board ───────────────────────────────────
+
+test.describe("prototype frames (/canvas/fixture-project)", () => {
+  test("live device frames embed the running prototype same-origin", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // Fly the canvas to the Build region so the frames mount (lazy, near-viewport).
+    await page.getByRole("option", { name: "Build", exact: true }).click();
+
+    const frames = page.getByTestId("prototype-frames");
+    await expect(frames).toBeVisible();
+    await expect(page.getByTestId("frame-desktop")).toBeVisible();
+    await expect(page.getByTestId("frame-mobile")).toBeVisible();
+
+    // The embedded frame is the real running prototype (same-origin proxy).
+    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+    await expect(desktop.locator('[data-component="button"]').first()).toBeVisible();
+
+    expect(errors, `console/page errors on frames:\n${errors.join("\n")}`).toEqual([]);
+  });
+});
+
+test.describe("live board — vault SSE (/canvas/fixture-project)", () => {
+  const SCOPE = path.resolve(
+    __dirname,
+    "fixtures/vault/Design Studio/fixture-project/03 Scope.md",
+  );
+
+  test("a changed vault file updates the affected card in place, no reload", async ({ page }) => {
+    const original = await fs.readFile(SCOPE, "utf8");
+    const marker = `LIVE-SSE-${Date.now()}`;
+    try {
+      await page.goto("/canvas/fixture-project");
+      const card = page.locator("#card-scope-0");
+      await expect(card).toBeVisible();
+      // Give the EventSource a moment to connect before we touch the file.
+      await page.waitForTimeout(600);
+
+      // Touch the vault file (the app never writes the vault; the test does).
+      const changed = original.replace(
+        /# Scope & sequence/,
+        `# Scope & sequence\n\n${marker}`,
+      );
+      await fs.writeFile(SCOPE, changed, "utf8");
+
+      // The card refetches and swaps its blocks in place — no navigation.
+      await expect(card).toHaveAttribute("data-live-updated", "true", { timeout: 8000 });
+      await expect(card.getByText(marker)).toBeVisible();
+    } finally {
+      await fs.writeFile(SCOPE, original, "utf8");
+    }
   });
 });

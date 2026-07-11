@@ -204,6 +204,8 @@ export interface PrototypeInfo {
   hasTokens: boolean;
   /** Same-origin base path the frames/scan/override use: /prototype/<slug>/. */
   base: string;
+  /** Discovered routes ("" = root); more may accrue as the reviewer navigates. */
+  routes: string[];
   /** Human note when Comment/Tweak/Tokens must degrade (no token source, etc). */
   degradedReason: string | null;
 }

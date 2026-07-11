@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import type { ArtifactCard as CardModel } from "@/lib/types";
+import type { ArtifactCard as CardModel, RenderableBlock } from "@/lib/types";
 import { Reading } from "./markdown";
 import { obsidianHref } from "./util";
 
@@ -16,12 +16,15 @@ export function ArtifactCard({
   card,
   slug,
   stageLabel,
+  liveBlocks,
   expanded: expandedProp,
   onToggleExpand,
 }: {
   card: CardModel;
   slug: string;
   stageLabel: string;
+  /** Freshly-fetched blocks from the live vault watcher (§0), overriding card.blocks. */
+  liveBlocks?: RenderableBlock[];
   /** Controlled expand (persisted at the canvas level) — falls back to local. */
   expanded?: boolean;
   onToggleExpand?: () => void;
@@ -31,11 +34,12 @@ export function ArtifactCard({
   const expanded = expandedProp ?? localExpanded;
   const toggle = onToggleExpand ?? (() => setLocalExpanded((v) => !v));
   const [overflows, setOverflows] = useState(false);
+  const blocks = liveBlocks ?? card.blocks;
 
   useLayoutEffect(() => {
     const el = bodyRef.current;
     if (el) setOverflows(el.scrollHeight > COLLAPSED_MAX + 24);
-  }, [card]);
+  }, [card, liveBlocks]);
 
   const href = obsidianHref(slug, card.file);
 
@@ -50,6 +54,7 @@ export function ArtifactCard({
       id={card.id}
       className="card-sheet flex w-[38rem] max-w-[88vw] flex-col"
       data-card-kind={card.kind}
+      data-live-updated={liveBlocks ? "true" : undefined}
     >
       <TitleStrip title={card.title} stageLabel={stageLabel} file={card.file} href={href} />
       <div className="relative px-8 py-6">
@@ -58,7 +63,7 @@ export function ArtifactCard({
           className="overflow-hidden"
           style={{ maxHeight: expanded || !overflows ? "none" : COLLAPSED_MAX }}
         >
-          <Reading blocks={card.blocks} />
+          <Reading blocks={blocks} />
         </div>
         {overflows && !expanded ? (
           <div
