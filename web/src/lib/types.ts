@@ -202,8 +202,17 @@ export interface PrototypeInfo {
   tokenHome: DesignTokenHome;
   tokenSource: string | null;
   hasTokens: boolean;
-  /** Same-origin base path the frames/scan/override use: /prototype/<slug>/. */
+  /**
+   * Where the frames load from. Same-origin proxy base (/prototype/<slug>/) for
+   * static/proxied prototypes, or a raw cross-origin origin for a direct embed.
+   */
   base: string;
+  /**
+   * Same-origin (proxied/static) → the canvas can reach into the frame DOM, so
+   * Comment/Tweak/Tokens/instance-scan work. A direct cross-origin embed is
+   * view-only: the frame renders but the DOM is off-limits.
+   */
+  interactive: boolean;
   /** Discovered routes ("" = root); more may accrue as the reviewer navigates. */
   routes: string[];
   /** Human note when Comment/Tweak/Tokens must degrade (no token source, etc). */

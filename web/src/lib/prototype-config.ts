@@ -36,6 +36,13 @@ export interface PrototypeConfig {
    * them here to show every page. Null → fall back to discovery.
    */
   routes: string[] | null;
+  /**
+   * Embed the `url` directly at its own origin (cross-origin) instead of through
+   * the same-origin proxy. Required for an app whose router has no basename (it
+   * would 404 under a path prefix) — e.g. a Vite/React-Router SPA. View-only:
+   * Comment/Tweak/Tokens can't reach a cross-origin DOM.
+   */
+  direct: boolean;
 }
 
 function looksLikeUrl(s: string | null | undefined): boolean {
@@ -43,7 +50,10 @@ function looksLikeUrl(s: string | null | undefined): boolean {
 }
 
 async function readConfigFile(): Promise<{
-  config: Record<string, { repo?: string; url?: string; routes?: string[] }>;
+  config: Record<
+    string,
+    { repo?: string; url?: string; routes?: string[]; direct?: boolean }
+  >;
   dir: string;
 }> {
   const explicit = process.env.PROTOTYPE_CONFIG?.trim();
@@ -94,7 +104,8 @@ export const resolvePrototypeConfig = cache(
 
     const staticRepo = repo ? await hasIndex(repo) : false;
     const routes = Array.isArray(entry.routes) && entry.routes.length ? entry.routes : null;
-    return { slug, repo, url, staticRepo, routes };
+    const direct = entry.direct === true && !!url;
+    return { slug, repo, url, staticRepo, routes, direct };
   },
 );
 

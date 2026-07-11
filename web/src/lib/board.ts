@@ -46,16 +46,24 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
     getDesignTokens(slug, config.repo),
   ]);
 
-  const degradedReason = !tokens.home || tokens.home === "none"
-    ? "No DESIGN.md token source — Comment, Tweak, and Tokens are read-only here."
-    : null;
+  // A direct embed loads the app at its own origin (cross-origin): the frame
+  // renders but the canvas can't touch its DOM, so it's view-only.
+  const direct = config.direct && !!config.url;
+  const base = direct ? config.url!.replace(/\/?$/, "/") : `/prototype/${slug}/`;
+  const interactive = !direct;
+  const degradedReason = direct
+    ? "Live app embedded at its own origin — Comment, Tweak, and Tokens are read-only here (the canvas can't reach into another origin)."
+    : !tokens.home || tokens.home === "none"
+      ? "No DESIGN.md token source — Comment, Tweak, and Tokens are read-only here."
+      : null;
   const prototype: PrototypeInfo = {
     slug,
     embeddable: isEmbeddable(config),
     tokenHome: tokens.home,
     tokenSource: tokens.source,
     hasTokens: tokens.home !== "none",
-    base: `/prototype/${slug}/`,
+    base,
+    interactive,
     routes: await discoverRoutes(config),
     degradedReason,
   };

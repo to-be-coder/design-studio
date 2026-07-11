@@ -442,7 +442,9 @@ export function Canvas({ model }: { model: BoardModel }) {
         {/* z-40: the mode toolbar must stay clickable above the tokens panel
             (z-30) — otherwise opening Tokens makes its own toggle unreachable. */}
         <div className="absolute right-4 top-4 z-40 flex items-center gap-2">
-          {model.prototype.hasTokens ? <CommentToolbar project={model.project.name} /> : null}
+          {model.prototype.interactive && model.prototype.hasTokens ? (
+            <CommentToolbar project={model.project.name} />
+          ) : null}
           <ThemeToggle />
         </div>
 
@@ -475,7 +477,9 @@ export function Canvas({ model }: { model: BoardModel }) {
           />
         </div>
 
-        {model.prototype.hasTokens ? <TokensDrawer tokens={model.tokens} /> : null}
+        {model.prototype.interactive && model.prototype.hasTokens ? (
+          <TokensDrawer tokens={model.tokens} />
+        ) : null}
 
         <ZoomHud
           pct={pct}

@@ -304,7 +304,7 @@ function StageRow({
             {/* The component board lives with the frames it scans: its instance
                 counts are harvested from the loaded prototype DOMs, so isolating
                 Build keeps frames + inventory together (§ focus mode / §7). */}
-            {model.prototype.hasTokens ? (
+            {model.prototype.interactive && model.prototype.hasTokens ? (
               <ComponentBoard tokens={model.tokens} id="component-board" onFly={onFly} />
             ) : null}
           </>
