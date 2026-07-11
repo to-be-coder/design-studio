@@ -349,6 +349,20 @@ export function Canvas({ model }: { model: BoardModel }) {
     persist();
   };
 
+  // Fit the isolated board after its DOM commits (measuring in the click
+  // handler would catch the previous board). Skip the first run so a reload
+  // keeps the persisted view instead of snapping to fit.
+  const fitMounted = useRef(false);
+  useEffect(() => {
+    if (!fitMounted.current) {
+      fitMounted.current = true;
+      return;
+    }
+    const id = requestAnimationFrame(() => fitToContent());
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focused]);
+
   const flyTo = useCallback(
     (regionId: string) => {
       const vp = viewportRef.current;
@@ -381,18 +395,10 @@ export function Canvas({ model }: { model: BoardModel }) {
 
   // Stable callbacks so a HUD-only re-render (pct) never re-renders the
   // memoised board — the perf law that keeps card content rendered once.
-  // Select a single board (or "all") and frame it: the point of focus mode is
-  // no scrolling, so each board lands fit to the viewport. Double rAF lets the
-  // isolated board render before we measure it.
-  const focusItem = useCallback(
-    (key: string) => {
-      setFocused(key);
-      requestAnimationFrame(() => requestAnimationFrame(() => fitToContent()));
-    },
-    // fitToContent reads refs only.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+  // Select a single board (or "all"). The actual fit happens in an effect keyed
+  // on `focused` (below) — measuring here would catch the OLD board before React
+  // swaps in the isolated one, fitting to the wrong (huge) height.
+  const focusItem = useCallback((key: string) => setFocused(key), []);
   const toggleExpand = useCallback(
     (id: string) =>
       setExpanded((prev) => {

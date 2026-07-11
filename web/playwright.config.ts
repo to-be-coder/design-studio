@@ -38,6 +38,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
+  // The suite drives several live iframes in parallel; a live-DOM assertion
+  // (toHaveCSS on a frame element, an accumulating instance scan) can settle a
+  // beat past the 5s default under CPU contention. 10s waits for the genuinely
+  // async operation without masking a real failure.
+  expect: { timeout: 10_000 },
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",

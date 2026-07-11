@@ -53,7 +53,6 @@ export function Connectors({
   selectedAssumption: string | null;
 }) {
   const edges = useRef(edgesOf(model));
-  const [size, setSize] = useState({ w: 0, h: 0 });
   const [anchors, setAnchors] = useState<Map<string, Anchor>>(new Map());
 
   // useEffect (not useLayoutEffect): a child's layout effect runs BEFORE the
@@ -78,7 +77,6 @@ export function Connectors({
         map.set(id, { x: r.left - wr.left, y: r.top - wr.top, w: r.width, h: r.height });
       }
       setAnchors(map);
-      setSize({ w: world.scrollWidth, h: world.scrollHeight });
     };
 
     measure();
@@ -125,9 +123,11 @@ export function Connectors({
 
   return (
     <svg
-      className="pointer-events-none absolute left-0 top-0 z-0"
-      width={size.w || "100%"}
-      height={size.h || "100%"}
+      // inset-0 + 100% sizes to the world's CLIENT box (set by the board's own
+      // children), never its scroll size — otherwise sizing to scrollWidth feeds
+      // back and keeps the world huge, flooring fit-to-content at MIN_SCALE.
+      // overflow-visible still paints paths that reach past the client box.
+      className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
       aria-hidden
       data-testid="connectors"
     >

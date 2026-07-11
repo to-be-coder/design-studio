@@ -262,9 +262,15 @@ export function CommentController({ tokens }: { tokens: DesignTokens }) {
   if (!draft) return null;
 
   const pinNo = annotations.length + 1;
-  const top = draft.flip ? undefined : draft.screenY + 8;
-  const bottom = draft.flip ? window.innerHeight - draft.screenY + 8 : undefined;
+  const margin = 8;
+  const top = draft.flip ? undefined : draft.screenY + margin;
+  const bottom = draft.flip ? window.innerHeight - draft.screenY + margin : undefined;
   const left = Math.min(Math.max(8, draft.screenX), window.innerWidth - 340);
+  // Cap the panel to the space between its anchor and the far viewport edge so a
+  // tall draft (tweak panel expanded) never pushes Save off-screen — it scrolls
+  // internally instead. (§10: "height capped with internal scroll".)
+  const maxHeight =
+    (draft.flip ? window.innerHeight - (bottom ?? 0) : window.innerHeight - (top ?? 0)) - margin;
 
   return (
     <div
@@ -272,8 +278,8 @@ export function CommentController({ tokens }: { tokens: DesignTokens }) {
       role="dialog"
       aria-label="Comment draft"
       data-testid="comment-draft"
-      className="fixed z-50 w-[20rem] max-w-[92vw] rounded-card border border-rule bg-paper p-4 shadow-lg"
-      style={{ top, bottom, left }}
+      className="fixed z-50 flex w-[20rem] max-w-[92vw] flex-col overflow-y-auto rounded-card border border-rule bg-paper p-4 shadow-lg"
+      style={{ top, bottom, left, maxHeight }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.stopPropagation();

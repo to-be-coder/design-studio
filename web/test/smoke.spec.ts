@@ -527,12 +527,17 @@ test.describe("component board + tokens mode (/canvas/fixture-project)", () => {
     // Button: 3 + 2 + 1 = 6 instances across 3 routes.
     const buttonCell = board.locator('[data-component-name="button"]');
     await expect(buttonCell).toBeVisible();
-    await expect(buttonCell.getByTestId("instance-count")).toHaveText("6");
-    await expect(buttonCell.getByTestId("component-instances")).toContainText("3 routes");
+    // The count accumulates across three async frame loads (one per route), so
+    // under full-suite CPU contention it can settle a beat later than the 5s
+    // default — wait for the genuinely-async scan, don't race it.
+    await expect(buttonCell.getByTestId("instance-count")).toHaveText("6", { timeout: 12000 });
+    await expect(buttonCell.getByTestId("component-instances")).toContainText("3 routes", {
+      timeout: 12000,
+    });
 
     // The recurring stat-tile signature is uncodified (3+ routes, no component).
     const uncodified = board.getByTestId("uncodified-row").filter({ hasText: "stat-tile" });
-    await expect(uncodified).toBeVisible();
+    await expect(uncodified).toBeVisible({ timeout: 12000 });
 
     expect(errors, `console/page errors on component board:\n${errors.join("\n")}`).toEqual([]);
   });
