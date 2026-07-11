@@ -1,143 +1,156 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
+@custom-variant dark (&:is([data-theme="dark"] *), &:is(.dark *));
 
 /*
- * Design Studio — dark-first, monotone with a single hint of blue.
- * Neutrals carry a whisper of blue (very low chroma, hue ~260) so the mono
- * reads as chosen, not defaulted. The one accent is --accent-solid.
+ * Design Studio Canvas — an editorial, calm reading surface.
+ * Every value below is DERIVED FROM web/DESIGN.md (the single source of truth).
+ * A raw hex/oklch literal in a component is a defect; add it here first.
  */
-:root {
-  --background: oklch(0.985 0.003 260);
-  --foreground: oklch(0.21 0.012 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.012 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.012 260);
-  --primary: oklch(0.24 0.012 260);
-  --primary-foreground: oklch(0.985 0.003 260);
-  --secondary: oklch(0.96 0.004 260);
-  --secondary-foreground: oklch(0.24 0.012 260);
-  --muted: oklch(0.96 0.004 260);
-  --muted-foreground: oklch(0.5 0.01 260);
-  --accent: oklch(0.95 0.006 260);
-  --accent-foreground: oklch(0.24 0.012 260);
-  --destructive: oklch(0.58 0.2 22);
-  --border: oklch(0.9 0.006 260);
-  --input: oklch(0.9 0.006 260);
-  --ring: oklch(0.58 0.15 255);
 
-  --accent-solid: oklch(0.55 0.17 255);
-  --accent-solid-foreground: oklch(0.99 0.01 255);
-  --accent-glow: oklch(0.55 0.17 255 / 0.28);
+@theme inline {
+  /* Colour tokens (→ bg-paper, text-ink, border-rule, …). */
+  --color-desk: var(--desk);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-verified: var(--verified);
+  --color-partial: var(--partial);
+  --color-unverified: var(--unverified);
+  --color-accepted: var(--accepted);
+  --color-danger: var(--danger);
 
-  --radius: 0.7rem;
+  /* Type faces. Serif is a system reading stack (no web-font fetch). */
+  --font-serif: "Iowan Old Style", Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Radii (DESIGN.md rounded.*). */
+  --radius-card: 0.5rem;
+  --radius-inset: 0.35rem;
+  --radius-pill: 9999px;
 }
 
-.dark {
-  --background: oklch(0.155 0.008 260);
-  --foreground: oklch(0.955 0.004 260);
-  --card: oklch(0.185 0.008 260);
-  --card-foreground: oklch(0.955 0.004 260);
-  --popover: oklch(0.185 0.009 260);
-  --popover-foreground: oklch(0.955 0.004 260);
-  --primary: oklch(0.92 0.004 260);
-  --primary-foreground: oklch(0.2 0.008 260);
-  --secondary: oklch(0.255 0.009 260);
-  --secondary-foreground: oklch(0.955 0.004 260);
-  --muted: oklch(0.255 0.009 260);
-  --muted-foreground: oklch(0.7 0.008 260);
-  --accent: oklch(0.27 0.011 260);
-  --accent-foreground: oklch(0.955 0.004 260);
-  --destructive: oklch(0.62 0.2 20);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.64 0.15 255);
+/* ── Light (paper) — the canonical theme in DESIGN.md front matter. ───────── */
+:root {
+  --desk: oklch(0.955 0.006 85);
+  --paper: oklch(0.992 0.003 85);
+  --paper-raised: oklch(0.975 0.005 85);
+  --ink: oklch(0.26 0.008 70);
+  --ink-muted: oklch(0.47 0.008 70);
+  --ink-faint: oklch(0.63 0.006 70);
+  --rule: oklch(0.88 0.005 80);
+  --rule-strong: oklch(0.8 0.006 80);
 
-  --accent-solid: oklch(0.64 0.16 255);
-  --accent-solid-foreground: oklch(0.99 0.01 255);
-  --accent-glow: oklch(0.64 0.16 255 / 0.35);
+  --accent: oklch(0.47 0.15 275);
+  --accent-ink: oklch(0.99 0.01 275);
+  --accent-wash: oklch(0.47 0.15 275 / 0.08);
+  --accent-edge: oklch(0.47 0.15 275 / 0.3);
+
+  --verified: oklch(0.5 0.12 150);
+  --partial: oklch(0.58 0.13 75);
+  --unverified: oklch(0.55 0.19 25);
+  --accepted: oklch(0.5 0.02 275);
+  --danger: oklch(0.55 0.19 25);
+
+  /* Reading measure + spacing (DESIGN.md spacing.*). */
+  --measure: 34rem;
+  --card-pad: 2rem;
+  --gutter: 3rem;
+  --spine-gap: 4rem;
+}
+
+/* ── Dark — first-class, given in DESIGN.md Colors prose. ─────────────────── */
+[data-theme="dark"],
+.dark {
+  --desk: oklch(0.2 0.006 275);
+  --paper: oklch(0.245 0.008 275);
+  --paper-raised: oklch(0.285 0.009 275);
+  --ink: oklch(0.94 0.004 85);
+  --ink-muted: oklch(0.72 0.006 85);
+  --ink-faint: oklch(0.58 0.006 85);
+  --rule: oklch(1 0 0 / 10%);
+  --rule-strong: oklch(1 0 0 / 20%);
+
+  --accent: oklch(0.68 0.15 275);
+  --accent-ink: oklch(0.16 0.02 275);
+  --accent-wash: oklch(0.68 0.15 275 / 0.12);
+  --accent-edge: oklch(0.68 0.15 275 / 0.36);
+
+  --verified: oklch(0.72 0.14 150);
+  --partial: oklch(0.78 0.13 80);
+  --unverified: oklch(0.68 0.19 25);
+  --accepted: oklch(0.68 0.03 275);
+  --danger: oklch(0.68 0.19 25);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--rule);
   }
   html {
-    @apply font-sans antialiased;
-    overscroll-behavior: none;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   body {
-    @apply text-foreground;
-    background: transparent;
-    overscroll-behavior: none;
+    background: var(--desk);
+    color: var(--ink);
   }
   button:not(:disabled),
   [role="button"]:not(:disabled),
-  [role="tab"]:not(:disabled),
-  [role="menuitem"]:not(:disabled),
   summary {
     cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
 /*
- * Custom utilities are declared with Tailwind v4's `@utility` so they compose
- * with variants (hover:, group-hover:, dark:, …) — plain `@layer utilities`
- * classes don't get variant support.
+ * Reading surface — the artifact body. A serif face at a real measure and
+ * generous leading, per DESIGN.md Typography. This is the product's thesis:
+ * a card is a page you read, not a thumbnail.
  */
-@utility panel {
-  background: color-mix(in oklab, var(--card) 82%, transparent);
-  border: 1px solid var(--border);
-  backdrop-filter: blur(8px);
-  border-radius: calc(var(--radius) * 1.6);
+@utility reading {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.72;
+  color: var(--ink);
+  max-width: var(--measure);
 }
 
-/* The single blue accent, used sparingly. */
-@utility accent-text {
-  color: var(--accent-solid);
+/* A paper card sitting on the desk — one hairline + a hair of lift. */
+@utility card-sheet {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.04), 0 4px 12px -8px oklch(0 0 0 / 0.12);
 }
-@utility accent-fill {
-  background: var(--accent-solid);
-  color: var(--accent-solid-foreground);
-}
-@utility accent-glow {
-  box-shadow: 0 0 24px -6px var(--accent-glow);
-}
-@utility row-selected {
-  background: color-mix(in oklab, var(--accent-solid) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--accent-solid) 32%, transparent);
+
+/* The uppercase eyebrow label (DESIGN.md typography.label). */
+@utility eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
 }

@@ -373,6 +373,43 @@ export const getStageOutput = cache(async (slug: string, stage: Stage): Promise<
   return out;
 });
 
+/** Absolute path to a project's folder. Internal to the vault layer. */
+export async function projectDir(slug: string): Promise<string> {
+  const root = await getVaultRoot();
+  return path.join(root, DESIGN_DIR, slug);
+}
+
+/**
+ * Read a project-relative file and return its frontmatter-stripped body plus
+ * parsed frontmatter data. Skip-on-malformed (returns null), never crash —
+ * same gray-matter explicit-options contract as everything else here.
+ */
+export async function readProjectFile(
+  slug: string,
+  rel: string,
+): Promise<{ data: Record<string, unknown>; body: string } | null> {
+  const abs = path.join(await projectDir(slug), rel);
+  let raw: string;
+  try {
+    raw = await fs.readFile(abs, "utf8");
+  } catch {
+    return null;
+  }
+  try {
+    // {} bypasses gray-matter's cache — see the comment in readProject().
+    const parsed = matter(raw, {});
+    return { data: parsed.data as Record<string, unknown>, body: parsed.content };
+  } catch (err) {
+    console.warn(`[vault] Skipping ${rel}: ${(err as Error).message}`);
+    return null;
+  }
+}
+
+/** Does a project-relative path exist on disk? */
+export async function projectFileExists(slug: string, rel: string): Promise<boolean> {
+  return exists(path.join(await projectDir(slug), rel));
+}
+
 // ---- decisions -------------------------------------------------------------
 
 export const listDecisions = cache(async (slug: string): Promise<Decision[]> => {
@@ -404,6 +441,7 @@ export const listDecisions = cache(async (slug: string): Promise<Decision[]> => 
       const d = parsed.data as Record<string, unknown>;
       const file = name.replace(/\.md$/, "");
       const status = str(d.status);
+      const authored = str(d.authored_by);
       const h1 = firstH1(parsed.content);
       return {
         id: d.id != null ? String(d.id) : file.split(" ")[0],
@@ -412,6 +450,7 @@ export const listDecisions = cache(async (slug: string): Promise<Decision[]> => 
           status && DECISION_STATUS_SET.has(status as DecisionStatus)
             ? (status as DecisionStatus)
             : null,
+        authoredBy: authored === "user" || authored === "skill" ? authored : null,
         date: dateStr(d.date),
         restsOn: stripWiki(d.rests_on),
         supersedes: stripWiki(d.supersedes),

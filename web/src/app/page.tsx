@@ -1,50 +1,81 @@
-import { getGraph, VaultNotConfiguredError } from "@/lib/vault";
-import { GraphView } from "@/components/graph-view";
+import Link from "next/link";
+import { listProjects, VaultNotConfiguredError } from "@/lib/vault";
+import { getProblemLine } from "@/lib/brief";
 import { VaultError } from "@/components/vault-error";
-import type { GraphGroup, VaultGraph } from "@/lib/types";
+import { ThemeToggle } from "@/components/theme-toggle";
+import type { Project } from "@/lib/types";
+
+/** Human label for a stage token: "design-system" → "Design system". */
+function stageLabel(stage: string | null): string {
+  if (!stage) return "—";
+  const s = stage.replace(/-/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 export const dynamic = "force-dynamic";
 
-const LEGEND: { group: GraphGroup; label: string; color: string }[] = [
-  { group: "project", label: "Projects", color: "#5b8def" },
-  { group: "decision", label: "Decisions", color: "#c9cdd6" },
-  { group: "wiki", label: "Studio Wiki", color: "#8b909a" },
-  { group: "learning", label: "Learning", color: "#7fa8d8" },
-  { group: "note", label: "Notes", color: "#5f656e" },
-];
-
-export default async function GraphHome() {
-  let graph: VaultGraph;
+export default async function ProjectsIndex() {
+  let projects: Project[];
   try {
-    graph = await getGraph();
+    projects = await listProjects();
   } catch (err) {
     if (err instanceof VaultNotConfiguredError) return <VaultError message={err.message} />;
     throw err;
   }
 
+  const lines = await Promise.all(
+    projects.map(async (p) => [p.slug, await getProblemLine(p.slug)] as const),
+  );
+  const problemBySlug = new Map(lines);
+
   return (
-    <div className="relative h-full min-h-[82dvh] w-full overflow-hidden">
-      <GraphView data={graph} />
-
-      {/* Title */}
-      <div className="pointer-events-none absolute left-5 top-5 md:left-8 md:top-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Knowledge graph</h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {graph.nodes.length} notes · {graph.links.length} links — hover to trace, drag to explore, click a project to open
-        </p>
-      </div>
-
-      {/* Legend */}
-      <div className="pointer-events-none absolute bottom-5 left-5 md:bottom-8 md:left-8">
-        <div className="panel flex flex-col gap-1.5 p-3">
-          {LEGEND.map((l) => (
-            <div key={l.group} className="flex items-center gap-2 text-[11px] text-muted-foreground">
-              <span className="h-2 w-2 rounded-full" style={{ background: l.color }} />
-              {l.label}
-            </div>
-          ))}
+    <main className="mx-auto min-h-screen max-w-3xl px-8 py-16">
+      <header className="mb-12 flex items-start justify-between gap-4">
+        <div>
+          <p className="eyebrow mb-2">Design Studio</p>
+          <h1 className="font-serif text-4xl font-semibold tracking-tight text-ink">Projects</h1>
+          <p className="mt-2 max-w-md text-[0.9375rem] text-ink-muted">
+            Each project&rsquo;s whole design journey, research to prototype, rendered as one
+            readable canvas.
+          </p>
         </div>
-      </div>
-    </div>
+        <ThemeToggle />
+      </header>
+
+      {projects.length === 0 ? (
+        <p className="reading text-ink-muted">
+          No projects yet. Run <code className="font-mono text-ink">/design-studio-debrief</code>{" "}
+          to start one.
+        </p>
+      ) : (
+        <ul className="divide-y divide-rule border-y border-rule">
+          {projects.map((p) => (
+            <li key={p.slug}>
+              <Link
+                href={`/canvas/${p.slug}`}
+                className="group block py-6 transition-colors hover:bg-paper-raised/60"
+              >
+                <div className="flex items-baseline justify-between gap-4">
+                  <h2 className="font-serif text-xl font-semibold text-ink group-hover:text-accent">
+                    {p.name}
+                  </h2>
+                  <span className="eyebrow shrink-0">{stageLabel(p.stage)}</span>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-ink-faint">
+                  {p.client ? <span className="text-ink-muted">{p.client}</span> : null}
+                  {p.route ? <span>· {p.route} route</span> : null}
+                  {p.status ? <span>· {p.status}</span> : null}
+                </div>
+                {problemBySlug.get(p.slug) ? (
+                  <p className="mt-2 max-w-2xl text-[0.9375rem] leading-relaxed text-ink-muted">
+                    {problemBySlug.get(p.slug)}
+                  </p>
+                ) : null}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
   );
 }

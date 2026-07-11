@@ -1,167 +1,226 @@
 ---
-name: Design Studio Web
+name: Design Studio Canvas
 description: >-
-  Dark-first, monotone-with-one-blue instrument UI for the design-studio pipeline
-  dashboard. Derived faithfully from the shipped src/app/globals.css.
-# ── Values are the committed DARK theme (the default look). A light fallback
-#    exists in globals.css but the instrument is designed dark.
+  An editorial, calm reading surface for the design-studio pipeline rendered as
+  one pannable canvas. The artifacts are documents; typography does the heavy
+  lifting. Autonomy and stage-state are expressed through a designed system of
+  weight, fill-vs-outline, and labels — never traffic-light dots. One accent,
+  indigo, spent only on live meaning. Light (paper) is the canonical theme in
+  this front matter; the dark theme is given in the Colors prose and in
+  globals.css. Both are first-class.
 colors:
-  # Grounds — neutrals carry a whisper of blue (hue ~260, low chroma) so the
-  # monochrome reads as chosen, not defaulted.
-  background:        "oklch(0.155 0.008 260)"   # near-black, faintly cool
-  surface:           "oklch(0.185 0.008 260)"   # cards / panels
-  surfaceRaised:     "oklch(0.27 0.011 260)"    # hover / raised
-  foreground:        "oklch(0.955 0.004 260)"   # primary text
-  muted:             "oklch(0.7 0.008 260)"     # secondary text
-  border:            "oklch(1 0 0 / 9%)"        # hairlines
-  input:             "oklch(1 0 0 / 13%)"
-  # The one accent — blue. Rationed to meaning only.
-  accent:            "oklch(0.64 0.16 255)"
-  accentForeground:  "oklch(0.99 0.01 255)"
-  accentGlow:        "oklch(0.64 0.16 255 / 0.35)"
-  ring:              "oklch(0.64 0.15 255)"
-  # Neutral primary — near-white, for default (non-accent) buttons.
-  primary:           "oklch(0.92 0.004 260)"
-  primaryForeground: "oklch(0.2 0.008 260)"
-  # Semantic status — SEPARATE from the accent; used only to encode state.
-  statusActive:      "oklch(0.64 0.16 255)"     # = accent (a live project)
-  statusBlocked:     "oklch(0.72 0.16 70)"      # amber
-  statusDone:        "oklch(0.7 0.15 155)"      # emerald
-  danger:            "oklch(0.62 0.2 20)"
+  # ── Grounds. A desk (background) holds paper sheets (surface). Neutrals carry
+  #    a faint warm bias (hue ~80, very low chroma) so the calm reads as chosen.
+  desk:            "oklch(0.955 0.006 85)"    # canvas ground behind the cards
+  paper:           "oklch(0.992 0.003 85)"    # card / sheet surface
+  paperRaised:     "oklch(0.975 0.005 85)"    # insets, wells, raised strips
+  # ── Ink. Warm near-black text; two muted steps for hierarchy.
+  ink:             "oklch(0.26 0.008 70)"     # primary reading text
+  inkMuted:        "oklch(0.47 0.008 70)"     # secondary text, metadata labels
+  inkFaint:        "oklch(0.63 0.006 70)"     # faintest — timestamps, ghosts
+  rule:            "oklch(0.88 0.005 80)"     # hairline rules between sheets
+  ruleStrong:     "oklch(0.80 0.006 80)"      # emphasized rule / marker outline
+  # ── The one accent: indigo. Rationed to LIVE meaning only — current stage,
+  #    active selection, live prototype status, the blast-radius highlight.
+  accent:          "oklch(0.47 0.15 275)"
+  accentInk:       "oklch(0.99 0.01 275)"     # text on an accent fill
+  accentWash:      "oklch(0.47 0.15 275 / 0.08)"  # 8% tint for selected rows
+  accentEdge:     "oklch(0.47 0.15 275 / 0.30)"   # 30% for selected outlines
+  # ── Semantic state — a SEPARATE system from the accent. Used to encode
+  #    assumption / decision / prototype state, never as decoration.
+  verified:        "oklch(0.50 0.12 150)"     # verified — solid green ink
+  partial:         "oklch(0.58 0.13 75)"      # partial — ochre
+  unverified:      "oklch(0.55 0.19 25)"      # unverified / at-risk — red ink
+  accepted:        "oklch(0.50 0.02 275)"     # accepted risk — deliberate slate
+  danger:          "oklch(0.55 0.19 25)"      # error states (= unverified hue)
 
 typography:
-  fontFamily:     "Geist Sans, system-ui, sans-serif"
-  fontFamilyMono: "Geist Mono, ui-monospace, monospace"
-  display: { size: "1.875rem", weight: 600, tracking: "-0.02em" }              # page titles
-  heading: { size: "1.25rem",  weight: 600, tracking: "-0.01em" }              # section heads
-  title:   { size: "1rem",     weight: 600, tracking: "-0.01em" }              # card / row titles
-  body:    { size: "0.9375rem", weight: 400, leading: "1.6" }                  # 15px reading text
-  small:   { size: "0.8125rem", weight: 400 }                                  # 13px
-  label:   { size: "0.6875rem", weight: 600, tracking: "0.08em", case: "uppercase" }  # 11px eyebrows
-  mono:    { size: "0.78rem",   weight: 400 }                                  # code / console
+  fontFamilySerif: "Iowan Old Style, Georgia, Cambria, 'Times New Roman', serif"  # reading
+  fontFamilySans:  "Geist Sans, system-ui, sans-serif"                            # chrome
+  fontFamilyMono:  "Geist Mono, ui-monospace, monospace"                          # code, ids
+  # Reading scale (serif) — the artifact bodies. Generous leading.
+  body:     { family: "serif", size: "1.0625rem", weight: 400, leading: "1.72" }  # 17px reading text
+  artifactH1: { family: "serif", size: "1.6rem",  weight: 600, leading: "1.25", tracking: "-0.015em" }
+  artifactH2: { family: "serif", size: "1.25rem", weight: 600, leading: "1.3" }
+  artifactH3: { family: "serif", size: "1.05rem", weight: 600, leading: "1.4" }
+  pullQuote:  { family: "serif", size: "1.2rem",  weight: 400, leading: "1.5", style: "italic" }  # In-their-words
+  display:  { family: "serif", size: "2.4rem",  weight: 400, leading: "1.1", tracking: "-0.02em" } # guiding principle
+  # Chrome scale (sans) — titles, labels, HUD.
+  cardTitle: { family: "sans", size: "0.9375rem", weight: 600, tracking: "-0.005em" }
+  small:    { family: "sans", size: "0.8125rem", weight: 400, leading: "1.5" }
+  label:    { family: "sans", size: "0.6875rem", weight: 600, tracking: "0.1em", case: "uppercase" }
+  mono:     { family: "mono", size: "0.8125rem", weight: 400 }
 
 spacing:
-  base:    "0.25rem"   # 4px base scale (Tailwind)
-  rowGap:  "1rem"      # between items in a row
-  section: "1.5rem"    # between sections
-  page:    "2rem"      # page padding (md+)
+  base:     "0.25rem"    # 4px base scale
+  cardPad:  "2rem"       # generous card padding — a page, not a tile
+  measure:  "34rem"      # ~68ch reading measure on artifact bodies
+  gutter:   "3rem"       # horizontal gap between cards on a stage row
+  spineGap: "4rem"       # vertical gap between stage rows on the spine
 
 rounded:
-  base:  "0.7rem"      # --radius
-  panel: "1.12rem"     # base * 1.6 — cards, rails, side-nav
-  pill:  "9999px"      # buttons, badges, chips
-  dot:   "9999px"      # pipeline nodes
+  card:  "0.5rem"        # sheets — square-ish, editorial
+  inset: "0.35rem"       # wells, chips inside a card
+  pill:  "9999px"        # status chips, HUD buttons
+  marker: "9999px"       # spine markers (shape carries state, not color-dot)
 
 components:
-  panel:
-    backgroundColor: "{colors.surface}"    # rendered at ~82% opacity + 8px backdrop-blur
-    textColor:       "{colors.foreground}"
-    rounded:         "{rounded.panel}"
-    padding:         "1.25rem"
-  runButton:                               # the accent action
+  card:                                   # an artifact sheet
+    backgroundColor: "{colors.paper}"
+    textColor:       "{colors.ink}"
+    rounded:         "{rounded.card}"
+    padding:         "{spacing.cardPad}"
+  cardSelected:                           # current selection — the one accent use on cards
+    backgroundColor: "{colors.paper}"
+    textColor:       "{colors.ink}"
+    rounded:         "{rounded.card}"
+  spineMarkerCurrent:                     # the live stage — filled accent, bold label
     backgroundColor: "{colors.accent}"
-    textColor:       "{colors.accentForeground}"
+    textColor:       "{colors.accentInk}"
+    size:            "0.85rem"
+    rounded:         "{rounded.marker}"
+  spineMarkerRan:                         # a completed stage — solid ink fill
+    backgroundColor: "{colors.ink}"
+    textColor:       "{colors.paper}"
+    size:            "0.85rem"
+    rounded:         "{rounded.marker}"
+  spineMarkerSkipped:                     # not run — hollow outline, faint label
+    backgroundColor: "transparent"
+    textColor:       "{colors.inkFaint}"
+    size:            "0.85rem"
+    rounded:         "{rounded.marker}"
+  spineMarkerPending:                     # awaiting — dashed outline
+    backgroundColor: "transparent"
+    textColor:       "{colors.inkMuted}"
+    size:            "0.85rem"
+    rounded:         "{rounded.marker}"
+  stateChip:                              # verified/partial/unverified/accepted label
+    backgroundColor: "transparent"        # hairline + filled/half/outline swatch + word
+    textColor:       "{colors.inkMuted}"
     rounded:         "{rounded.pill}"
-    height:          "1.75rem"
-    padding:         "0 0.75rem"
+    typography:      "{typography.label}"
+  pullQuote:                              # In-their-words — the human's verbatim voice
+    backgroundColor: "{colors.paperRaised}"
+    textColor:       "{colors.ink}"
+    typography:      "{typography.pullQuote}"
+    rounded:         "{rounded.inset}"
+    padding:         "1rem 1.25rem"
+  decisionRetired:                        # a superseded decision — visibly retired, not hidden
+    backgroundColor: "{colors.paperRaised}"
+    textColor:       "{colors.inkMuted}"
+    rounded:         "{rounded.card}"
+  hudButton:                              # zoom HUD control
+    backgroundColor: "{colors.paper}"
+    textColor:       "{colors.ink}"
+    rounded:         "{rounded.pill}"
     typography:      "{typography.small}"
-  defaultButton:                           # neutral, non-accent
-    backgroundColor: "{colors.primary}"
-    textColor:       "{colors.primaryForeground}"
-    rounded:         "{rounded.pill}"
-  copyButton:                              # gated-skill action
+  sidebarRowActive:                       # keyboard index — focused row
+    backgroundColor: "{colors.accentWash}"
+    textColor:       "{colors.ink}"
+    rounded:         "{rounded.inset}"
+  connector:                              # supersede / rests_on edges drawn between entries
     backgroundColor: "transparent"
-    textColor:       "{colors.muted}"
-    rounded:         "{rounded.pill}"
-  statusPill:
-    backgroundColor: "transparent"         # hairline border + a state dot
-    textColor:       "{colors.foreground}"
-    rounded:         "{rounded.pill}"
-  stageDotActive:
-    backgroundColor: "{colors.accent}"     # + accentGlow shadow
-    size:            "0.625rem"
-    rounded:         "{rounded.dot}"
-  stageDotPending:
-    backgroundColor: "transparent"         # 1.5px inset ring in {colors.accent}
-    size:            "0.625rem"
-    rounded:         "{rounded.dot}"
-  listRowSelected:
-    backgroundColor: "{colors.accent}"     # rendered at 12% tint + 32% inset ring
-    textColor:       "{colors.foreground}"
-  focusRing:
+    textColor:       "{colors.ruleStrong}"
+  connectorLive:                          # blast-radius / active edge
     backgroundColor: "transparent"
-    textColor:       "{colors.ring}"       # 3px ring on focus-visible
+    textColor:       "{colors.accent}"
 ---
 
-# Design Studio Web — visual contract
+# Design Studio Canvas — visual contract
 
 ## Overview
-An **instrument, not a document**: a dark, spare dashboard whose job is to make the design-studio
-pipeline legible at a glance. The whole surface is monochrome — neutrals with a faint blue bias
-(hue ~260) — with **exactly one saturated color, blue**, spent only where it carries meaning. The
-pipeline is the hero: stage nodes encode true per-stage state, and the single blue marks what is
-*live*. Derived faithfully from the shipped `src/app/globals.css`; this file is now the source of
-truth and the CSS should be generated from it.
+The whole design journey — research to prototype — is one pannable board, and the board's first
+job is to be **read**. This is an **editorial reading surface**, not an instrument: the artifacts
+are documents, so typography carries the design and the chrome recedes. Cards are paper sheets on
+a desk; a serif reading face at a real measure (~68ch) and generous leading (1.72) makes a card a
+page you actually read at 100% zoom, not a thumbnail you squint at. Calm, quiet, spare. Light
+(paper) and dark are both first-class; this front matter is the light theme, the dark theme is in
+Colors and in `globals.css`.
 
 ## Colors
-Two families. **Neutrals** (`background` → `surfaceRaised`, `foreground`, `muted`, `border`) do all
-the structural work — grounds, text, hairlines — and are never pure gray: every one carries hue 260
-at very low chroma. **The accent** (`accent`, blue) is rationed: current stage, active nav, the Run
-action, links, focus ring, and the glow on a live node. **Semantic status** colors (`statusBlocked`
-amber, `statusDone` emerald, `danger`) are a separate system — they encode state only and must never
-be used decoratively or as a second accent.
+Two families, kept strictly apart.
+
+**Neutrals** do all the structural work. A **desk** ground holds **paper** sheets; **ink** in three
+muted steps (`ink` → `inkMuted` → `inkFaint`) sets text hierarchy; hairline `rule` separates sheets.
+Every neutral carries a faint warm bias (hue ~70–85, very low chroma) so the calm reads as a choice.
+
+**The accent** is a single **indigo**, and it is rationed to *live meaning only*: the current stage
+marker, the active selection, live prototype status, and the assumption **blast-radius** highlight.
+If a whole region is indigo, it is wrong.
+
+**Semantic state** colors are a third, separate system — `verified` green, `partial` ochre,
+`unverified`/`danger` red, `accepted` slate — and they encode assumption and decision state, never
+decoration and never a second accent. Crucially, **the traffic-light idiom is retired**: these colors
+never appear as a bare 🟢🟡🔴 dot standing in for "good/warn/bad." State is always carried by a
+*designed* mark — a filled/half/outline swatch paired with a word — so it survives colour-blindness
+and greyscale.
+
+Dark theme (in `globals.css`): desk `oklch(0.20 0.006 275)`, paper `oklch(0.245 0.008 275)`,
+paperRaised `oklch(0.285 0.009 275)`, ink `oklch(0.94 0.004 85)`, inkMuted `oklch(0.72 0.006 85)`,
+inkFaint `oklch(0.58 0.006 85)`, rule `oklch(1 0 0 / 10%)`, ruleStrong `oklch(1 0 0 / 20%)`,
+accent `oklch(0.68 0.15 275)`, accentInk `oklch(0.16 0.02 275)`, verified `oklch(0.72 0.14 150)`,
+partial `oklch(0.78 0.13 80)`, unverified/danger `oklch(0.68 0.19 25)`, accepted `oklch(0.68 0.03 275)`.
 
 ## Typography
-`Geist Sans` throughout, `Geist Mono` for code, skill names, and console output. One scale
-(`display` → `mono`); headings are semibold with tight tracking, body is 15px at 1.6 leading, and
-`label` is the 11px uppercase eyebrow used for section headers and metadata. Type does the quiet
-work; it is never the loud element.
+Two faces with one job each. A **serif** (`Iowan Old Style`/`Georgia` system stack, no web fetch)
+is the *reading* face: every artifact body, heading, pull-quote, and the large guiding-principle
+display. A **sans** (`Geist Sans`, bundled) is the *chrome* face: card titles, the uppercase `label`
+eyebrow, HUD, sidebar. `Geist Mono` carries ids and code. The reading scale is deliberate —
+`body` 17px at 1.72 leading on a 34rem measure, a true `artifactH1/H2/H3` hierarchy, and an italic
+`pullQuote` for the **In their words.** voice so the human is visibly distinct from the tool's prose.
+Type is the loud element here; everything else is quiet.
 
 ## Layout
-A fixed left rail (`panel`, 15rem) + a scrolling main column. Content sits in `panel` surfaces
-separated by hairlines and `section` gaps; lists use dividers, not boxes. Generous whitespace and a
-tight geometric grid carry the "futuristic + simple" read. Spacing is the 4px base scale.
+A vertical **spine** runs down the left — the three phases (Understand / Decide / Build) as sections,
+each stage a marker. Off each marker, artifact cards run horizontally (`gutter` apart); rows are
+`spineGap` apart. Cards are paper `card` surfaces with `cardPad` padding and a reading `measure`
+cap on body text, so one overgrown document can't distort the board. Everything lives on one world
+container that pans and zooms as a unit.
 
 ## Elevation & Depth
-Dark UI, so **depth is light, not shadow**. Panels are translucent (`surface` at ~82%) over a faint
-background grid + a single blue radial glow. Elevation is expressed by surface lightness
-(`background` → `surface` → `surfaceRaised`) and hairline `border`, plus an `accentGlow` bloom on
-live/active elements. Avoid drop shadows.
+Light and editorial: depth is a **hairline and a hair of lift**, never a heavy drop shadow. A card
+sits above the desk by one `rule` border and a barely-there shadow. The selected card and the live
+stage get the accent, not more shadow. Retired (superseded) entries *recede* — `paperRaised` ground
+and `inkMuted` text — so the live path stands forward without anything being hidden.
 
 ## Shapes
-Soft but not round: `panel` radius on surfaces (~1.12rem), full `pill` on every button/badge/chip,
-`dot` on pipeline nodes. Consistent radii are part of the calm.
+Editorial and square-ish: `card` radius 0.5rem on sheets, `inset` on wells and chips, full `pill`
+on status chips and HUD buttons, `marker` (circle) on spine markers where **shape, not colour**,
+carries state (filled = ran, filled-accent = current, hollow = skipped, dashed = pending).
 
 ## Components
-`panel` is the one surface primitive (side-nav, rail, cards, content). Actions split by autonomy:
-`runButton` (accent-filled, for 🟢/🟡 runnable skills) vs `copyButton` (quiet, bordered, for 🔴
-gated skills) — the *look* encodes whether a human is required. `stageDot` variants (`active`,
-`pending`, derived/neutral, skipped, none) are the core information design: a filled+glowing blue
-dot = live, a blue ring = pending, a neutral fill = done/derived, a faint ring = skipped.
-`listRowSelected` uses a 12% accent tint + inset ring. Every interactive element gets the blue
-`focusRing`.
+`card` is the one surface primitive. Stage state is a set of `spineMarker*` variants distinguished
+by **fill vs outline** and label weight — `Current` (accent fill, bold), `Ran` (ink fill), `Skipped`
+(hollow, faint, labelled "not run"), `Pending` (dashed). Autonomy rides the same idiom: `execute` /
+`draft` / `scaffold` become the words **Auto / Review / You decide**, never coloured dots.
+`stateChip` renders assumption/decision state as a small filled/half/outline swatch + word.
+`pullQuote` gives the In-their-words voice a raised, italic block. `decisionRetired` visibly retires
+a superseded entry in place. `connector` draws supersede and `rests_on` edges as thin rules;
+`connectorLive` is the accent blast-radius edge. `hudButton`, `sidebarRowActive`, and the focus ring
+complete the chrome.
 
 ## Do's and Don'ts
-- **Do** reserve blue (`colors.accent`) for *live/current meaning* only — current stage, active nav,
-  Run, links, focus, live-node glow.
-- **Don't** use blue as a decorative fill, a background wash, or on large areas. If a whole region is
-  blue, it's wrong.
-- **Do** keep every neutral faintly blue (hue ~260, low chroma). **Don't** use a pure/neutral gray —
-  it reads as unconsidered.
-- **Don't** add a second accent hue. Status colors (amber/emerald/rose) are for state only, never
-  decoration.
-- **Do** express depth with surface lightness, hairlines, and a restrained glow. **Don't** reach for
-  drop shadows.
-- **Do** let `runButton` vs `copyButton` carry the 🟢/🔴 distinction visually. **Don't** make a gated
-  skill look runnable.
+- **Do** reserve indigo (`colors.accent`) for live meaning only — current stage, active selection,
+  live prototype, blast-radius. **Don't** use it as a background wash or decorative fill.
+- **Do** carry every state with a designed mark (fill/half/outline + a word). **Don't** ever ship a
+  bare 🟢🟡🔴 dot — the traffic-light idiom is retired here.
+- **Do** keep the reading measure (~68ch) and serif body on artifact cards — readability at 100% is
+  the acceptance test. **Don't** let a card become a thumbnail.
+- **Do** keep semantic status (green/ochre/red/slate) separate from the accent and from decoration.
+  **Don't** add a second accent hue.
+- **Do** express depth with a hairline and a hair of lift. **Don't** reach for heavy drop shadows.
+- **Do** keep superseded entries visible-but-retired. **Don't** hide the real path.
 - **Do** derive every value from a token here. **Don't** hardcode a hex/oklch in a component.
 
-## Contrast (hand-checked — `design.md lint` unavailable, npx blocked)
-Estimated WCAG AA, dark theme:
-- `foreground` on `background` — ~15:1 ✅ · `muted` on `background` — ~6.7:1 ✅ (AA normal)
-- `accent` as text on `background` — ~4.7:1 ✅ (passes AA normal, borderline — keep accent text ≥ small/medium)
-- ⚠ **`accentForeground` (white) on `accent` fill (the Run button) — ~3.2:1 — FAILS AA for normal text.**
-  This is a real finding surfaced by the faithful derive (not silently fixed). Resolve by **deepening
-  the fill blue for buttons** (e.g. `accent` → ~`oklch(0.5 0.17 255)` for `runButton.backgroundColor`
-  only, keeping the lighter blue for text/dots/glow), or by enlarging/bolding the button label. Track
-  at `validate`.
+## Contrast (hand-checked — `npx @google/design.md lint` unavailable in this sandbox)
+Estimated WCAG AA against the canonical light theme:
+- `ink` on `paper` — ~13.5:1 ✅ · `inkMuted` on `paper` — ~5.6:1 ✅ (AA normal) ·
+  `inkFaint` on `paper` — ~3.4:1 (AA large / non-text only — used for timestamps at ≥ small only).
+- `accent` (indigo) as text on `paper` — ~8.2:1 ✅ · `accentInk` on `accent` fill — ~8:1 ✅.
+- `verified` on `paper` — ~4.8:1 ✅ · `unverified`/`danger` on `paper` — ~4.9:1 ✅ ·
+  `partial` on `paper` — ~3.6:1 (AA large / paired always with a word + swatch, never colour alone).
+- Dark theme spot-checks: `ink` on `paper(dark)` — ~12:1 ✅ · `accent(dark)` on `paper(dark)`
+  — ~6.1:1 ✅ · `inkMuted(dark)` on `paper(dark)` — ~4.8:1 ✅.
+- `partial`/`inkFaint` are the two sub-AA-normal values; both are used only as large text or paired
+  with a non-colour mark, per the "designed mark, never colour alone" rule above — so no information
+  is carried by a failing pair. Re-lint with the CLI when available.

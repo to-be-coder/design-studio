@@ -1,30 +1,23 @@
-import { AlertCircle } from "lucide-react";
-
+/** Designed state for a missing vault / bad pointer (§14). */
 export function VaultError({ message }: { message: string }) {
   return (
-    <div className="mx-auto max-w-lg p-8">
-      <div className="panel p-6">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="mt-0.5 h-5 w-5 text-amber-500" />
-          <div className="space-y-3 text-sm">
-            <h1 className="text-base font-semibold text-foreground">Vault not found</h1>
-            <p className="text-muted-foreground">{message}</p>
-            <ul className="ml-4 list-disc space-y-1 text-muted-foreground">
-              <li>
-                Set{" "}
-                <code className="rounded bg-foreground/[0.06] px-1 py-0.5">DESIGN_STUDIO_VAULT</code>{" "}
-                in <code className="rounded bg-foreground/[0.06] px-1 py-0.5">.env.local</code> to the
-                vault&apos;s absolute path, or
-              </li>
-              <li>
-                write that path to{" "}
-                <code className="rounded bg-foreground/[0.06] px-1 py-0.5">~/.design-studio-vault</code>{" "}
-                (the pointer every design-studio skill uses).
-              </li>
-            </ul>
-          </div>
-        </div>
+    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-8">
+      <p className="eyebrow mb-3">No vault</p>
+      <h1 className="mb-4 font-serif text-3xl font-semibold tracking-tight text-ink">
+        The canvas can&rsquo;t find your design-studio vault.
+      </h1>
+      <p className="reading mb-6 text-ink-muted">{message}</p>
+      <div className="card-sheet p-5 text-[0.8125rem] leading-relaxed text-ink-muted">
+        <p className="mb-2">
+          The pointer file <code className="font-mono text-ink">~/.design-studio-vault</code> holds
+          one line: the absolute path to your vault. Every design-studio skill reads it.
+        </p>
+        <p>
+          Set <code className="font-mono text-ink">DESIGN_STUDIO_VAULT</code> in{" "}
+          <code className="font-mono text-ink">web/.env.local</code>, or run{" "}
+          <code className="font-mono text-ink">/design-studio-setup</code> to create the pointer.
+        </p>
       </div>
-    </div>
+    </main>
   );
 }
