@@ -262,3 +262,41 @@ test.describe("pan & zoom (/canvas/fixture-project)", () => {
     expect(errors, `console/page errors on sidebar index:\n${errors.join("\n")}`).toEqual([]);
   });
 });
+
+// ── Slice 5: the design-system board ─────────────────────────────────────────
+
+test.describe("design-system board (/canvas/fixture-project)", () => {
+  test("renders living specimens with visible contrast ratios and flags the failing pair", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    const board = page.getByTestId("design-system-board");
+    await expect(board).toBeVisible();
+
+    // Moving-home label: the fixture's DESIGN.md lives in the prototype repo.
+    await expect(page.getByTestId("design-system-home")).toContainText(/prototype repo/i);
+
+    // Contrast ratios are computed inline and visible (the lint gate made visible).
+    const ratios = page.getByTestId("contrast-ratio");
+    expect(await ratios.count()).toBeGreaterThan(0);
+    await expect(ratios.first()).toBeVisible();
+
+    // The deliberately-failing fixture pair (faint on surface) is flagged.
+    const fails = page.getByTestId("contrast-fail");
+    expect(await fails.count()).toBeGreaterThan(0);
+    await expect(fails.first()).toBeVisible();
+
+    // Type presets on realistic content, and component specimens in state variants.
+    await expect(page.getByTestId("type-preset").first()).toBeVisible();
+    await expect(page.locator('[data-component-base="button"]')).toBeVisible();
+    await expect(page.locator('[data-component-base="card"]')).toBeVisible();
+
+    // Candidate boards ride alongside, with the chosen one marked.
+    const chosen = page.locator('[data-testid="candidate-board"][data-chosen="true"]');
+    await expect(chosen).toBeVisible();
+    await expect(chosen.getByText("Chosen")).toBeVisible();
+    await expect(page.locator('[data-testid="candidate-board"][data-chosen="false"]').first()).toBeVisible();
+
+    expect(errors, `console/page errors on design-system board:\n${errors.join("\n")}`).toEqual([]);
+  });
+});

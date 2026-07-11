@@ -193,6 +193,21 @@ export interface BoardHeader {
   overrides: string[];
 }
 
+/** Client-safe descriptor of a project's prototype (server config never leaks). */
+export interface PrototypeInfo {
+  slug: string;
+  /** Has an embeddable source: a dev-server url or a static-servable repo. */
+  embeddable: boolean;
+  /** Where the live DESIGN.md sits (moving-home §4). */
+  tokenHome: DesignTokenHome;
+  tokenSource: string | null;
+  hasTokens: boolean;
+  /** Same-origin base path the frames/scan/override use: /prototype/<slug>/. */
+  base: string;
+  /** Human note when Comment/Tweak/Tokens must degrade (no token source, etc). */
+  degradedReason: string | null;
+}
+
 export interface BoardModel {
   project: Project;
   header: BoardHeader;
@@ -200,6 +215,10 @@ export interface BoardModel {
   stages: SpineStage[];
   decisionStream: DecisionStreamEntry[];
   assumptions: AssumptionNode[];
+  designSystem: import("./design-system").DesignSystemModel;
+  prototype: PrototypeInfo;
+  /** The prototype's resolved DESIGN.md tokens — the ONLY tweakable values. */
+  tokens: DesignTokens;
 }
 
 // ---- Prototype DESIGN.md tokens (google-labs design.md format) ---------------

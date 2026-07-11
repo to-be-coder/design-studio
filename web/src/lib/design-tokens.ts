@@ -30,7 +30,9 @@ function looksLikeTokens(data: Record<string, unknown>): boolean {
   return Boolean(data.colors || data.typography || data.components);
 }
 
-async function readDesignFile(abs: string): Promise<Record<string, unknown> | null> {
+async function readDesignFile(
+  abs: string,
+): Promise<{ data: Record<string, unknown>; body: string } | null> {
   let raw: string;
   try {
     raw = await fs.readFile(abs, "utf8");
@@ -39,40 +41,69 @@ async function readDesignFile(abs: string): Promise<Record<string, unknown> | nu
   }
   try {
     // {} bypasses gray-matter's cache — same contract as vault.ts.
-    return matter(raw, {}).data as Record<string, unknown>;
+    const parsed = matter(raw, {});
+    return { data: parsed.data as Record<string, unknown>, body: parsed.content };
   } catch (err) {
     console.warn(`[design-tokens] Skipping ${abs}: ${(err as Error).message}`);
     return null;
   }
 }
 
-export async function getDesignTokens(
+export interface DesignDoc {
+  tokens: DesignTokens;
+  /** The DESIGN.md prose body (frontmatter-stripped) — Do's & Don'ts live here. */
+  body: string;
+}
+
+/**
+ * Read the live DESIGN.md (moving-home rule §4): prefer the prototype-repo copy
+ * when the repo is a reachable local path, else the vault copy (canonical before
+ * build). Returns both the parsed tokens and the prose body.
+ */
+export async function getDesignDoc(
   slug: string,
   prototypeRepo: string | null,
-): Promise<DesignTokens> {
-  const none: DesignTokens = {
-    home: "none",
-    source: null,
-    colors: {},
-    typography: {},
-    spacing: {},
-    rounded: {},
-    components: {},
+): Promise<DesignDoc> {
+  const none: DesignDoc = {
+    tokens: {
+      home: "none",
+      source: null,
+      colors: {},
+      typography: {},
+      spacing: {},
+      rounded: {},
+      components: {},
+    },
+    body: "",
   };
 
   // Prefer the prototype-repo copy when the repo is a reachable local path.
   if (prototypeRepo && prototypeRepo.startsWith("/")) {
-    const data = await readDesignFile(path.join(prototypeRepo, "DESIGN.md"));
-    if (data && looksLikeTokens(data)) {
-      return { home: "prototype", source: path.join(prototypeRepo, "DESIGN.md"), ...shapeTokens(data) };
+    const file = await readDesignFile(path.join(prototypeRepo, "DESIGN.md"));
+    if (file && looksLikeTokens(file.data)) {
+      const src = path.join(prototypeRepo, "DESIGN.md");
+      return {
+        tokens: { home: "prototype", source: src, ...shapeTokens(file.data) },
+        body: file.body,
+      };
     }
   }
 
   // Otherwise the vault copy (canonical before build).
   const vault = await readProjectFile(slug, "DESIGN.md");
   if (vault && looksLikeTokens(vault.data)) {
-    return { home: "vault", source: `${slug}/DESIGN.md`, ...shapeTokens(vault.data) };
+    return {
+      tokens: { home: "vault", source: `${slug}/DESIGN.md`, ...shapeTokens(vault.data) },
+      body: vault.body,
+    };
   }
 
   return none;
+}
+
+export async function getDesignTokens(
+  slug: string,
+  prototypeRepo: string | null,
+): Promise<DesignTokens> {
+  return (await getDesignDoc(slug, prototypeRepo)).tokens;
 }

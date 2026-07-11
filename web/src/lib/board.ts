@@ -10,11 +10,15 @@ import { getFraming } from "./brief";
 import { getAssumptions, restsOnMatches } from "./assumptions";
 import { buildDecisionStream } from "./decision-stream";
 import { blockText, findSection, splitByH2 } from "./blocks";
+import { getDesignSystem } from "./design-system";
+import { getDesignTokens } from "./design-tokens";
+import { resolvePrototypeConfig, isEmbeddable } from "./prototype-config";
 import type {
   ArtifactCard,
   BoardHeader,
   BoardModel,
   Phase,
+  PrototypeInfo,
   SpineStage,
   Stage,
   StageMarkerState,
@@ -34,10 +38,26 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
   if (!detail) return null;
   const { project, dashboardBlocks, pipeline, decisions, outputsPresent } = detail;
 
-  const [framing, assumptions] = await Promise.all([
+  const config = await resolvePrototypeConfig(slug, project.prototypeRepo);
+  const [framing, assumptions, designSystem, tokens] = await Promise.all([
     getFraming(slug),
     getAssumptions(slug),
+    getDesignSystem(slug, config.repo),
+    getDesignTokens(slug, config.repo),
   ]);
+
+  const degradedReason = !tokens.home || tokens.home === "none"
+    ? "No DESIGN.md token source — Comment, Tweak, and Tokens are read-only here."
+    : null;
+  const prototype: PrototypeInfo = {
+    slug,
+    embeddable: isEmbeddable(config),
+    tokenHome: tokens.home,
+    tokenSource: tokens.source,
+    hasTokens: tokens.home !== "none",
+    base: `/prototype/${slug}/`,
+    degradedReason,
+  };
 
   // Link each assumption's blast radius: the decisions whose rests_on cites it.
   for (const a of assumptions) {
@@ -77,6 +97,9 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
     stages,
     decisionStream,
     assumptions,
+    designSystem,
+    prototype,
+    tokens,
   };
 });
 
@@ -95,16 +118,9 @@ async function buildCards(
   }
 
   if (stage === "design-system") {
-    return [
-      {
-        id: "card-design-system-0",
-        file: "DESIGN.md",
-        title: "Design system",
-        kind: "design-system-placeholder",
-        blocks: [],
-        note: "The full specimen board arrives with the language (a later slice). This tick shows the design-system stage ran.",
-      },
-    ];
+    // The design-system tick renders the living-specimen board (§6) directly
+    // from the model's designSystem — BoardView special-cases it, no card here.
+    return [];
   }
 
   if (stage === "build") {

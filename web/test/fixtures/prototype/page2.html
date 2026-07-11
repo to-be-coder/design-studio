@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fixture Prototype — Reports</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page" data-route="/reports">
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="page2.html">Reports</a>
+      <a href="page3.html">Settings</a>
+    </nav>
+
+    <h1>Reports</h1>
+
+    <div class="row">
+      <div class="stat-tile"><span class="stat-value">42</span><span class="stat-label">Open</span></div>
+      <div class="stat-tile"><span class="stat-value">7</span><span class="stat-label">Closed</span></div>
+    </div>
+
+    <div data-component="card">
+      <h2>Weekly</h2>
+      <p>Report card instance.</p>
+      <button data-component="button">Download</button>
+      <button data-component="button" disabled>Archive</button>
+    </div>
+
+    <p class="faint-on-surface">This low-contrast note uses faint text on surface.</p>
+  </div>
+</body>
+</html>

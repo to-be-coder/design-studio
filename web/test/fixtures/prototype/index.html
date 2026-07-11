@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fixture Prototype — Home</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page" data-route="/">
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="page2.html">Reports</a>
+      <a href="page3.html">Settings</a>
+    </nav>
+
+    <h1>Overview</h1>
+    <p class="muted">A hermetic prototype for the smoke suite.</p>
+
+    <div class="row">
+      <div class="stat-tile"><span class="stat-value">128</span><span class="stat-label">Signals</span></div>
+      <div class="stat-tile"><span class="stat-value">14</span><span class="stat-label">Routes</span></div>
+      <div class="stat-tile"><span class="stat-value">3</span><span class="stat-label">Pages</span></div>
+    </div>
+
+    <div data-component="card" data-testid="summary-card">
+      <h2>Summary</h2>
+      <p>Primary actions use the token contract.</p>
+      <div class="row">
+        <button data-component="button" data-testid="cta-primary">Run</button>
+        <button data-component="button">Export</button>
+        <span data-component="badge">new</span>
+      </div>
+    </div>
+
+    <div data-component="card">
+      <h2>Details</h2>
+      <p>Another card instance on the home route.</p>
+      <button data-component="button">Open</button>
+    </div>
+  </div>
+</body>
+</html>

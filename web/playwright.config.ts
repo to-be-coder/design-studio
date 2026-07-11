@@ -23,6 +23,11 @@ import path from "node:path";
  */
 const FIXTURE_VAULT = path.resolve(__dirname, "test/fixtures/vault");
 const VAULT = process.env.DESIGN_STUDIO_VAULT?.trim() || FIXTURE_VAULT;
+// Hermetic prototype wiring: maps the fixture project → its static prototype
+// dir (relative repo resolved against this config file), so frames, comment,
+// tweak, component board, and tokens mode are all E2E-testable without any
+// external dev server.
+const FIXTURE_PROTOTYPES = path.resolve(__dirname, "test/fixtures/prototypes.json");
 const PORT = 3100;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
@@ -45,6 +50,7 @@ export default defineConfig({
     timeout: 180_000,
     env: {
       DESIGN_STUDIO_VAULT: VAULT,
+      PROTOTYPE_CONFIG: process.env.PROTOTYPE_CONFIG?.trim() || FIXTURE_PROTOTYPES,
     },
   },
 });

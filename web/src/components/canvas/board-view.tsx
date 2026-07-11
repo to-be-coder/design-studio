@@ -6,6 +6,7 @@ import type { RestsOnState, StreamFilter } from "./canvas";
 import { ArtifactCard } from "./artifact-card";
 import { FramingPane } from "./framing-pane";
 import { RegisterCard } from "./register";
+import { DesignSystemBoard } from "./design-system-board";
 import { DecisionStream } from "./decision-stream";
 import { Connectors } from "./connectors";
 import { ProjectHeader } from "./header";
@@ -173,6 +174,8 @@ function StageRow({
             selectedId={selectedAssumption}
             onSelect={onSelectAssumption}
           />
+        ) : stage.stage === "design-system" ? (
+          <DesignSystemBoard model={model.designSystem} prototype={model.prototype} id="design-system-board" />
         ) : stage.isDecisionStage ? (
           <DecisionSlice stage={stage} model={model} />
         ) : (
