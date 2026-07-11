@@ -455,8 +455,16 @@ export const listDecisions = cache(async (slug: string): Promise<Decision[]> => 
       const status = str(d.status);
       const authored = str(d.authored_by);
       const h1 = firstH1(parsed.content);
+      // A decision's canonical id is its zero-padded filename ordinal. Trust a
+      // frontmatter `id` only when it survived YAML parsing as a string: an
+      // unquoted leading-zero ordinal like `0012` is silently read as OCTAL
+      // (→ 10), which no String() can turn back into "0012" — the decision would
+      // then render under the wrong anchor (d-10) and drop out of its supersede
+      // chain. When the id came through as a number (or is absent), fall back to
+      // the unambiguous filename ordinal.
+      const fileOrdinal = file.split(" ")[0];
       return {
-        id: d.id != null ? String(d.id) : file.split(" ")[0],
+        id: typeof d.id === "string" && d.id.trim() !== "" ? d.id.trim() : fileOrdinal,
         stage: str(d.stage),
         status:
           status && DECISION_STATUS_SET.has(status as DecisionStatus)

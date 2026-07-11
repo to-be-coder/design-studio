@@ -127,7 +127,19 @@ export function SessionProvider({
   useEffect(() => {
     try {
       const raw = localStorage.getItem(overrideKey);
-      if (raw) setOverrides(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Only trust a plain object of string→string. A corrupted or
+        // previous-schema record (array, string, nested values) falls back to
+        // no overrides rather than feeding junk into setProperty on the frames.
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          const clean: Record<string, string> = {};
+          for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+            if (typeof v === "string") clean[k] = v;
+          }
+          setOverrides(clean);
+        }
+      }
     } catch {
       /* ignore */
     }

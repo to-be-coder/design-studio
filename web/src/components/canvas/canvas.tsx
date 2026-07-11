@@ -178,7 +178,12 @@ export function Canvas({ model }: { model: BoardModel }) {
       const raw = localStorage.getItem(storageKey);
       if (raw) {
         const s = JSON.parse(raw);
-        if (s.view) view.current = s.view;
+        // Validate the persisted view shape before trusting it: a corrupted or
+        // previous-schema record must fall back to defaults, never inject a
+        // broken transform (scale(undefined)) or a NaN% HUD readout.
+        if (isValidView(s.view)) {
+          view.current = { x: s.view.x, y: s.view.y, scale: clamp(s.view.scale, MIN_SCALE, MAX_SCALE) };
+        }
         if (typeof s.sidebarOpen === "boolean") setSidebarOpen(s.sidebarOpen);
         if (Array.isArray(s.hiddenStages)) setHiddenStages(new Set(s.hiddenStages));
         if (Array.isArray(s.hiddenPhases)) setHiddenPhases(new Set(s.hiddenPhases));
@@ -437,7 +442,9 @@ export function Canvas({ model }: { model: BoardModel }) {
             ← Projects
           </Link>
         </div>
-        <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+        {/* z-40: the mode toolbar must stay clickable above the tokens panel
+            (z-30) — otherwise opening Tokens makes its own toggle unreachable. */}
+        <div className="absolute right-4 top-4 z-40 flex items-center gap-2">
           {model.prototype.hasTokens ? <CommentToolbar project={model.project.name} /> : null}
           <ThemeToggle />
         </div>
@@ -495,9 +502,24 @@ function TokensDrawer({ tokens }: { tokens: import("@/lib/types").DesignTokens }
   return <TokensPanel tokens={tokens} />;
 }
 
+/** A persisted view is trustworthy only if x/y/scale are all finite numbers. */
+function isValidView(v: unknown): v is View {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.x === "number" &&
+    Number.isFinite(o.x) &&
+    typeof o.y === "number" &&
+    Number.isFinite(o.y) &&
+    typeof o.scale === "number" &&
+    Number.isFinite(o.scale) &&
+    o.scale > 0
+  );
+}
+
 function isTypingTarget(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
   if (!el) return false;
   const tag = el.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
+  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
 }

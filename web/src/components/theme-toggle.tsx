@@ -13,6 +13,11 @@ export function ThemeToggle({ className }: { className?: string }) {
   return (
     <button
       type="button"
+      // Remount when the resolved theme lands: React does not reliably patch an
+      // aria-label whose SSR value differed pre-hydration (observed: label stuck
+      // at the SSR "Switch to dark theme" while the text updated). A key swap
+      // replaces the element, so every attribute is written fresh.
+      key={mounted ? (isDark ? "dark" : "light") : "ssr"}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={

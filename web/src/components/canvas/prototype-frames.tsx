@@ -157,17 +157,49 @@ function DeviceFrame({
   const { register, unregister, markLoaded } = useFrames();
   const fid = `${device}`;
 
-  // Lazy mount: only render the iframe when the holder nears the viewport;
-  // unmount when far off-canvas (the §8 performance law).
+  // Lazy mount: render the iframe only when the holder is near the viewport, and
+  // unmount when it drifts far off-canvas (the §8 performance law). The canvas
+  // moves content by a CSS transform on an ancestor and clips it with the
+  // sidebar-offset viewport's overflow. Under those two conditions an
+  // IntersectionObserver reports a frame that is geometrically on-screen — or one
+  // flown to via the sidebar that comes to rest partly under the index — as
+  // NON-intersecting, so the live frame never mounts (a real bug: a large board
+  // flown to Build showed dead frames). Instead we measure proximity directly
+  // from the holder's on-screen rect against the window — scale- AND
+  // clip-independent — and re-evaluate whenever the board transform settles
+  // (pan / zoom / fly).
   useEffect(() => {
     const el = holderRef.current;
     if (!el) return;
-    const io = new IntersectionObserver(
-      (entries) => setNear(entries.some((e) => e.isIntersecting)),
-      { rootMargin: "1200px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+    const world = el.closest('[data-testid="canvas-world"]');
+    const MARGIN = 1200;
+    let raf = 0;
+    const evaluate = () => {
+      raf = 0;
+      const r = el.getBoundingClientRect();
+      const onNear =
+        r.right > -MARGIN &&
+        r.left < window.innerWidth + MARGIN &&
+        r.bottom > -MARGIN &&
+        r.top < window.innerHeight + MARGIN;
+      setNear((prev) => (prev === onNear ? prev : onNear));
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(evaluate);
+    };
+    schedule();
+    // The world transform (and its 380ms fly transition) settle via style-attr
+    // writes and a transitionend; catch both so a flown-to frame mounts on rest.
+    const mo = world ? new MutationObserver(schedule) : null;
+    if (world && mo) mo.observe(world, { attributes: true, attributeFilter: ["style"] });
+    world?.addEventListener("transitionend", schedule);
+    window.addEventListener("resize", schedule);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      mo?.disconnect();
+      world?.removeEventListener("transitionend", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, []);
 
   const src = base + route + (route.includes("?") ? "&" : "?") + "_r=" + retry;

@@ -325,6 +325,43 @@ test.describe("prototype frames (/canvas/fixture-project)", () => {
 
     expect(errors, `console/page errors on frames:\n${errors.join("\n")}`).toEqual([]);
   });
+
+  // Regression (frame lazy-mount): a wider board must not leave flown-to frames
+  // dead behind the sidebar, and they must stay mounted at any zoom. Two seams
+  // were fixed here: (1) a stage row stretched to the full board width, so
+  // flyToRegion centered the middle of an empty stretch and pushed the Build
+  // frames off-screen — the wider the board (this fixture grew), the further
+  // off; (2) the lazy-mount observer honored the sidebar-offset viewport's clip,
+  // so an off-viewport frame never mounted. This test would have caught both.
+  test("frames land inside the visible viewport when flown to, and stay mounted through zoom-to-fit", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+    await page.getByRole("option", { name: "Build", exact: true }).click();
+
+    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+
+    // The desktop frame must come to rest inside the canvas viewport, not tucked
+    // entirely behind the index sidebar (the pre-fix failure: it landed at a
+    // negative x, fully occluded, and never mounted).
+    const sidebar = await page.getByTestId("sidebar").boundingBox();
+    const frame = await page.getByTestId("frame-desktop").boundingBox();
+    expect(sidebar && frame, "sidebar + frame must have a box").toBeTruthy();
+    const sidebarRight = sidebar!.x + sidebar!.width;
+    const viewportRight = page.viewportSize()!.width;
+    // A real slice of the frame is past the sidebar and within the viewport.
+    expect(frame!.x + frame!.width).toBeGreaterThan(sidebarRight + 40);
+    expect(frame!.x).toBeLessThan(viewportRight);
+
+    // Scale-independent mount: fit the whole board (a small scale) — the frame
+    // shrinks but must not unmount or blank.
+    await page.getByRole("button", { name: "Zoom to fit" }).click();
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+
+    expect(errors, `console/page errors on frame mount:\n${errors.join("\n")}`).toEqual([]);
+  });
 });
 
 test.describe("live board — vault SSE (/canvas/fixture-project)", () => {
@@ -436,7 +473,9 @@ test.describe("comment + tweak + export (/canvas/fixture-project)", () => {
 
     // Propose a token change on the first pairing; contrast recomputes live.
     await board.getByTestId("propose-token").first().click();
-    const editor = board.getByTestId("proposal-editor");
+    // The editor floats via portal (viewport-fixed escapes the scaled world),
+    // so it lives at document level, not inside the board's subtree.
+    const editor = page.getByTestId("proposal-editor");
     await expect(editor).toBeVisible();
     await editor.getByTestId("proposal-value").fill("#111111");
     await expect(editor.getByTestId("proposal-recompute")).toBeVisible();

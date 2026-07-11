@@ -19,7 +19,17 @@ export function CommentToolbar({ project }: { project: string }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "c" && e.key !== "C") return;
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      // Never hijack a keystroke aimed at a form control — a focused <select>
+      // uses letter typeahead (e.g. "c" to jump to a color option in the tweak
+      // panel), so it must be excluded alongside inputs / textareas.
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.tagName === "SELECT" ||
+          t.isContentEditable)
+      )
+        return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       setMode(mode === "comment" ? "read" : "comment");
     };

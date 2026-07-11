@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import type { DesignSystemModel, ColorPairing } from "@/lib/design-system";
 import type { PrototypeInfo } from "@/lib/types";
 import { contrastRatio, wcagLevel } from "@/lib/color";
@@ -103,6 +104,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function ColorSection({ pairings, swatches }: { pairings: ColorPairing[]; swatches: { key: string; value: string }[] }) {
   const { mode, addProposal, proposals } = useSession();
   const [editing, setEditing] = useState<string | null>(null);
+  // Viewport anchor for the floating editor (§10's pattern: drafts float
+  // viewport-clamped; inline-in-world is unclickable when the card is off-screen).
+  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
   const commentMode = mode === "comment";
 
   return (
@@ -152,7 +156,10 @@ function ColorSection({ pairings, swatches }: { pairings: ColorPairing[]; swatch
                   <button
                     type="button"
                     data-testid="propose-token"
-                    onClick={() => setEditing(editing === key ? null : key)}
+                    onClick={(e) => {
+                      setAnchor({ x: e.clientX, y: e.clientY });
+                      setEditing(editing === key ? null : key);
+                    }}
                     className="shrink-0 rounded-pill border border-rule px-2 py-0.5 text-[0.6875rem] text-ink-muted hover:text-accent"
                   >
                     Propose
@@ -161,6 +168,7 @@ function ColorSection({ pairings, swatches }: { pairings: ColorPairing[]; swatch
               </div>
               {commentMode && editing === key ? (
                 <ProposalEditor
+                  anchor={anchor}
                   pairing={p}
                   affectedPairs={pairings
                     .filter((x) => x.fgKey === p.fgKey)
@@ -187,11 +195,13 @@ function ColorSection({ pairings, swatches }: { pairings: ColorPairing[]; swatch
 
 /** Edit a token's proposed value with live contrast recompute (§6). */
 function ProposalEditor({
+  anchor,
   pairing,
   affectedPairs,
   onSave,
   onCancel,
 }: {
+  anchor: { x: number; y: number } | null;
   pairing: ColorPairing;
   affectedPairs: string[];
   onSave: (p: Omit<TokenProposal, "id">) => void;
@@ -203,8 +213,21 @@ function ProposalEditor({
   const ratio = contrastRatio(value, pairing.bg);
   const passes = ratio != null && ratio >= 4.5;
 
-  return (
-    <div className="mt-2 rounded-inset border border-accent-edge bg-paper-raised p-2" data-testid="proposal-editor">
+  // Float viewport-fixed near the click, clamped on-screen (same law as the
+  // comment draft). Portaled to document.body: the board lives inside the
+  // scaled world, and a CSS transform turns `fixed` descendants into
+  // absolutely-positioned ones — inside the world, "fixed" is a lie.
+  const vw = typeof window === "undefined" ? 1280 : window.innerWidth;
+  const vh = typeof window === "undefined" ? 800 : window.innerHeight;
+  const left = Math.max(8, Math.min(anchor?.x ?? vw / 2, vw - 336));
+  const top = Math.max(8, Math.min((anchor?.y ?? vh / 2) + 10, vh - 320));
+
+  return createPortal(
+    <div
+      className="fixed z-50 w-[20rem] rounded-inset border border-accent-edge bg-paper-raised p-2 shadow-lg"
+      style={{ left, top }}
+      data-testid="proposal-editor"
+    >
       <label className="flex items-center gap-2 text-[0.75rem]">
         <span className="font-mono text-ink-muted">colors.{pairing.fgKey}</span>
         <input
@@ -262,7 +285,8 @@ function ProposalEditor({
           Add proposal
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

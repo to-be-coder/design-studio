@@ -119,6 +119,16 @@ export function visibleText(el: Element): string {
  * a structural element with element children is a container → surface tokens.
  */
 export function classify(el: Element): "text" | "container" {
+  // A painted element is a surface first: a filled button/badge/card is tweaked
+  // by its background token, not its text token — regardless of carrying text.
+  // (§10 scoped color: containers see surface tokens.)
+  const win = el.ownerDocument.defaultView;
+  if (win) {
+    const bg = win.getComputedStyle(el).backgroundColor;
+    if (bg && bg !== "transparent" && !/^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*0\s*\)$/.test(bg)) {
+      return "container";
+    }
+  }
   const tag = el.tagName.toLowerCase();
   if (/^(p|span|a|button|h1|h2|h3|h4|h5|h6|label|li|strong|em|small|code)$/.test(tag)) return "text";
   const elementChildren = Array.from(el.children).filter((c) => c.nodeType === 1);
@@ -222,11 +232,38 @@ function kebab(s: string): string {
   return s.startsWith("--") ? s : s.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
 }
 
+/**
+ * Whether a value is a renderable CSS value for the positions a design token
+ * feeds (color / length / radius / typography). A custom property accepts ANY
+ * token stream at set-time — the browser only rejects it later, when `var()`
+ * resolves inside a real declaration, at which point the whole declaration
+ * becomes invalid-at-computed-value-time and the styled element loses its
+ * value. So a hand-typed malformed token would silently break the frame. We
+ * validate up front and refuse to inject anything that isn't a real CSS value.
+ */
+export function isRenderableCssValue(value: string): boolean {
+  if (typeof value !== "string" || value.trim() === "") return false;
+  if (typeof CSS === "undefined" || !CSS.supports) return true; // SSR / old env — don't block
+  return (
+    CSS.supports("color", value) ||
+    CSS.supports("width", value) ||
+    CSS.supports("border-radius", value) ||
+    CSS.supports("font-size", value) ||
+    CSS.supports("font-weight", value) ||
+    CSS.supports("line-height", value) ||
+    CSS.supports("font-family", value)
+  );
+}
+
 /** Set a token CSS variable on the frame's :root (token-everywhere); returns an undo. */
 export function setVar(doc: Document, cssVar: string, value: string): () => void {
   const style = doc.documentElement.style;
   const prev = style.getPropertyValue(cssVar);
-  style.setProperty(cssVar, value);
+  // Guard (§11/§13): never inject broken CSS. A malformed hand-typed value falls
+  // back to the prototype's own stylesheet default (remove the inline override)
+  // instead of poisoning the var and blanking every element that reads it.
+  if (isRenderableCssValue(value)) style.setProperty(cssVar, value);
+  else style.removeProperty(cssVar);
   return () => (prev ? style.setProperty(cssVar, prev) : style.removeProperty(cssVar));
 }
 export function clearVar(doc: Document, cssVar: string): void {

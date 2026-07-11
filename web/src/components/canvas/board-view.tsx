@@ -180,7 +180,7 @@ function StageRow({
 }) {
   const label = stageName(stage.stage);
   return (
-    <div id={stage.regionId} className="relative mb-16 flex scroll-mt-8 items-start gap-10">
+    <div id={stage.regionId} className="relative mb-16 flex w-max scroll-mt-8 items-start gap-10">
       <Marker state={stage.markerState} />
       <StageMeta stage={stage} label={label} />
       <div className="flex items-start gap-12">

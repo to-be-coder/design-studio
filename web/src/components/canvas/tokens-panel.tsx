@@ -3,6 +3,7 @@
 import type { DesignTokens } from "@/lib/types";
 import { flattenScalars, type FlatToken } from "@/lib/tokens";
 import { useSession } from "./session-context";
+import { isRenderableCssValue } from "./frame-dom";
 
 /**
  * Tokens mode (§13): the prototype's DESIGN.md, live. Every token — label, path,
@@ -56,6 +57,9 @@ export function TokensPanel({ tokens }: { tokens: DesignTokens }) {
                 {g.tokens.map((t) => {
                   const current = overrides[t.cssVar] ?? t.value;
                   const changed = overrides[t.cssVar] != null;
+                  // A hand-typed value that isn't real CSS is flagged, not
+                  // injected — the frame keeps its default (see setVar's guard).
+                  const invalid = changed && !isRenderableCssValue(current);
                   return (
                     <li key={t.path} className="flex items-center gap-2" data-testid="token-row" data-token={t.path}>
                       {t.group === "colors" ? (
@@ -70,9 +74,17 @@ export function TokensPanel({ tokens }: { tokens: DesignTokens }) {
                         <input
                           value={current}
                           data-testid="token-input"
+                          aria-invalid={invalid || undefined}
+                          data-invalid={invalid ? "true" : undefined}
                           onChange={(e) => setOverride(t.cssVar, e.target.value)}
                           className="w-full rounded-inset border bg-paper-raised px-2 py-0.5 font-mono text-[0.75rem] text-ink"
-                          style={{ borderColor: changed ? "var(--accent)" : "var(--rule)" }}
+                          style={{
+                            borderColor: invalid
+                              ? "var(--danger)"
+                              : changed
+                                ? "var(--accent)"
+                                : "var(--rule)",
+                          }}
                         />
                       </label>
                       {changed ? (
