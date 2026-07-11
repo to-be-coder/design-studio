@@ -30,6 +30,12 @@ export interface PrototypeConfig {
   url: string | null;
   /** repo exists on disk AND holds an index.html → the proxy can serve it statically. */
   staticRepo: boolean;
+  /**
+   * Explicit route list (§2 of canvas-maker: enumerate the real route table). A
+   * SPA has no static files to discover, so its pages can't be auto-found — list
+   * them here to show every page. Null → fall back to discovery.
+   */
+  routes: string[] | null;
 }
 
 function looksLikeUrl(s: string | null | undefined): boolean {
@@ -37,7 +43,7 @@ function looksLikeUrl(s: string | null | undefined): boolean {
 }
 
 async function readConfigFile(): Promise<{
-  config: Record<string, { repo?: string; url?: string }>;
+  config: Record<string, { repo?: string; url?: string; routes?: string[] }>;
   dir: string;
 }> {
   const explicit = process.env.PROTOTYPE_CONFIG?.trim();
@@ -87,7 +93,8 @@ export const resolvePrototypeConfig = cache(
     if (!url && process.env.PROTOTYPE_URL?.trim()) url = process.env.PROTOTYPE_URL.trim();
 
     const staticRepo = repo ? await hasIndex(repo) : false;
-    return { slug, repo, url, staticRepo };
+    const routes = Array.isArray(entry.routes) && entry.routes.length ? entry.routes : null;
+    return { slug, repo, url, staticRepo, routes };
   },
 );
 
@@ -103,6 +110,10 @@ export function isEmbeddable(cfg: PrototypeConfig): boolean {
  * let routes accrue as the reviewer navigates the frame.
  */
 export async function discoverRoutes(cfg: PrototypeConfig): Promise<string[]> {
+  // Explicit config routes win (the only way to enumerate a SPA's pages).
+  if (cfg.routes && cfg.routes.length) {
+    return Array.from(new Set(["", ...cfg.routes.map((r) => r.replace(/^\//, ""))]));
+  }
   if (cfg.staticRepo && cfg.repo) {
     try {
       const entries = await fs.readdir(cfg.repo, { withFileTypes: true });
