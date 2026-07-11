@@ -59,6 +59,8 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
   const prototype: PrototypeInfo = {
     slug,
     embeddable: isEmbeddable(config),
+    // Client-safe: just whether a run command exists. cmd/cwd stay server-side.
+    runnable: !!config.run,
     tokenHome: tokens.home,
     tokenSource: tokens.source,
     hasTokens: tokens.home !== "none",

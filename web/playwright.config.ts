@@ -56,6 +56,9 @@ export default defineConfig({
     env: {
       DESIGN_STUDIO_VAULT: VAULT,
       PROTOTYPE_CONFIG: process.env.PROTOTYPE_CONFIG?.trim() || FIXTURE_PROTOTYPES,
+      // The prod-mode test server runs the process-spawning Render API, so the
+      // dev-only guard needs its explicit opt-in (mirrors a self-hosted box).
+      DESIGN_STUDIO_ALLOW_RUN: "1",
     },
   },
 });

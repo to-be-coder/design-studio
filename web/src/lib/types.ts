@@ -198,6 +198,12 @@ export interface PrototypeInfo {
   slug: string;
   /** Has an embeddable source: a dev-server url or a static-servable repo. */
   embeddable: boolean;
+  /**
+   * The project has a pre-authored `run` command (server-side config), so the
+   * canvas can start its dev server itself via the Render control. The command
+   * itself NEVER crosses to the client — only this boolean does.
+   */
+  runnable: boolean;
   /** Where the live DESIGN.md sits (moving-home §4). */
   tokenHome: DesignTokenHome;
   tokenSource: string | null;

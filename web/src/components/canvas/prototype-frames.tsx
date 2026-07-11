@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { PrototypeInfo } from "@/lib/types";
 import { useFrames } from "./frames-context";
 
@@ -123,7 +123,47 @@ function groupByDomain(routes: string[]): DomainRow[] {
   return rows;
 }
 
+/**
+ * Dispatch on how the prototype reaches the board:
+ *   - runnable → the canvas can START the dev server itself (Render control);
+ *     once the server reports "ready" it hands off to the live frames.
+ *   - embeddable (a running url / static repo, nothing to start) → frames now.
+ *   - neither → the designed empty state.
+ */
 export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; id: string }) {
+  if (prototype.runnable) return <RunnablePrototype prototype={prototype} id={id} />;
+  if (!prototype.embeddable) return <EmptyState prototype={prototype} id={id} />;
+  return <FramesView prototype={prototype} id={id} />;
+}
+
+/** The designed empty state — no embeddable source and nothing to start. */
+function EmptyState({ prototype, id }: { prototype: PrototypeInfo; id: string }) {
+  return (
+    <article id={id} className="card-sheet w-[34rem] max-w-[88vw] px-8 py-7" data-card-kind="prototype" data-testid="prototype-empty">
+      <p className="eyebrow mb-2">The running thing</p>
+      <div className="rounded-inset border border-dashed border-rule-strong px-5 py-8 text-center">
+        <p className="text-[0.9375rem] leading-relaxed text-ink-muted">
+          No prototype is running for this project. Running{" "}
+          <span className="font-mono text-ink">design-studio-build</span> puts the live, clickable
+          prototype here — the flow ends at the real thing, never a screenshot.
+        </p>
+        {prototype.degradedReason ? (
+          <p className="mt-3 text-[0.8125rem] text-ink-faint">{prototype.degradedReason}</p>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function FramesView({
+  prototype,
+  id,
+  runControls,
+}: {
+  prototype: PrototypeInfo;
+  id: string;
+  runControls?: ReactNode;
+}) {
   const routes = prototype.routes.length ? prototype.routes : [""];
   const rows = groupByDomain(routes);
   const direct = !prototype.interactive;
@@ -204,24 +244,6 @@ export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; i
 
   const down = Object.values(statuses).filter((s) => s.state === "error").length;
 
-  if (!prototype.embeddable) {
-    return (
-      <article id={id} className="card-sheet w-[34rem] max-w-[88vw] px-8 py-7" data-card-kind="prototype" data-testid="prototype-empty">
-        <p className="eyebrow mb-2">The running thing</p>
-        <div className="rounded-inset border border-dashed border-rule-strong px-5 py-8 text-center">
-          <p className="text-[0.9375rem] leading-relaxed text-ink-muted">
-            No prototype is running for this project. Running{" "}
-            <span className="font-mono text-ink">design-studio-build</span> puts the live, clickable
-            prototype here — the flow ends at the real thing, never a screenshot.
-          </p>
-          {prototype.degradedReason ? (
-            <p className="mt-3 text-[0.8125rem] text-ink-faint">{prototype.degradedReason}</p>
-          ) : null}
-        </div>
-      </article>
-    );
-  }
-
   return (
     <article
       ref={articleRef}
@@ -243,6 +265,7 @@ export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; i
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {runControls}
           {down > 0 ? (
             <button
               type="button"
@@ -314,6 +337,197 @@ export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; i
           {prototype.degradedReason}
         </p>
       ) : null}
+    </article>
+  );
+}
+
+// ── Render control (start / stop the project's own dev server) ───────────────
+
+// Mirror of the server's RunStatus (src/lib/prototype-runner.ts); the client
+// only ever learns state + log tail + readyUrl, never the command.
+type RunState = "stopped" | "starting" | "ready" | "error";
+interface RunStatus {
+  state: RunState;
+  pid?: number;
+  lastLines?: string[];
+  readyUrl?: string;
+  error?: string;
+}
+
+async function postRun(slug: string, action: "start" | "stop"): Promise<RunStatus> {
+  const res = await fetch("/api/prototype-run", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ slug, action }),
+  });
+  const body = (await res.json().catch(() => ({}))) as Partial<RunStatus> & { error?: string };
+  if (body.state) return body as RunStatus;
+  return { state: "error", error: body.error ?? `Request failed (${res.status})` };
+}
+
+/**
+ * A runnable prototype: the canvas can start its dev server itself. Explicit
+ * click only — NEVER auto-start on load. On mount we read the current status
+ * (read-only; the process may already be up from an earlier request in this
+ * server's lifetime), and if it's already "ready" we hand straight off to the
+ * live frames. Otherwise the Render control is shown until the user starts it.
+ */
+function RunnablePrototype({ prototype, id }: { prototype: PrototypeInfo; id: string }) {
+  const slug = prototype.slug;
+  const [status, setStatus] = useState<RunStatus>({ state: "stopped" });
+
+  const refresh = useCallback(async (): Promise<RunStatus | null> => {
+    try {
+      const res = await fetch(`/api/prototype-run?slug=${encodeURIComponent(slug)}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return null; // disabled (404) / bad request — treat as stopped
+      const s = (await res.json()) as RunStatus;
+      setStatus(s);
+      return s;
+    } catch {
+      return null;
+    }
+  }, [slug]);
+
+  // Reflect any already-running process on first mount (does NOT start anything).
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // While starting, poll for live log lines + the ready/error transition. The
+  // POST also resolves with the final status; whichever lands first wins.
+  useEffect(() => {
+    if (status.state !== "starting") return;
+    const t = setInterval(() => void refresh(), 1200);
+    return () => clearInterval(t);
+  }, [status.state, refresh]);
+
+  const start = useCallback(async () => {
+    setStatus({ state: "starting", lastLines: [] });
+    setStatus(await postRun(slug, "start"));
+  }, [slug]);
+
+  const stop = useCallback(async () => {
+    setStatus(await postRun(slug, "stop"));
+  }, [slug]);
+
+  if (status.state === "ready") {
+    return (
+      <FramesView
+        prototype={prototype}
+        id={id}
+        runControls={
+          <button
+            type="button"
+            onClick={stop}
+            className="rounded-pill border border-rule px-2.5 py-1 text-[0.75rem] text-ink-muted transition-colors hover:text-ink"
+            data-testid="render-stop"
+          >
+            ■ Stop server
+          </button>
+        }
+      />
+    );
+  }
+
+  return <RenderControl id={id} status={status} onStart={start} onStop={stop} />;
+}
+
+/**
+ * The Render control card — shown for a runnable project until its dev server is
+ * ready. Honest states: idle (▶ Render), starting… (with the live log tail),
+ * error/timeout (log tail + Retry). No frames mount until the server is ready.
+ */
+function RenderControl({
+  id,
+  status,
+  onStart,
+  onStop,
+}: {
+  id: string;
+  status: RunStatus;
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  const starting = status.state === "starting";
+  const errored = status.state === "error";
+  const lines = status.lastLines ?? [];
+
+  return (
+    <article
+      id={id}
+      className="card-sheet w-[34rem] max-w-[88vw] px-8 py-7"
+      data-card-kind="prototype"
+      data-testid="prototype-render"
+      data-run-state={status.state}
+    >
+      <p className="eyebrow mb-2 flex items-center gap-2">
+        <span
+          className={`inline-block h-2 w-2 rounded-full ${starting ? "animate-pulse bg-accent" : errored ? "" : "bg-accent"}`}
+          style={errored ? { background: "var(--unverified)" } : undefined}
+          aria-hidden
+        />
+        The running thing
+      </p>
+
+      <div className="rounded-inset border border-dashed border-rule-strong px-5 py-6">
+        <p className="text-[0.9375rem] leading-relaxed text-ink-muted">
+          {starting
+            ? "Starting this project's dev server…"
+            : errored
+              ? "The dev server didn't come up."
+              : "This project can start its own dev server. Render it to load the live prototype below."}
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {!starting ? (
+            <button
+              type="button"
+              onClick={onStart}
+              className="rounded-pill bg-accent px-4 py-1.5 text-[0.8125rem] font-semibold text-accent-ink transition-opacity hover:opacity-90"
+              data-testid="render-start"
+            >
+              {errored ? "↻ Retry" : "▶ Render"}
+            </button>
+          ) : (
+            <>
+              <span className="text-[0.8125rem] text-ink-faint" data-testid="render-starting">
+                starting…
+              </span>
+              <button
+                type="button"
+                onClick={onStop}
+                className="rounded-pill border border-rule px-3 py-1 text-[0.75rem] text-ink-muted transition-colors hover:text-ink"
+                data-testid="render-stop"
+              >
+                Stop
+              </button>
+            </>
+          )}
+        </div>
+
+        {errored && status.error ? (
+          <p className="mt-3 text-[0.8125rem]" style={{ color: "var(--unverified)" }}>
+            {status.error}
+          </p>
+        ) : null}
+
+        {lines.length ? (
+          <pre
+            className="mt-4 max-h-40 overflow-auto rounded-inset bg-paper-raised px-3 py-2 font-mono text-[0.6875rem] leading-relaxed text-ink-faint"
+            data-testid="render-log"
+          >
+            {lines.join("\n")}
+          </pre>
+        ) : null}
+
+        <p className="mt-4 text-[0.75rem] leading-relaxed text-ink-faint">
+          Some projects need their own backend running too (e.g. an API on another
+          port). This control starts only the front-end dev server — start any
+          companion services yourself.
+        </p>
+      </div>
     </article>
   );
 }

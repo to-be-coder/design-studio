@@ -1,5 +1,15 @@
 {
   "fixture-project": {
     "repo": "./prototype"
+  },
+  "fixture-runnable": {
+    "url": "http://127.0.0.1:3197",
+    "routes": [],
+    "run": {
+      "cmd": ["node", "tiny-server.mjs", "3197"],
+      "cwd": "./",
+      "readyUrl": "http://127.0.0.1:3197/",
+      "readyTimeoutMs": 30000
+    }
   }
 }

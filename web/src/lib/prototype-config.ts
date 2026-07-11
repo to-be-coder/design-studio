@@ -22,12 +22,36 @@ import { cache } from "react";
  *   3. PROTOTYPE_URL env → url (a global default).
  */
 
+/**
+ * A pre-authored command that starts this project's dev server (§9 "the running
+ * thing"). SERVER-ONLY: the argv + cwd never cross to the client — the browser
+ * learns only `runnable: true|false` and the live run status. The whole security
+ * model rests on this: the browser sends a slug, and the SERVER maps slug → this
+ * command read from the LOCAL CONFIG FILE, never from the request. A slug with no
+ * `run` here can never spawn anything.
+ */
+export interface PrototypeRunConfig {
+  /** argv array — spawned directly, never through a shell string. */
+  cmd: string[];
+  /** Absolute working directory the command is spawned in. */
+  cwd: string;
+  /** Polled with GET until it answers 2xx/3xx → the server is "ready". */
+  readyUrl: string;
+  /** How long to poll readyUrl before declaring an error. Default 60000. */
+  readyTimeoutMs: number;
+}
+
 export interface PrototypeConfig {
   slug: string;
   /** Local checkout dir (DESIGN.md token source; maybe static-servable). */
   repo: string | null;
   /** Dev-server origin to proxy for live frames, or null. */
   url: string | null;
+  /**
+   * Pre-authored dev-server start command, or null. SERVER-ONLY — never leaked
+   * to the client (board.ts derives just a `runnable` boolean from it).
+   */
+  run: PrototypeRunConfig | null;
   /** repo exists on disk AND holds an index.html → the proxy can serve it statically. */
   staticRepo: boolean;
   /**
@@ -49,10 +73,17 @@ function looksLikeUrl(s: string | null | undefined): boolean {
   return !!s && /^https?:\/\//i.test(s.trim());
 }
 
+interface RawRun {
+  cmd?: unknown;
+  cwd?: unknown;
+  readyUrl?: unknown;
+  readyTimeoutMs?: unknown;
+}
+
 async function readConfigFile(): Promise<{
   config: Record<
     string,
-    { repo?: string; url?: string; routes?: string[]; direct?: boolean }
+    { repo?: string; url?: string; routes?: string[]; direct?: boolean; run?: RawRun }
   >;
   dir: string;
 }> {
@@ -81,6 +112,28 @@ async function hasIndex(dir: string): Promise<boolean> {
   }
 }
 
+/**
+ * Validate a raw `run` block into a PrototypeRunConfig, or null if malformed.
+ * A relative `cwd` resolves against the config file's dir (so a checked-in
+ * fixture config stays portable). Only trusted config-file input reaches here —
+ * the client never supplies any of this.
+ */
+function parseRun(raw: RawRun | undefined, dir: string): PrototypeRunConfig | null {
+  if (!raw || typeof raw !== "object") return null;
+  const cmd = Array.isArray(raw.cmd)
+    ? raw.cmd.filter((s): s is string => typeof s === "string" && s.length > 0)
+    : [];
+  if (cmd.length === 0) return null;
+  const cwdRaw = typeof raw.cwd === "string" && raw.cwd.trim() ? raw.cwd.trim() : null;
+  if (!cwdRaw) return null;
+  const cwd = path.resolve(dir, cwdRaw);
+  const readyUrl = typeof raw.readyUrl === "string" && raw.readyUrl.trim() ? raw.readyUrl.trim() : null;
+  if (!readyUrl) return null;
+  const readyTimeoutMs =
+    typeof raw.readyTimeoutMs === "number" && raw.readyTimeoutMs > 0 ? raw.readyTimeoutMs : 60000;
+  return { cmd, cwd, readyUrl, readyTimeoutMs };
+}
+
 export const resolvePrototypeConfig = cache(
   async (slug: string, prototypeRepo: string | null): Promise<PrototypeConfig> => {
     const { config, dir } = await readConfigFile();
@@ -105,7 +158,8 @@ export const resolvePrototypeConfig = cache(
     const staticRepo = repo ? await hasIndex(repo) : false;
     const routes = Array.isArray(entry.routes) && entry.routes.length ? entry.routes : null;
     const direct = entry.direct === true && !!url;
-    return { slug, repo, url, staticRepo, routes, direct };
+    const run = parseRun(entry.run, dir);
+    return { slug, repo, url, staticRepo, routes, direct, run };
   },
 );
 
