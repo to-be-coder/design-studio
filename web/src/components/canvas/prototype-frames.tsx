@@ -67,6 +67,25 @@ function routeLabel(route: string): string {
   return route === "" ? "/" : "/" + route.replace(/\.html?$/i, "");
 }
 
+// Known acronyms that must stay upper-cased when a route segment is humanized —
+// otherwise "mcp-servers" title-cases to the ugly "Mcp Servers". Keyed by the
+// lowercased word (canvas-maker §1: "Title strip per card: page label").
+const ACRONYMS: Record<string, string> = { mcp: "MCP", otp: "OTP" };
+
+// The human page name for a column's title strip: the route's LAST path segment,
+// title-cased with dashes→spaces and known acronyms preserved. Root route "" (and
+// any empty tail) reads "Home". A trailing .html is stripped first so static
+// fixtures humanize too ("page2.html" → "Page2", "settings/mcp-servers" →
+// "MCP Servers"). This is the label sized to read at canvas distance.
+function pageName(route: string): string {
+  const seg = route.replace(/\.html?$/i, "").split("/").filter(Boolean).pop() ?? "";
+  if (seg === "") return "Home";
+  return seg
+    .split("-")
+    .map((w) => ACRONYMS[w.toLowerCase()] ?? w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
 // Row (domain) key for the comb: the route's FIRST path segment, with the root
 // route "" grouping as "/". A trailing .html is stripped first, because static
 // fixtures use page2.html-style routes (so "page2.html" → "/page2", and
@@ -248,12 +267,25 @@ export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; i
       {/* Rows stack down the spine; each domain's pages run horizontally. The
           mount queue frontier (mountedUpTo) is a GLOBAL row-major index, so
           reading the rows top-to-bottom, left-to-right is the boot order. */}
-      <div className="flex flex-col gap-8" data-testid="route-comb">
+      <div className="flex flex-col gap-14" data-testid="route-comb">
         {rows.map((row) => (
-          <div key={row.key} className="flex flex-col gap-2" data-testid="domain-row" data-domain={row.key}>
-            <p className="eyebrow" data-testid="domain-label">
-              {row.key}
-            </p>
+          <div key={row.key} className="flex flex-col gap-4" data-testid="domain-row" data-domain={row.key}>
+            {/* Domain header, sized for world-space viewing: the domain key set at
+                the board's serif-display scale so it stays legible at ~30% canvas
+                zoom, a hairline rule extending across the row to bind its columns
+                into one band, and a muted page count. */}
+            <div className="flex items-baseline gap-4">
+              <p
+                className="font-serif text-[2.75rem] font-semibold leading-none tracking-[-0.02em] text-ink"
+                data-testid="domain-label"
+              >
+                {row.key}
+              </p>
+              <span className="whitespace-nowrap font-serif text-[1.5rem] leading-none text-ink-faint" data-testid="domain-count">
+                {row.items.length} {row.items.length === 1 ? "page" : "pages"}
+              </span>
+              <span className="h-px flex-1 bg-rule" aria-hidden />
+            </div>
             <div className="flex items-start gap-8">
               {row.items.map(({ route, index }) => {
                 const cleared = activated && index <= mountedUpTo;
@@ -360,9 +392,11 @@ function RouteColumn({
       data-route={route}
       data-column-state="mounted"
     >
-      <div className="flex items-center justify-between gap-2">
-        <ColumnLabel route={route} />
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <ColumnLabel route={route} />
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
           {isRoot ? (
             <button
               type="button"
@@ -410,15 +444,25 @@ function RouteColumn({
   );
 }
 
+// Per-column title strip (canvas-maker §1): the humanized page label set as a
+// serif heading large enough to read at ~30% zoom, with the raw route path in the
+// existing mono/muted style beneath it. Truncates so a long route can't blow out
+// the column width.
 function ColumnLabel({ route }: { route: string }) {
   return (
     <a
       href={`#region-build`}
-      className="truncate font-mono text-[0.75rem] font-semibold text-ink"
+      className="block min-w-0 no-underline"
       data-testid="column-label"
       title={routeLabel(route)}
     >
-      {routeLabel(route)}
+      <span
+        className="block truncate font-serif text-[1.5rem] font-semibold leading-tight tracking-[-0.01em] text-ink"
+        data-testid="page-title"
+      >
+        {pageName(route)}
+      </span>
+      <span className="block truncate font-mono text-[0.8125rem] text-ink-faint">{routeLabel(route)}</span>
     </a>
   );
 }

@@ -167,10 +167,14 @@ test.describe("token overrides", () => {
   test("a malformed hand-typed value is guarded — the frame keeps its default, not broken CSS", async ({
     page,
   }) => {
+    // Lift the test ceiling above the two 45s frame-CSS timeouts below so they can spend their budget under parallel-load CPU spikes.
+    test.setTimeout(120_000);
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
     const desktop = await toBuildFrame(page);
     const btn = desktop.locator('[data-component="button"]').first();
+    // Under parallel load the fixture stylesheet applies --color-primary a beat after the Overview heading paints; wait off the UA-default gray so `original` snapshots the true default, not a transient the revert can never match.
+    await expect(btn).not.toHaveCSS("background-color", "rgb(239, 239, 239)", { timeout: 45000 });
     const original = await btn.evaluate((el) => getComputedStyle(el).backgroundColor);
 
     await page.getByTestId("mode-tokens").click();

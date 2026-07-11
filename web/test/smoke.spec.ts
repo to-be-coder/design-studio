@@ -323,16 +323,23 @@ test.describe("prototype frames (/canvas/fixture-project)", () => {
 
     // The columns are grouped into rows by domain (§1 comb): the route's first
     // path segment, root "" → "/". The fixture's three routes ("", page2.html,
-    // page3.html) each live in their own domain, so three labelled rows appear.
+    // page3.html) each live in their own domain, so three labelled rows appear —
+    // each with a big canvas-legible domain header and a muted page count.
     for (const key of ["/", "/page2", "/page3"]) {
       const row = page.locator(`[data-testid="domain-row"][data-domain="${key}"]`);
       await expect(row.getByTestId("domain-label")).toBeVisible();
+      await expect(row.getByTestId("domain-label")).toHaveText(key);
+      await expect(row.getByTestId("domain-count")).toBeVisible();
+      await expect(row.getByTestId("domain-count")).toHaveText("1 page");
     }
 
     // The root row ("/") holds the root column, and that column carries the
-    // desktop AND the (root-only) mobile frame.
+    // desktop AND the (root-only) mobile frame — plus a per-column title strip
+    // whose humanized page label ("" → "Home") reads at canvas distance.
     const rootRow = page.locator('[data-testid="domain-row"][data-domain="/"]');
     const rootColumn = rootRow.locator('[data-testid="route-column"][data-route=""]');
+    await expect(rootColumn.getByTestId("page-title")).toBeVisible();
+    await expect(rootColumn.getByTestId("page-title")).toHaveText("Home");
     await expect(rootColumn.getByTestId("frame-desktop")).toBeVisible();
     await expect(rootColumn.getByTestId("frame-mobile")).toBeVisible();
 
