@@ -1,0 +1,97 @@
+"use client";
+
+import type { AssumptionNode } from "@/lib/types";
+import { Reading } from "./markdown";
+import { StateChip } from "./marks";
+
+/**
+ * The Assumptions & Risks register, rendered as a designed register (§4/§5):
+ * each assumption carries its verified / partial / unverified / accepted state
+ * in the §1 idiom (a mark + a word). Accepted-risk admissions are as visible as
+ * any artifact. The rests_on edges + blast-radius highlighting are drawn in the
+ * assumption-graph layer (slice 3); nodes carry stable ids for those edges.
+ */
+export function RegisterCard({
+  assumptions,
+  id,
+  selectedId,
+  onSelect,
+}: {
+  assumptions: AssumptionNode[];
+  id: string;
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
+}) {
+  if (assumptions.length === 0) {
+    return (
+      <article id={id} className="card-sheet w-[34rem] max-w-[88vw] px-8 py-6">
+        <p className="eyebrow mb-2">Assumptions &amp; Risks</p>
+        <p className="text-[0.9375rem] italic text-ink-faint">No register yet.</p>
+      </article>
+    );
+  }
+
+  return (
+    <article id={id} className="card-sheet w-[38rem] max-w-[88vw] px-8 py-6" data-card-kind="register">
+      <p className="eyebrow mb-1">Assumptions &amp; Risks</p>
+      <p className="mb-5 text-[0.8125rem] text-ink-faint">
+        Before trusting a decision, see what it stands on.
+      </p>
+      <ul className="space-y-4" data-testid="register">
+        {assumptions.map((a) => {
+          const selected = selectedId === a.id;
+          return (
+            <li
+              key={a.id}
+              id={`assumption-${a.id}`}
+              data-assumption={a.id}
+              className="rounded-inset border px-4 py-3 transition-colors"
+              style={{
+                borderColor: selected ? "var(--accent)" : "var(--rule)",
+                background: selected ? "var(--accent-wash)" : "transparent",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect?.(selected ? null : a.id)}
+                className="flex w-full items-start justify-between gap-3 text-left"
+                aria-pressed={selected}
+              >
+                <span className="min-w-0">
+                  <span className="font-mono text-[0.75rem] text-ink-faint">{a.id}</span>{" "}
+                  <span className="font-sans text-[0.9375rem] font-semibold text-ink">{a.title}</span>
+                </span>
+                <StateChip state={a.state} />
+              </button>
+
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {a.riskiest ? (
+                  <span className="rounded-pill border border-accent px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-accent">
+                    Riskiest load-bearing
+                  </span>
+                ) : null}
+                {a.accepted ? (
+                  <span
+                    className="rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
+                    style={{ border: "1px solid var(--accepted)", color: "var(--accepted)" }}
+                  >
+                    Accepted risk
+                  </span>
+                ) : null}
+                {a.dependents.length ? (
+                  <span className="text-[0.75rem] text-ink-faint">
+                    {a.dependents.length} decision{a.dependents.length > 1 ? "s" : ""} rest on this
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="mt-2.5">
+                <Reading blocks={a.blocks} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </article>
+  );
+}
