@@ -1,14 +1,27 @@
 "use client";
 
 import type { DecisionStreamEntry } from "@/lib/types";
+import { STAGES } from "@/lib/schema";
+import type { RestsOnState, StreamFilter } from "./canvas";
 import { Reading } from "./markdown";
-import { stageName } from "./util";
+import { Swatch } from "./marks";
+import { assumptionColorVar, assumptionFill, assumptionLabel, stageName } from "./util";
+
+const SCAFFOLD_STAGES = new Set<string>(
+  STAGES.filter((s) => s.autonomy === "scaffold").map((s) => s.stage),
+);
 
 function leadingId(ref: string | null): string | null {
   if (!ref) return null;
   const m = ref.match(/^\s*(\S+)/);
   return m ? m[1] : null;
 }
+
+const FILTERS: { key: StreamFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "live", label: "Live only" },
+  { key: "scaffold", label: "You-decide only" },
+];
 
 /**
  * The Decision Stream: all Decisions/*.md merged into ONE continuous
@@ -23,24 +36,58 @@ export function DecisionStream({
   id,
   highlighted,
   registerHref,
+  restsOnState,
+  filter = "all",
+  onFilter,
 }: {
   entries: DecisionStreamEntry[];
   id: string;
   highlighted?: Set<string> | null;
   registerHref?: (assumptionId: string) => void;
+  restsOnState?: Record<string, RestsOnState>;
+  filter?: StreamFilter;
+  onFilter?: (f: StreamFilter) => void;
 }) {
+  const shown = entries.filter((e) => {
+    if (filter === "live") return e.status !== "superseded";
+    if (filter === "scaffold") return e.stage != null && SCAFFOLD_STAGES.has(e.stage);
+    return true;
+  });
+
   return (
     <article id={id} className="card-sheet w-[52rem] max-w-[92vw] px-8 py-7" data-card-kind="decision-stream">
-      <p className="eyebrow mb-1">The decision stream</p>
-      <p className="mb-6 text-[0.8125rem] text-ink-faint">
-        Every decision, in order. Loop-backs stay visible — the real path is the point.
-      </p>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="eyebrow mb-1">The decision stream</p>
+          <p className="text-[0.8125rem] text-ink-faint">
+            Every decision, in order. Loop-backs stay visible — the real path is the point.
+          </p>
+        </div>
+        <div className="flex gap-1 rounded-pill border border-rule p-0.5" role="group" aria-label="Filter decisions" data-testid="stream-filter">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => onFilter?.(f.key)}
+              aria-pressed={filter === f.key}
+              className="rounded-pill px-2.5 py-1 text-[0.75rem] transition-colors"
+              style={{
+                background: filter === f.key ? "var(--accent-wash)" : "transparent",
+                color: filter === f.key ? "var(--accent)" : "var(--ink-muted)",
+                fontWeight: filter === f.key ? 600 : 400,
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-      {entries.length === 0 ? (
-        <p className="text-[0.9375rem] italic text-ink-faint">No decisions recorded yet.</p>
+      {shown.length === 0 ? (
+        <p className="text-[0.9375rem] italic text-ink-faint">No decisions match this filter.</p>
       ) : (
         <ol data-testid="decision-stream" className="space-y-7">
-          {entries.map((e) => {
+          {shown.map((e) => {
             const retired = e.status === "superseded";
             const isHot = highlighted?.has(e.id) ?? false;
             const supersedesId = leadingId(e.supersedes);
@@ -50,6 +97,7 @@ export function DecisionStream({
                 key={e.id}
                 id={`d-${e.id}`}
                 data-decision={e.id}
+                data-highlighted={isHot ? "true" : undefined}
                 data-superseded={retired ? "true" : undefined}
                 className="scroll-mt-8 rounded-card px-5 py-4 transition-colors"
                 style={{
@@ -80,9 +128,11 @@ export function DecisionStream({
                   {e.date ? <span className="text-[0.75rem] text-ink-faint">{e.date}</span> : null}
                 </header>
 
-                {/* rests_on — a marginal link to the assumption it stands on. */}
+                {/* rests_on — a marginal link to the assumption it stands on,
+                    carrying that assumption's state so an unverified support
+                    renders the decision visibly at-risk. */}
                 {e.restsOnId ? (
-                  <p className="mb-2 text-[0.75rem] text-ink-faint">
+                  <p className="mb-2 flex flex-wrap items-center gap-1.5 text-[0.75rem] text-ink-faint">
                     Rests on{" "}
                     <button
                       type="button"
@@ -91,6 +141,20 @@ export function DecisionStream({
                     >
                       {e.restsOnId}
                     </button>
+                    {(() => {
+                      const r = restsOnState?.[e.id];
+                      if (!r) return null;
+                      const atRisk = r.state === "unverified" || r.state === "partial";
+                      return (
+                        <span className="inline-flex items-center gap-1" data-testid={atRisk ? "at-risk" : undefined}>
+                          <Swatch fill={assumptionFill(r.state)} color={assumptionColorVar(r.state)} size={8} />
+                          <span style={{ color: assumptionColorVar(r.state) }}>
+                            {assumptionLabel(r.state)}
+                          </span>
+                          {atRisk ? <span className="font-semibold text-unverified">· at risk</span> : null}
+                        </span>
+                      );
+                    })()}
                   </p>
                 ) : null}
 

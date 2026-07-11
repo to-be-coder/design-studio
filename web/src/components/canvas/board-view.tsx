@@ -1,12 +1,26 @@
 "use client";
 
+import type { RefObject } from "react";
 import type { BoardModel, Phase, SpineStage, StageMarkerState } from "@/lib/types";
+import type { RestsOnState, StreamFilter } from "./canvas";
 import { ArtifactCard } from "./artifact-card";
 import { FramingPane } from "./framing-pane";
 import { RegisterCard } from "./register";
 import { DecisionStream } from "./decision-stream";
+import { Connectors } from "./connectors";
 import { ProjectHeader } from "./header";
 import { autonomyWord, markerLabel, stageName, stripDots } from "./util";
+
+export interface BoardViewProps {
+  model: BoardModel;
+  worldRef?: RefObject<HTMLDivElement | null>;
+  selectedAssumption?: string | null;
+  onSelectAssumption?: (id: string | null) => void;
+  highlightedDecisions?: Set<string> | null;
+  restsOnState?: Record<string, RestsOnState>;
+  filter?: StreamFilter;
+  onFilter?: (f: StreamFilter) => void;
+}
 
 /**
  * The canvas geometry — the journey as a comb (§3). A vertical spine (the three
@@ -17,18 +31,27 @@ import { autonomyWord, markerLabel, stageName, stripDots } from "./util";
  */
 export function BoardView({
   model,
+  worldRef,
   selectedAssumption,
   onSelectAssumption,
   highlightedDecisions,
-}: {
-  model: BoardModel;
-  selectedAssumption?: string | null;
-  onSelectAssumption?: (id: string | null) => void;
-  highlightedDecisions?: Set<string> | null;
-}) {
+  restsOnState,
+  filter = "all",
+  onFilter,
+}: BoardViewProps) {
   return (
-    <div className="flex w-max flex-col gap-6 p-16">
-      <ProjectHeader project={model.project} header={model.header} />
+    <div ref={worldRef} className="relative flex w-max flex-col gap-6 p-16">
+      {worldRef ? (
+        <Connectors
+          worldRef={worldRef}
+          model={model}
+          selectedAssumption={selectedAssumption ?? null}
+        />
+      ) : null}
+
+      <div className="relative z-10">
+        <ProjectHeader project={model.project} header={model.header} />
+      </div>
 
       {model.phases.map((phase) => (
         <PhaseSection
@@ -39,6 +62,9 @@ export function BoardView({
           selectedAssumption={selectedAssumption}
           onSelectAssumption={onSelectAssumption}
           highlightedDecisions={highlightedDecisions}
+          restsOnState={restsOnState}
+          filter={filter}
+          onFilter={onFilter}
         />
       ))}
     </div>
@@ -52,6 +78,9 @@ function PhaseSection({
   selectedAssumption,
   onSelectAssumption,
   highlightedDecisions,
+  restsOnState,
+  filter,
+  onFilter,
 }: {
   phase: Phase;
   stages: SpineStage[];
@@ -59,9 +88,12 @@ function PhaseSection({
   selectedAssumption?: string | null;
   onSelectAssumption?: (id: string | null) => void;
   highlightedDecisions?: Set<string> | null;
+  restsOnState?: Record<string, RestsOnState>;
+  filter?: StreamFilter;
+  onFilter?: (f: StreamFilter) => void;
 }) {
   return (
-    <section className="relative ml-6 border-l border-rule pl-12" data-phase={phase}>
+    <section className="relative z-10 ml-6 border-l border-rule pl-12" data-phase={phase}>
       <h2 className="eyebrow mb-8 text-ink">{phase}</h2>
 
       {stages.map((s) => (
@@ -83,6 +115,9 @@ function PhaseSection({
             id="region-decision-stream"
             highlighted={highlightedDecisions}
             registerHref={(aid) => onSelectAssumption?.(aid)}
+            restsOnState={restsOnState}
+            filter={filter}
+            onFilter={onFilter}
           />
         </div>
       ) : null}

@@ -1,19 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import type { BoardModel } from "@/lib/types";
+import { useMemo, useRef, useState } from "react";
+import type { AssumptionState, BoardModel } from "@/lib/types";
 import { BoardView } from "./board-view";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+export type StreamFilter = "all" | "live" | "scaffold";
+
+export interface RestsOnState {
+  assumptionId: string;
+  state: AssumptionState;
+  riskiest: boolean;
+}
+
 /**
- * The canvas. Slice 2 renders the whole readable board in a plain-scroll
- * viewport — "every step visible, readable" must already be true here. Slice 4
- * replaces the scroll with the pan/zoom engine on this same world container.
+ * The canvas controller. Owns cross-region interaction: selecting an assumption
+ * lights its blast radius (every decision standing on it) across the register
+ * and the stream, and the drawn connectors restyle live. Slice 4 adds the
+ * pan/zoom engine on top of this same world container.
  */
 export function Canvas({ model }: { model: BoardModel }) {
+  const worldRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [filter, setFilter] = useState<StreamFilter>("all");
+
+  const highlighted = useMemo(() => {
+    if (!selected) return null;
+    const a = model.assumptions.find((x) => x.id === selected);
+    return a ? new Set(a.dependents) : null;
+  }, [selected, model.assumptions]);
+
+  // Every decision that stands on an assumption, with that assumption's state —
+  // so a decision resting on an unverified assumption renders visibly at-risk.
+  const restsOnState = useMemo(() => {
+    const m: Record<string, RestsOnState> = {};
+    for (const a of model.assumptions) {
+      for (const dep of a.dependents) {
+        m[dep] = { assumptionId: a.id, state: a.state, riskiest: a.riskiest };
+      }
+    }
+    return m;
+  }, [model.assumptions]);
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-desk">
-      {/* Top-left: return to the index. */}
       <div className="absolute left-4 top-4 z-20 flex items-center gap-3">
         <Link
           href="/"
@@ -26,9 +57,18 @@ export function Canvas({ model }: { model: BoardModel }) {
         <ThemeToggle />
       </div>
 
-      {/* Slice 2: plain-scroll viewport over the world container. */}
+      {/* Slice 2/3: plain-scroll viewport over the world container. */}
       <div className="h-full w-full overflow-auto">
-        <BoardView model={model} />
+        <BoardView
+          model={model}
+          worldRef={worldRef}
+          selectedAssumption={selected}
+          onSelectAssumption={setSelected}
+          highlightedDecisions={highlighted}
+          restsOnState={restsOnState}
+          filter={filter}
+          onFilter={setFilter}
+        />
       </div>
     </div>
   );

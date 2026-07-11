@@ -8,7 +8,7 @@ import { test, expect, type Page } from "@playwright/test";
  * is one, and every page is checked for zero console/page errors.
  *
  * The suite grows one block per canvas slice (§14). Slices present: 1
- * (substrate), 2 (the readable board).
+ * (substrate), 2 (the readable board), 3 (decision stream + assumption graph).
  */
 
 const STAGE_LABELS = [
@@ -125,5 +125,66 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
     await expect(page.getByText("malformed frontmatter fixture")).toHaveCount(0);
 
     expect(errors, `console/page errors on artifact cards:\n${errors.join("\n")}`).toEqual([]);
+  });
+});
+
+// ── Slice 3: decision stream + assumption graph ──────────────────────────────
+
+test.describe("decision stream + assumption graph (/canvas/fixture-project)", () => {
+  test("supersede chain and rests_on edges are drawn, not just linked", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // The consolidated stream is one page; the retired entry stays in place.
+    const superseded = page.locator("#d-0008");
+    const superseding = page.locator("#d-0009");
+    await expect(superseded).toBeVisible();
+    await expect(superseding).toBeVisible();
+    await expect(superseded).toHaveAttribute("data-superseded", "true");
+    await expect(superseded.getByText("superseded", { exact: true })).toBeVisible();
+
+    // The supersede connector is DRAWN between them.
+    await expect(page.locator('[data-edge="d-0008->d-0009"]')).toBeVisible();
+
+    // The rests_on edges are drawn from the assumption to each dependent decision.
+    await expect(page.locator('[data-edge="assumption-A1->d-0009"]')).toBeVisible();
+    await expect(page.locator('[data-edge="assumption-A1->d-0011"]')).toBeVisible();
+
+    expect(errors, `console/page errors on connectors:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("an In-their-words quote gets pull-quote treatment", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    const quote = page.locator("#d-0009").getByTestId("in-their-words");
+    await expect(quote).toBeVisible();
+    await expect(quote).toContainText("I don't want another dashboard with tabs");
+    await expect(quote.getByText("In their words")).toBeVisible();
+
+    expect(errors, `console/page errors on pull-quote:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("selecting an assumption lights its blast radius; unverified reads at-risk", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // A1 is unverified, so decisions resting on it read at-risk up front.
+    await expect(page.locator("#d-0009").getByTestId("at-risk")).toBeVisible();
+
+    // Selecting A1 in the register lights every decision standing on it.
+    await page.locator("#assumption-A1 button").first().click();
+    await expect(page.locator("#d-0009")).toHaveAttribute("data-highlighted", "true");
+    await expect(page.locator("#d-0011")).toHaveAttribute("data-highlighted", "true");
+    // A decision that does NOT rest on A1 stays un-highlighted.
+    await expect(page.locator("#d-0008")).not.toHaveAttribute("data-highlighted", "true");
+
+    // The stream filter defaults to All and can hide retired entries.
+    await expect(page.getByTestId("stream-filter")).toBeVisible();
+    await page.getByRole("button", { name: "Live only" }).click();
+    await expect(page.locator("#d-0008")).toHaveCount(0);
+    await expect(page.locator("#d-0009")).toBeVisible();
+
+    expect(errors, `console/page errors on blast radius:\n${errors.join("\n")}`).toEqual([]);
   });
 });
