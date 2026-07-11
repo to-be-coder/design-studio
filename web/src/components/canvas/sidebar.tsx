@@ -1,51 +1,46 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { BoardModel, Phase } from "@/lib/types";
-import { stageName } from "./util";
+import type { BoardModel, Phase, StageMarkerState } from "@/lib/types";
+import { markerLabel, stageName } from "./util";
 
 interface IndexEntry {
-  regionId: string;
+  /** The focus key: a stage token, or "decision-stream". */
+  focusKey: string;
   label: string;
   phase: Phase;
+  state?: StageMarkerState;
 }
 
 /**
- * The sidebar doubles as a linear, keyboard-navigable index of everything on
- * the board (§14 a11y): arrow through it, Enter to fly the canvas there — so
- * every card is reachable without a drag gesture. Plus per-phase and per-stage
- * show/hide, and a compact cheatsheet. Collapsing it compensates the pan offset
- * (handled by the canvas) so content doesn't jump.
+ * The sidebar is the board's persistent overview AND its switcher (§ focus
+ * mode): every stage listed with its run-state, keyboard-navigable (arrow +
+ * Enter), and selecting one shows just that board — one board per item, not one
+ * long scrolling flow. "All stages" restores the continuous comb.
  */
 export function Sidebar({
   model,
-  hiddenStages,
-  hiddenPhases,
-  onToggleStage,
-  onTogglePhase,
-  onFly,
+  focused,
+  onFocus,
 }: {
   model: BoardModel;
-  hiddenStages: Set<string>;
-  hiddenPhases: Set<Phase>;
-  onToggleStage: (stage: string) => void;
-  onTogglePhase: (phase: Phase) => void;
-  onFly: (regionId: string) => void;
+  focused: string;
+  onFocus: (focusKey: string) => void;
 }) {
   const entries: IndexEntry[] = [];
   for (const s of model.stages) {
-    entries.push({ regionId: s.regionId, label: stageName(s.stage), phase: s.phase });
+    entries.push({ focusKey: s.stage, label: stageName(s.stage), phase: s.phase, state: s.markerState });
     if (s.stage === "converge") {
-      entries.push({ regionId: "region-decision-stream", label: "Decision stream", phase: "Decide" });
+      entries.push({ focusKey: "decision-stream", label: "Decision stream", phase: "Decide" });
     }
   }
 
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [focus, setFocus] = useState(0);
+  const [cursor, setCursor] = useState(0);
 
   const move = (delta: number) => {
-    const next = Math.max(0, Math.min(entries.length - 1, focus + delta));
-    setFocus(next);
+    const next = Math.max(0, Math.min(entries.length - 1, cursor + delta));
+    setCursor(next);
     btnRefs.current[next]?.focus();
   };
 
@@ -57,7 +52,25 @@ export function Sidebar({
     >
       <div className="border-b border-rule px-4 py-3">
         <p className="eyebrow">{model.project.name}</p>
-        <p className="mt-0.5 text-[0.75rem] text-ink-faint">Index — arrow keys, Enter to fly</p>
+        <p className="mt-0.5 text-[0.75rem] text-ink-faint">Index — arrow keys, Enter to open</p>
+      </div>
+
+      <div className="px-2 pt-2">
+        <button
+          type="button"
+          onClick={() => onFocus("all")}
+          aria-pressed={focused === "all"}
+          data-testid="focus-all"
+          className="w-full rounded-inset px-2 py-1.5 text-left text-[0.8125rem] font-medium transition-colors"
+          style={
+            focused === "all"
+              ? { background: "var(--accent-wash)", color: "var(--accent)" }
+              : { color: "var(--ink-muted)" }
+          }
+        >
+          All stages
+          <span className="ml-1 text-ink-faint">— the whole flow</span>
+        </button>
       </div>
 
       <div
@@ -76,46 +89,44 @@ export function Sidebar({
       >
         {model.phases.map((phase) => (
           <div key={phase} className="mb-2">
-            <div className="flex items-center justify-between px-2 py-1">
+            <div className="px-2 py-1">
               <span className="eyebrow text-ink">{phase}</span>
-              <ToggleEye
-                on={!hiddenPhases.has(phase)}
-                label={`Toggle ${phase} phase`}
-                onClick={() => onTogglePhase(phase)}
-              />
             </div>
             {entries
               .map((e, i) => ({ e, i }))
               .filter(({ e }) => e.phase === phase)
               .map(({ e, i }) => {
-                const isStage = model.stages.some((s) => s.regionId === e.regionId);
-                const stageTok = model.stages.find((s) => s.regionId === e.regionId)?.stage;
-                const hidden = stageTok ? hiddenStages.has(stageTok) : false;
+                const active = focused === e.focusKey;
                 return (
-                  <div key={e.regionId} className="flex items-center gap-1">
-                    <button
-                      ref={(el) => {
-                        btnRefs.current[i] = el;
-                      }}
-                      type="button"
-                      role="option"
-                      aria-selected={focus === i}
-                      tabIndex={focus === i ? 0 : -1}
-                      onFocus={() => setFocus(i)}
-                      onClick={() => onFly(e.regionId)}
-                      className="min-w-0 flex-1 truncate rounded-inset px-2 py-1.5 text-left text-[0.875rem] text-ink-muted transition-colors hover:bg-accent-wash hover:text-ink focus-visible:bg-accent-wash focus-visible:text-ink"
-                      style={hidden ? { opacity: 0.5 } : undefined}
-                    >
-                      {e.label}
-                    </button>
-                    {isStage && stageTok ? (
-                      <ToggleEye
-                        on={!hidden}
-                        label={`Toggle ${e.label}`}
-                        onClick={() => onToggleStage(stageTok)}
-                      />
+                  <button
+                    key={e.focusKey}
+                    ref={(el) => {
+                      btnRefs.current[i] = el;
+                    }}
+                    type="button"
+                    role="option"
+                    aria-selected={active}
+                    aria-current={active ? "true" : undefined}
+                    tabIndex={cursor === i ? 0 : -1}
+                    onFocus={() => setCursor(i)}
+                    onClick={() => onFocus(e.focusKey)}
+                    className="flex w-full items-center justify-between gap-2 rounded-inset px-2 py-1.5 text-left text-[0.875rem] transition-colors hover:bg-accent-wash focus-visible:bg-accent-wash"
+                    style={
+                      active
+                        ? { background: "var(--accent-wash)", color: "var(--accent)", fontWeight: 600 }
+                        : { color: "var(--ink-muted)" }
+                    }
+                  >
+                    <span className="min-w-0 truncate">{e.label}</span>
+                    {e.state ? (
+                      // Decorative: keep the option's accessible name the stage
+                      // label alone (name-by-content would otherwise become
+                      // "Build Ran" and break name-based selection).
+                      <span aria-hidden className="shrink-0 text-[0.6875rem] text-ink-faint">
+                        {markerLabel(e.state)}
+                      </span>
                     ) : null}
-                  </div>
+                  </button>
                 );
               })}
           </div>
@@ -132,21 +143,6 @@ export function Sidebar({
         </dl>
       </div>
     </nav>
-  );
-}
-
-function ToggleEye({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={on}
-      onClick={onClick}
-      className="shrink-0 rounded-inset px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] transition-colors hover:bg-paper-raised"
-      style={{ color: on ? "var(--ink-muted)" : "var(--ink-faint)" }}
-    >
-      {on ? "shown" : "hidden"}
-    </button>
   );
 }
 

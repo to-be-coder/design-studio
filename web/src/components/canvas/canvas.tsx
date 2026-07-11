@@ -62,6 +62,10 @@ export function Canvas({ model }: { model: BoardModel }) {
   // ── Assumption blast radius (slice 3) ───────────────────────────────────────
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<StreamFilter>("all");
+  // Focus mode: which single board is shown. Clicking any sidebar item isolates
+  // it ("one board per item"); "all" is the continuous comb. Default is "all"
+  // for a first-look overview, then a click narrows — and the choice persists.
+  const [focused, setFocused] = useState<string>("all");
   const highlighted = useMemo(() => {
     if (!selected) return null;
     const a = model.assumptions.find((x) => x.id === selected);
@@ -163,13 +167,14 @@ export function Canvas({ model }: { model: BoardModel }) {
             hiddenStages: [...hiddenStages],
             hiddenPhases: [...hiddenPhases],
             expanded: [...expanded],
+            focused,
           }),
         );
       } catch {
         /* storage unavailable — non-fatal */
       }
     }, 350);
-  }, [storageKey, sidebarOpen, hiddenStages, hiddenPhases, expanded]);
+  }, [storageKey, sidebarOpen, hiddenStages, hiddenPhases, expanded, focused]);
 
   // Load persisted state once.
   useEffect(() => {
@@ -188,6 +193,7 @@ export function Canvas({ model }: { model: BoardModel }) {
         if (Array.isArray(s.hiddenStages)) setHiddenStages(new Set(s.hiddenStages));
         if (Array.isArray(s.hiddenPhases)) setHiddenPhases(new Set(s.hiddenPhases));
         if (Array.isArray(s.expanded)) setExpanded(new Set(s.expanded));
+        if (typeof s.focused === "string") setFocused(s.focused);
       }
     } catch {
       /* ignore */
@@ -375,24 +381,16 @@ export function Canvas({ model }: { model: BoardModel }) {
 
   // Stable callbacks so a HUD-only re-render (pct) never re-renders the
   // memoised board — the perf law that keeps card content rendered once.
-  const toggleStage = useCallback(
-    (stage: string) =>
-      setHiddenStages((prev) => {
-        const n = new Set(prev);
-        if (n.has(stage)) n.delete(stage);
-        else n.add(stage);
-        return n;
-      }),
-    [],
-  );
-  const togglePhase = useCallback(
-    (phase: Phase) =>
-      setHiddenPhases((prev) => {
-        const n = new Set(prev);
-        if (n.has(phase)) n.delete(phase);
-        else n.add(phase);
-        return n;
-      }),
+  // Select a single board (or "all") and frame it: the point of focus mode is
+  // no scrolling, so each board lands fit to the viewport. Double rAF lets the
+  // isolated board render before we measure it.
+  const focusItem = useCallback(
+    (key: string) => {
+      setFocused(key);
+      requestAnimationFrame(() => requestAnimationFrame(() => fitToContent()));
+    },
+    // fitToContent reads refs only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
   const toggleExpand = useCallback(
@@ -413,14 +411,7 @@ export function Canvas({ model }: { model: BoardModel }) {
     <SessionProvider slug={model.project.slug} componentNames={componentNames}>
     <div className="flex h-screen w-screen overflow-hidden bg-desk">
       {sidebarOpen ? (
-        <Sidebar
-          model={model}
-          hiddenStages={hiddenStages}
-          hiddenPhases={hiddenPhases}
-          onToggleStage={toggleStage}
-          onTogglePhase={togglePhase}
-          onFly={flyTo}
-        />
+        <Sidebar model={model} focused={focused} onFocus={focusItem} />
       ) : null}
 
       <div className="relative min-w-0 flex-1">
@@ -474,6 +465,7 @@ export function Canvas({ model }: { model: BoardModel }) {
             onToggleExpand={toggleExpand}
             liveCards={liveCards}
             onFly={flyTo}
+            focused={focused}
           />
         </div>
 

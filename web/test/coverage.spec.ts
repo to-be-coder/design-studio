@@ -270,3 +270,41 @@ test.describe("api routes", () => {
     expect(["ready", "open"]).toContain(got);
   });
 });
+
+// ── Focus mode: one board per sidebar item ───────────────────────────────────
+
+test.describe("focus mode — one board per sidebar item", () => {
+  test("selecting a stage isolates its board; All stages restores the whole flow", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // Default is "All stages": the whole flow is present at once.
+    await expect(page.getByTestId("focus-all")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("framing-transform")).toBeVisible();
+    await expect(page.locator("#region-decision-stream")).toBeVisible();
+
+    // Click Research → only Research's board; Debrief's framing pane and the
+    // decision stream are gone (not scrolled past — genuinely not rendered).
+    await page.getByRole("option", { name: "Research", exact: true }).click();
+    await expect(page.getByRole("option", { name: "Research", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByTestId("framing-transform")).toHaveCount(0);
+    await expect(page.locator("#region-decision-stream")).toHaveCount(0);
+
+    // Click Debrief → its framing pane is back, alone.
+    await page.getByRole("option", { name: "Debrief", exact: true }).click();
+    await expect(page.getByTestId("framing-transform")).toBeVisible();
+    await expect(page.locator("#region-decision-stream")).toHaveCount(0);
+
+    // All stages → the continuous flow returns.
+    await page.getByTestId("focus-all").click();
+    await expect(page.getByTestId("framing-transform")).toBeVisible();
+    await expect(page.locator("#region-decision-stream")).toBeVisible();
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+});
