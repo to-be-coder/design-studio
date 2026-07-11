@@ -26,7 +26,7 @@ export function DecisionList({ decisions }: { decisions: Decision[] }) {
   }
 
   return (
-    <ol className="space-y-2.5">
+    <ol className="space-y-2.5" data-testid="decision-list">
       {decisions.map((d) => {
         const superseded = d.status === "superseded";
         return (

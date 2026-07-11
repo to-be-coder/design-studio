@@ -132,7 +132,14 @@ async function readProject(slug: string): Promise<Project | null> {
   }
   let parsed: ReturnType<typeof matter>;
   try {
-    parsed = matter(raw);
+    // Explicit (even empty) options bypass gray-matter's own content-keyed
+    // cache. That cache stores the `file` object BEFORE parsing completes,
+    // so on a YAML error the half-built object is cached; matter(raw) with
+    // no options would then silently return that broken object (no throw,
+    // empty data) on every call after the first — the malformed file would
+    // only ever be skipped once per server lifetime. See CONVENTIONS.md's
+    // "skip malformed frontmatter" contract.
+    parsed = matter(raw, {});
   } catch (err) {
     console.warn(`[vault] Skipping ${abs}: ${(err as Error).message}`);
     return null;
@@ -336,7 +343,15 @@ export const getStageOutput = cache(async (slug: string, stage: Stage): Promise<
       }
       for (const name of files) {
         const raw = await fs.readFile(path.join(abs, name), "utf8");
-        out.push({ file: `${rel}${name}`, blocks: await parseMarkdownBody(matter(raw).content) });
+        let content: string;
+        try {
+          // {} bypasses gray-matter's cache — see the comment in readProject().
+          content = matter(raw, {}).content;
+        } catch (err) {
+          console.warn(`[vault] Skipping ${rel}${name}: ${(err as Error).message}`);
+          continue;
+        }
+        out.push({ file: `${rel}${name}`, blocks: await parseMarkdownBody(content) });
       }
     } else {
       let raw: string;
@@ -345,7 +360,14 @@ export const getStageOutput = cache(async (slug: string, stage: Stage): Promise<
       } catch {
         continue;
       }
-      out.push({ file: rel, blocks: await parseMarkdownBody(matter(raw).content) });
+      let content: string;
+      try {
+        content = matter(raw, {}).content;
+      } catch (err) {
+        console.warn(`[vault] Skipping ${rel}: ${(err as Error).message}`);
+        continue;
+      }
+      out.push({ file: rel, blocks: await parseMarkdownBody(content) });
     }
   }
   return out;
@@ -371,7 +393,10 @@ export const listDecisions = cache(async (slug: string): Promise<Decision[]> => 
       const raw = await fs.readFile(path.join(dir, name), "utf8");
       let parsed: ReturnType<typeof matter>;
       try {
-        parsed = matter(raw);
+        // See the matching comment in readProject(): options must be passed
+        // (even {}) to bypass gray-matter's cache, or a malformed file is
+        // only ever skipped on its first read this server process.
+        parsed = matter(raw, {});
       } catch (err) {
         console.warn(`[vault] Skipping decision ${name}: ${(err as Error).message}`);
         return null;
@@ -470,7 +495,8 @@ export const getGraph = cache(async (): Promise<VaultGraph> => {
       let type: string | null = null;
       let body = raw;
       try {
-        const parsed = matter(raw);
+        // {} bypasses gray-matter's cache — see the comment in readProject().
+        const parsed = matter(raw, {});
         type = str((parsed.data as Record<string, unknown>).type);
         body = parsed.content;
       } catch {

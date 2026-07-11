@@ -24,10 +24,23 @@ All notable, user-visible changes to the design-studio skills are documented her
   user's quoted why — and `converge` flags cut darlings as taste-pair candidates. `harvest`'s
   write discipline now states the measured power law: a handful of pages do the cross-project
   work, so the discipline is refusal.
+- **E2E smoke suite for `web/`.** Playwright tests against a hermetic fixture vault, wired into
+  `web-checks.yml` — visibility assertions throughout (the Wall's `[hidden]` lesson, re-learned on
+  purpose): nav, portfolio card, project record, the decision supersede chain, and the 11-stage
+  pipeline, each with zero-console-error checks.
+
 - **`ARCHITECTURE.md`** — a map of how the product actually works: the four places files live, the
   two pointers skills resolve, the six file-based channels skills communicate through, the
   stage→artifact table, the 🔴 ritual, the wiki membrane, and the invariants a contributor must
   not break. Linked from the docs map in `CLAUDE.md`.
+
+### Fixed
+
+- **Malformed vault files no longer reappear as blank decisions.** `gray-matter`'s content-keyed
+  cache stores its file object *before* parsing completes, so a frontmatter YAML error was only
+  skipped on the first read per server lifetime — later reads silently returned the half-built
+  cached object. All parse sites now bypass the cache (explicit options) and the previously
+  unguarded stage-output reads got the same skip-not-crash guard. Caught by the new smoke suite.
 
 ### Changed
 

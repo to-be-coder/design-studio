@@ -33,3 +33,12 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke suite
+        run: npx playwright test
+        env:
+          DESIGN_STUDIO_VAULT: ${{ github.workspace }}/web/test/fixtures/vault
+          CI: true
