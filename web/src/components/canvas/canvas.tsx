@@ -7,6 +7,10 @@ import { BoardView } from "./board-view";
 import { Sidebar } from "./sidebar";
 import { ZoomHud } from "./hud";
 import { FramesProvider } from "./frames-context";
+import { SessionProvider } from "./session-context";
+import { CommentController } from "./comment-controller";
+import { CommentToolbar } from "./comment-toolbar";
+import { componentBaseNames } from "@/lib/tokens";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export type StreamFilter = "all" | "live" | "scaffold";
@@ -395,8 +399,11 @@ export function Canvas({ model }: { model: BoardModel }) {
     [],
   );
 
+  const componentNames = useMemo(() => componentBaseNames(model.tokens), [model.tokens]);
+
   return (
     <FramesProvider>
+    <SessionProvider slug={model.project.slug} componentNames={componentNames}>
     <div className="flex h-screen w-screen overflow-hidden bg-desk">
       {sidebarOpen ? (
         <Sidebar
@@ -428,7 +435,8 @@ export function Canvas({ model }: { model: BoardModel }) {
             ← Projects
           </Link>
         </div>
-        <div className="absolute right-4 top-4 z-20">
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+          {model.prototype.hasTokens ? <CommentToolbar project={model.project.name} /> : null}
           <ThemeToggle />
         </div>
 
@@ -466,8 +474,11 @@ export function Canvas({ model }: { model: BoardModel }) {
           onReset={resetView}
           onFit={fitToContent}
         />
+
+        <CommentController tokens={model.tokens} />
       </div>
     </div>
+    </SessionProvider>
     </FramesProvider>
   );
 }

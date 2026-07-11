@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import type { DesignSystemModel, ColorPairing } from "@/lib/design-system";
 import type { PrototypeInfo } from "@/lib/types";
+import { contrastRatio, wcagLevel } from "@/lib/color";
+import { useSession } from "./session-context";
+import { buildDesignProposalExport, copyText, type TokenProposal } from "./export-feedback";
 
 /**
  * The design-system board (§6): the project's DESIGN.md rendered as living
@@ -52,7 +56,10 @@ export function DesignSystemBoard({
             Generated from the tokens — never hand-drawn. Contrast is computed inline.
           </p>
         </div>
-        <HomeLabel prototype={prototype} />
+        <div className="flex items-center gap-2">
+          <ProposalExport project={prototype.slug} />
+          <HomeLabel prototype={prototype} />
+        </div>
       </header>
 
       <ColorSection pairings={model.colorPairings} swatches={model.colors} />
@@ -94,6 +101,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function ColorSection({ pairings, swatches }: { pairings: ColorPairing[]; swatches: { key: string; value: string }[] }) {
+  const { mode, addProposal, proposals } = useSession();
+  const [editing, setEditing] = useState<string | null>(null);
+  const commentMode = mode === "comment";
+
   return (
     <Section title="Color">
       <div className="mb-5 flex flex-wrap gap-2">
@@ -112,25 +123,182 @@ function ColorSection({ pairings, swatches }: { pairings: ColorPairing[]; swatch
         ))}
       </div>
 
+      {commentMode ? (
+        <p className="mb-2 text-[0.75rem] text-accent" data-testid="ds-comment-hint">
+          Comment mode: propose a token change — contrast recomputes live.
+        </p>
+      ) : null}
+
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2" data-testid="contrast-pairings">
-        {pairings.map((p) => (
-          <li
-            key={`${p.fgKey}/${p.bgKey}`}
-            data-testid="contrast-pair"
-            data-passes={p.passes ? "true" : "false"}
-            className="flex items-center justify-between gap-3 rounded-inset border border-rule px-3 py-2"
-          >
-            <span
-              className="min-w-0 flex-1 truncate rounded-[4px] px-3 py-2 text-[0.875rem]"
-              style={{ background: p.bg, color: p.fg }}
+        {pairings.map((p) => {
+          const key = `${p.fgKey}/${p.bgKey}`;
+          const proposed = proposals.find((x) => x.tokenPath === `colors.${p.fgKey}`);
+          return (
+            <li
+              key={key}
+              data-testid="contrast-pair"
+              data-passes={p.passes ? "true" : "false"}
+              className="rounded-inset border border-rule px-3 py-2"
             >
-              {p.role === "action" ? "Action" : p.role === "border" ? "Border" : "Aa"} · {p.label}
-            </span>
-            <ContrastBadge pairing={p} />
-          </li>
-        ))}
+              <div className="flex items-center justify-between gap-3">
+                <span
+                  className="min-w-0 flex-1 truncate rounded-[4px] px-3 py-2 text-[0.875rem]"
+                  style={{ background: p.bg, color: proposed?.proposed ?? p.fg }}
+                >
+                  {p.role === "action" ? "Action" : p.role === "border" ? "Border" : "Aa"} · {p.label}
+                </span>
+                <ContrastBadge pairing={p} />
+                {commentMode ? (
+                  <button
+                    type="button"
+                    data-testid="propose-token"
+                    onClick={() => setEditing(editing === key ? null : key)}
+                    className="shrink-0 rounded-pill border border-rule px-2 py-0.5 text-[0.6875rem] text-ink-muted hover:text-accent"
+                  >
+                    Propose
+                  </button>
+                ) : null}
+              </div>
+              {commentMode && editing === key ? (
+                <ProposalEditor
+                  pairing={p}
+                  affectedPairs={pairings
+                    .filter((x) => x.fgKey === p.fgKey)
+                    .map((x) => x.label)}
+                  onSave={(pr) => {
+                    addProposal(pr);
+                    setEditing(null);
+                  }}
+                  onCancel={() => setEditing(null)}
+                />
+              ) : null}
+              {proposed ? (
+                <p className="mt-1 text-[0.6875rem] text-ink-faint" data-testid="proposal-recorded">
+                  Proposed → {proposed.proposed} · {proposed.reshaping ? "reshaping" : "additive"}
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </Section>
+  );
+}
+
+/** Edit a token's proposed value with live contrast recompute (§6). */
+function ProposalEditor({
+  pairing,
+  affectedPairs,
+  onSave,
+  onCancel,
+}: {
+  pairing: ColorPairing;
+  affectedPairs: string[];
+  onSave: (p: Omit<TokenProposal, "id">) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(pairing.fg);
+  const [reshaping, setReshaping] = useState(false);
+  const [note, setNote] = useState("");
+  const ratio = contrastRatio(value, pairing.bg);
+  const passes = ratio != null && ratio >= 4.5;
+
+  return (
+    <div className="mt-2 rounded-inset border border-accent-edge bg-paper-raised p-2" data-testid="proposal-editor">
+      <label className="flex items-center gap-2 text-[0.75rem]">
+        <span className="font-mono text-ink-muted">colors.{pairing.fgKey}</span>
+        <input
+          value={value}
+          data-testid="proposal-value"
+          onChange={(e) => setValue(e.target.value)}
+          className="flex-1 rounded-inset border border-rule bg-paper px-2 py-0.5 font-mono text-[0.75rem] text-ink"
+        />
+      </label>
+      <p className="mt-1.5 flex items-center gap-2 text-[0.75rem]" data-testid="proposal-recompute">
+        <span
+          className="inline-block h-2.5 w-2.5 rounded-full"
+          style={passes ? { background: "var(--verified)" } : { border: "1.5px solid var(--unverified)" }}
+          aria-hidden
+        />
+        <span style={{ color: passes ? "var(--verified)" : "var(--unverified)" }}>
+          {ratio == null ? "—" : `${ratio.toFixed(2)}:1`} {ratio == null ? "" : passes ? wcagLevel(ratio) : "Fail"}
+        </span>
+      </p>
+      <div className="mt-1.5 flex gap-3 text-[0.75rem]">
+        <label className="flex items-center gap-1">
+          <input type="radio" checked={!reshaping} onChange={() => setReshaping(false)} data-testid="proposal-additive" />
+          Additive
+        </label>
+        <label className="flex items-center gap-1">
+          <input type="radio" checked={reshaping} onChange={() => setReshaping(true)} data-testid="proposal-reshaping" />
+          Reshaping
+        </label>
+      </div>
+      <input
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Why…"
+        className="mt-1.5 w-full rounded-inset border border-rule bg-paper px-2 py-1 text-[0.75rem] text-ink"
+      />
+      <div className="mt-2 flex justify-end gap-2">
+        <button type="button" onClick={onCancel} className="text-[0.75rem] text-ink-faint">
+          Cancel
+        </button>
+        <button
+          type="button"
+          data-testid="proposal-save"
+          onClick={() =>
+            onSave({
+              tokenPath: `colors.${pairing.fgKey}`,
+              current: pairing.fg,
+              proposed: value,
+              affectedPairs,
+              reshaping,
+              note,
+            })
+          }
+          className="rounded-pill bg-accent px-2.5 py-0.5 text-[0.75rem] font-semibold text-accent-ink"
+        >
+          Add proposal
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProposalExport({ project }: { project: string }) {
+  const { proposals, mode, clearProposals } = useSession();
+  const [copied, setCopied] = useState<null | "ok" | "fail">(null);
+  if (mode !== "comment" && proposals.length === 0) return null;
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        data-testid="export-proposal"
+        onClick={async () => {
+          const ok = await copyText(buildDesignProposalExport(project, proposals));
+          setCopied(ok ? "ok" : "fail");
+          setTimeout(() => setCopied(null), 2500);
+        }}
+        className="rounded-pill border border-rule bg-paper px-2.5 py-1 text-[0.75rem] text-ink transition-colors hover:text-accent"
+      >
+        Copy DESIGN.md proposal ({proposals.length})
+      </button>
+      {proposals.length ? (
+        <button type="button" onClick={clearProposals} className="text-[0.6875rem] text-ink-faint underline">
+          clear
+        </button>
+      ) : null}
+      {copied ? (
+        <span
+          data-testid="proposal-status"
+          className="text-[0.6875rem]"
+          style={{ color: copied === "ok" ? "var(--verified)" : "var(--unverified)" }}
+        >
+          {copied === "ok" ? "Copied ✓" : "failed"}
+        </span>
+      ) : null}
+    </div>
   );
 }
 

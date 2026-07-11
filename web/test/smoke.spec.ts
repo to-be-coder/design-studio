@@ -358,3 +358,98 @@ test.describe("live board — vault SSE (/canvas/fixture-project)", () => {
     }
   });
 });
+
+// ── Slice 7: comment + tweak + export ────────────────────────────────────────
+
+test.describe("comment + tweak + export (/canvas/fixture-project)", () => {
+  test.use({ viewport: { width: 1600, height: 1000 } });
+
+  test("annotate a frame element: pin, scope with instance count, export routing protocol", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // Bring the frames onto the board and wait for the real prototype.
+    await page.getByRole("option", { name: "Build", exact: true }).click();
+    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+    // Fit the whole board so the frame content is on-screen and clickable
+    // (a transformed canvas can't be scrolled into view by the test runner).
+    await page.getByRole("button", { name: "Zoom to fit" }).click();
+    await page.waitForTimeout(500);
+
+    // Enter comment mode (the toolbar toggle mirrors the C hotkey).
+    await page.getByTestId("mode-comment").click();
+
+    // Click a real component instance inside the frame.
+    await desktop.getByTestId("cta-primary").click();
+
+    const draft = page.getByTestId("comment-draft");
+    await expect(draft).toBeVisible();
+
+    // The scope selector shows the matched component's live instance count (§11).
+    await expect(draft.getByTestId("scope-selector")).toBeVisible();
+    await expect(draft.getByTestId("scope-instance-count")).toContainText(/instance/i);
+    // Default scope is component when a match exists.
+    await expect(draft.getByTestId("scope-component")).toBeChecked();
+
+    // Add a note and a token tweak (only DESIGN.md tokens are offered).
+    await draft.getByTestId("comment-note").fill("Primary action needs a calmer color");
+    await draft.getByTestId("tweak-color").selectOption({ index: 1 });
+    await expect(draft.getByTestId("tweak-specs")).toBeVisible();
+
+    // Save → a numbered pin renders inside the frame.
+    await draft.getByTestId("comment-save").click();
+    await expect(page.getByTestId("comment-draft")).toHaveCount(0);
+    await expect(desktop.locator('[data-testid="pin"]').first()).toBeVisible();
+    await expect(page.getByTestId("annotation-count")).toContainText("1 pin");
+
+    // Export carries the routing protocol + the chosen scope, to the clipboard.
+    await page.getByTestId("export-feedback").click();
+    await expect(page.getByTestId("export-status")).toContainText("Copied");
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clip).toContain("Routing protocol");
+    expect(clip).toMatch(/smallest unit that is reusable/i);
+    expect(clip).toMatch(/Scope:/);
+    expect(clip).toContain("design-studio-validate");
+
+    expect(errors, `console/page errors on comment/tweak/export:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("design-system comment: propose a token change and export a DESIGN.md proposal", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/canvas/fixture-project");
+
+    await page.getByRole("option", { name: "Design system", exact: true }).click();
+    await page.getByRole("button", { name: "Zoom to fit" }).click();
+    await page.waitForTimeout(500);
+    await page.getByTestId("mode-comment").click();
+
+    const board = page.getByTestId("design-system-board");
+    await expect(board.getByTestId("ds-comment-hint")).toBeVisible();
+
+    // Propose a token change on the first pairing; contrast recomputes live.
+    await board.getByTestId("propose-token").first().click();
+    const editor = board.getByTestId("proposal-editor");
+    await expect(editor).toBeVisible();
+    await editor.getByTestId("proposal-value").fill("#111111");
+    await expect(editor.getByTestId("proposal-recompute")).toBeVisible();
+    await editor.getByTestId("proposal-reshaping").click();
+    await editor.getByTestId("proposal-save").click();
+    await expect(board.getByTestId("proposal-recorded").first()).toBeVisible();
+
+    // Export is a DESIGN.md change proposal, distinct from the prototype export.
+    await board.getByTestId("export-proposal").click();
+    await expect(board.getByTestId("proposal-status")).toContainText("Copied");
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clip).toContain("DESIGN.md change proposal");
+    expect(clip).toMatch(/RESHAPING|ADDITIVE/);
+    expect(clip).toContain("superseding");
+  });
+});
