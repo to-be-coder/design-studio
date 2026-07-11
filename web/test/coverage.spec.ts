@@ -182,7 +182,7 @@ test.describe("canvas modes", () => {
     await page.goto("/canvas/fixture-project");
 
     await page.getByRole("option", { name: "Build", exact: true }).click();
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
 
     // Comment mode + both granularities.

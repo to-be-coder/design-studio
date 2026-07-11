@@ -184,7 +184,9 @@ export function CommentController({ tokens }: { tokens: DesignTokens }) {
           if (doc) undos.push(applyToComponent(doc, d.component, t.props));
         }
       } else if (d.selector) {
-        const doc = frames.find((f) => f.device === d.device)?.el.contentDocument;
+        // Instance scope touches only the clicked column — match the frame by
+        // BOTH device and route now that every route is its own live column.
+        const doc = frames.find((f) => f.device === d.device && f.route === d.route)?.el.contentDocument;
         if (doc) undos.push(applyToSelector(doc, d.selector, t.props));
       }
       return () => undos.forEach((u) => u());

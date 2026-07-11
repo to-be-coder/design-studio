@@ -306,20 +306,28 @@ test.describe("design-system board (/canvas/fixture-project)", () => {
 // ── Slice 6: prototype frames + live board ───────────────────────────────────
 
 test.describe("prototype frames (/canvas/fixture-project)", () => {
-  test("live device frames embed the running prototype same-origin", async ({ page }) => {
+  test("every route is its own live column, embedded same-origin", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // Fly the canvas to the Build region so the frames mount (lazy, near-viewport).
+    // Fly the canvas to the Build region so the region activates (lazy) and the
+    // mount queue starts booting columns one at a time.
     await page.getByRole("option", { name: "Build", exact: true }).click();
 
     const frames = page.getByTestId("prototype-frames");
     await expect(frames).toBeVisible();
-    await expect(page.getByTestId("frame-desktop")).toBeVisible();
-    await expect(page.getByTestId("frame-mobile")).toBeVisible();
 
-    // The embedded frame is the real running prototype (same-origin proxy).
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    // One column per route — root + page2 + page3 — not a single rail-switched
+    // frame. Every column is present (mounted or still queued).
+    await expect(page.locator('[data-testid="route-column"]')).toHaveCount(3);
+
+    // The root column carries the desktop AND the (root-only) mobile frame.
+    const rootColumn = page.locator('[data-testid="route-column"][data-route=""]');
+    await expect(rootColumn.getByTestId("frame-desktop")).toBeVisible();
+    await expect(rootColumn.getByTestId("frame-mobile")).toBeVisible();
+
+    // The embedded root frame is the real running prototype (same-origin proxy).
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
     await expect(desktop.locator('[data-component="button"]').first()).toBeVisible();
 
@@ -340,14 +348,16 @@ test.describe("prototype frames (/canvas/fixture-project)", () => {
     await page.goto("/canvas/fixture-project");
     await page.getByRole("option", { name: "Build", exact: true }).click();
 
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
 
-    // The desktop frame must come to rest inside the canvas viewport, not tucked
-    // entirely behind the index sidebar (the pre-fix failure: it landed at a
-    // negative x, fully occluded, and never mounted).
+    // The root desktop frame must come to rest inside the canvas viewport, not
+    // tucked entirely behind the index sidebar (the pre-fix failure: it landed
+    // at a negative x, fully occluded, and never mounted).
     const sidebar = await page.getByTestId("sidebar").boundingBox();
-    const frame = await page.getByTestId("frame-desktop").boundingBox();
+    const frame = await page
+      .locator('[data-testid="route-column"][data-route=""] [data-testid="frame-desktop"]')
+      .boundingBox();
     expect(sidebar && frame, "sidebar + frame must have a box").toBeTruthy();
     const sidebarRight = sidebar!.x + sidebar!.width;
     const viewportRight = page.viewportSize()!.width;
@@ -411,7 +421,7 @@ test.describe("comment + tweak + export (/canvas/fixture-project)", () => {
 
     // Bring the frames onto the board and wait for the real prototype.
     await page.getByRole("option", { name: "Build", exact: true }).click();
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
     // Fit the whole board so the frame content is on-screen and clickable
     // (a transformed canvas can't be scrolled into view by the test runner).
@@ -498,38 +508,40 @@ test.describe("comment + tweak + export (/canvas/fixture-project)", () => {
 test.describe("component board + tokens mode (/canvas/fixture-project)", () => {
   test.use({ viewport: { width: 1600, height: 1000 } });
 
-  test("component board shows live instance counts across routes + an uncodified row", async ({
+  test("component board accumulates instance counts across every route column, no rail-clicking", async ({
     page,
   }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // Mount the frames, then fit so the route rail + boards are all on-screen
-    // (a transformed canvas can't be scrolled into view by the test runner).
+    // Activate the region; every route is now its own always-alive column, so the
+    // cross-route instance scan (§7) accumulates on its own — no rail switching.
+    // Wait for all three columns' frames to boot (the mount queue is sequential).
     await page.getByRole("option", { name: "Build", exact: true }).click();
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
-    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
-    await page.getByRole("button", { name: "Zoom to fit" }).click();
-    await page.waitForTimeout(500);
+    await expect(
+      page.frameLocator('[data-frame-device="desktop"][data-route=""]').getByRole("heading", { name: "Overview" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .frameLocator('[data-frame-device="desktop"][data-route="page2.html"]')
+        .getByRole("heading", { name: "Reports" }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect(
+      page
+        .frameLocator('[data-frame-device="desktop"][data-route="page3.html"]')
+        .getByRole("heading", { name: "Settings" }),
+    ).toBeVisible({ timeout: 15000 });
 
-    // Browse every route so the instance scan accumulates across routes (§7).
-    const rail = page.getByTestId("route-rail");
-    await rail.getByText("/page2", { exact: true }).click();
-    await expect(desktop.getByRole("heading", { name: "Reports" })).toBeVisible();
-    await rail.getByText("/page3", { exact: true }).click();
-    await expect(desktop.getByRole("heading", { name: "Settings" })).toBeVisible();
-    await rail.getByText("/", { exact: true }).click();
-    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+    await page.getByRole("button", { name: "Zoom to fit" }).click();
+    await page.waitForTimeout(300);
 
     const board = page.getByTestId("component-board");
     await expect(board).toBeVisible();
 
-    // Button: 3 + 2 + 1 = 6 instances across 3 routes.
+    // Button: 3 + 2 + 1 = 6 instances across 3 routes — reached because all three
+    // route columns are live simultaneously, not visited one at a time.
     const buttonCell = board.locator('[data-component-name="button"]');
     await expect(buttonCell).toBeVisible();
-    // The count accumulates across three async frame loads (one per route), so
-    // under full-suite CPU contention it can settle a beat later than the 5s
-    // default — wait for the genuinely-async scan, don't race it.
     await expect(buttonCell.getByTestId("instance-count")).toHaveText("6", { timeout: 12000 });
     await expect(buttonCell.getByTestId("component-instances")).toContainText("3 routes", {
       timeout: 12000,
@@ -547,7 +559,7 @@ test.describe("component board + tokens mode (/canvas/fixture-project)", () => {
     await page.goto("/canvas/fixture-project");
 
     await page.getByRole("option", { name: "Build", exact: true }).click();
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
 
     await page.getByTestId("mode-tokens").click();

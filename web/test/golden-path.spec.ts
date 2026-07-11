@@ -105,7 +105,7 @@ test.describe("golden path (/canvas/fixture-project)", () => {
 
     // ── Markup half: annotate a real component at component scope, then export ─
     await page.getByRole("option", { name: "Build", exact: true }).click();
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
     await page.getByRole("button", { name: "Zoom to fit" }).click();
     await page.waitForTimeout(500);

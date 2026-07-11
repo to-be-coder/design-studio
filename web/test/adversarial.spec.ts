@@ -27,7 +27,7 @@ test.describe("interaction collisions", () => {
   async function openDraftOnCta(page: Page) {
     await page.goto("/canvas/fixture-project");
     await page.getByRole("option", { name: "Build", exact: true }).click();
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
     await page.getByRole("button", { name: "Zoom to fit" }).click();
     await page.waitForTimeout(500);
@@ -131,7 +131,7 @@ test.describe("token overrides", () => {
 
   async function toBuildFrame(page: Page) {
     await page.getByRole("option", { name: "Build", exact: true }).click();
-    const desktop = page.frameLocator('[data-frame-device="desktop"]');
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
     return desktop;
   }
@@ -178,15 +178,17 @@ test.describe("token overrides", () => {
       .getByTestId("tokens-panel")
       .locator('[data-token="colors.primary"] [data-testid="token-input"]');
 
-    // First a valid override, then garbage typed over it.
+    // First a valid override, then garbage typed over it. Overrides now fan out
+    // to EVERY route column (each a live frame), and under full-suite parallel
+    // load the re-style lands late — poll generously; solo it settles in <6s.
     await input.fill("#00ff00");
-    await expect(btn).toHaveCSS("background-color", "rgb(0, 255, 0)");
+    await expect(btn).toHaveCSS("background-color", "rgb(0, 255, 0)", { timeout: 20000 });
     await input.fill("not-a-color;; }");
 
     // The garbage is flagged in the UI and NOT injected: the button falls back to
     // the prototype's own default primary — never a blanked/broken background.
     await expect(input).toHaveAttribute("data-invalid", "true");
-    await expect(btn).toHaveCSS("background-color", original);
+    await expect(btn).toHaveCSS("background-color", original, { timeout: 20000 });
     expect(original).not.toBe("rgba(0, 0, 0, 0)"); // sanity: default is a real color
 
     expect(errors, errors.join("\n")).toEqual([]);
