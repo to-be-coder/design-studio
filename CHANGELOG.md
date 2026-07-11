@@ -6,6 +6,22 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Added
 
+- **The Canvas: `web/` rebuilt from scratch as one pannable board.** A project's whole design
+  flow — framing pane (brief beside restated problem), research, the assumptions register with a
+  drawn `rests_on` blast-radius graph, scope, directions, the Decision Stream (the entire log as
+  one readable page, supersede chains drawn, **In their words.** pull-quotes), a design-system
+  board of living specimens with inline WCAG ratios, a component board with live instance counts
+  and an "uncodified" row, and live prototype device frames behind a same-origin proxy — ends at
+  the running prototype. Comment mode with element/page granularity, a token-constrained tweak
+  panel with a scope selector (this instance / every component / the token everywhere), and a
+  Copy-feedback export carrying the smallest-reusable-unit routing protocol
+  (token → component → instance) shaped as a `design-studio-validate` loop-back. Tokens mode
+  edits the prototype's DESIGN.md values live across every frame. The board updates in place via
+  SSE when a skill writes the vault. Fresh editorial visual language in `web/DESIGN.md` (the
+  traffic-light dots are retired); the pipeline still renders from the single schema module; the
+  vault stays read-only. Built to `canvas-rebuild-prompt.md` in eight verified slices plus an
+  adversarial QA pass; 43 E2E tests, visibility-asserted, green twice consecutively.
+
 - **Decision provenance for 🔴 stages.** Decisions carry `authored_by: user | skill`; a 🔴 decision
   is only `authored_by: user` when it quotes the user's verbatim words under **In their words.**
   The 🔴 ritual is now an explicit two-phase, two-turn protocol (ask and end the turn; record only
