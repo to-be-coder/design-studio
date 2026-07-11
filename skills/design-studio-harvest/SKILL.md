@@ -57,7 +57,10 @@ Runs standalone. The ONLY skill that writes the wiki; main thread only, never a 
    - **Check existing pages first** — prefer extending a page over minting one; a contradiction
      proposes a supersede or grows a "Breaks when", never a silent overwrite.
    - **Cite** — `born:` project slug; `sources:` links to decisions / raw captures.
-   Small is the goal: a crossing of two great pages beats ten plausible ones.
+   Small is the goal: a crossing of two great pages beats ten plausible ones. Measured transfer
+   follows a power law — a handful of pages do nearly all the cross-project work — so the discipline
+   is refusal: default to the smallest crossing that captures the lesson, and extend an existing
+   page before minting a new one.
 4. **🔴 The crossing review.** Walk the user through every proposed page, edit, and supersede;
    they approve, edit, or reject each. Do NOT write an unreviewed crossing — this gate is what
    keeps the wiki small and the membrane real.

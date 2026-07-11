@@ -41,8 +41,10 @@ At the start of a design project. Runs standalone. The only skill that creates a
    the brief/stakeholders state it, record it. If not, write `PROVISIONAL — confirm in research`.
    Do not invent a principle to look complete.
 
-5. **Set provisional success criteria** (gap #4) — how you'd know it worked once shipped. Mark
-   `PROVISIONAL — revisit after research`. Rough is fine now; `validate` uses them later.
+5. **Set provisional success criteria** (gap #4) in **two registers** (see CONVENTIONS): the
+   shipped outcome (how you'd know it worked in the world once shipped) AND the in-session signal
+   that would predict it — the observable behaviour a prototype test can actually measure, so
+   `validate` has something to check. Mark `PROVISIONAL — revisit after research`; rough is fine now.
 
 6. **Seed the risk register** (gap #8) — the assumptions the framing already rests on, status `untested`.
 

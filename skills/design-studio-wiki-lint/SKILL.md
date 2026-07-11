@@ -46,6 +46,10 @@ standalone.
      greyed section of `_sparks.md`, never deleted).
    - **Harvest debt** — projects marked done/archived whose `Harvest.md` still holds undistilled
      flags → recommend a close-out `harvest`.
+   - **Decision provenance** — scan each project's `Decisions/` for 🔴-stage decisions
+     (`stage: reframe|converge`, or scope/directions decisions at their 🔴 moments) marked
+     `status: decided` but missing `authored_by: user` or missing an **In their words.** quotation
+     → report as integrity findings (report-first, like the rest; the fix stays the user's).
    - **View drift** — every live page in exactly the right views; one-liners still matching page
      content; `log.md` still append-only and parseable.
 3. **Fix:** mechanical (missing view rows, one-liner sync, log formatting) — apply directly.

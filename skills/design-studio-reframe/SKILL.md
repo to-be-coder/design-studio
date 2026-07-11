@@ -27,13 +27,16 @@ After `verify`. Runs standalone.
    - Is this the small or the big version of the problem?
    - A good reframe (a) stays grounded in the original ask, (b) explains it as a special case of a
      bigger pattern, (c) changes what "done well" looks like.
-3. **Interrogate — do not assert** (🔴 ritual). Present the candidate framing(s) and ask the user
-   which is true. Do NOT write the reframe yourself. Wait for their words.
+3. **Interrogate — do not assert** (🔴 ritual, phase 1). Present the candidate framing(s) and ask
+   the user which is true. Do NOT write the reframe yourself — then **stop and end the turn; do not
+   record in the same turn** as the question. Wait for their words.
 4. **Gate — "no reframe needed" is a valid outcome.** If the brief was already the right frame, say
    so and record that. Never manufacture a pivot to look clever; reframe-for-its-own-sake is a
    junior tell.
-5. **Record the decision** the user commits to — the reframe (with the framings rejected) or "brief
-   is sound, proceed." Ladder it to the guiding principle.
+5. **Record the decision** (🔴 phase 2, a later turn) the user commits to — the reframe (with the
+   framings rejected) or "brief is sound, proceed." Quote the user verbatim under
+   **In their words.** and set `authored_by` (`user` with the quotation, else `skill` / `proposed`);
+   ladder it to the guiding principle.
 6. **Update `00 Dashboard.md`** (stage = reframe, next = align via compile-spec, then scope-and-sequence).
 
 ## Handoff

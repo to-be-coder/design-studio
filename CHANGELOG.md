@@ -6,6 +6,24 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Added
 
+- **Decision provenance for 🔴 stages.** Decisions carry `authored_by: user | skill`; a 🔴 decision
+  is only `authored_by: user` when it quotes the user's verbatim words under **In their words.**
+  The 🔴 ritual is now an explicit two-phase, two-turn protocol (ask and end the turn; record only
+  after the user replies), and "you decide" is answered by decomposing into narrow either/or
+  questions rather than repeating. `wiki-lint` gains a decision-provenance integrity check, and
+  skipped precondition warnings now leave dated **override receipts** on the project dashboard.
+- **Humans enter earlier.** `research` gains an optional **Primary (generative)** sweep (the skill
+  drafts the interview guide; the user runs the conversations) and a closing **Synthesise** beat
+  (provisional persona/JTBD + as-is journey) feeding `reframe`. `converge` gains a primary-contact
+  gate: zero user contact must be recorded as an accepted risk — a receipt, never a block.
+  `validate` gains an **early mode** for testing the concept or flows before build. `build` now
+  leads spec-first with a flows/IA layer, adds a **content gate** (placeholder text is a defect)
+  and a **craft-divergence** beat (2–3 takes on the core interaction). `debrief` splits success
+  criteria into shipped outcome vs the in-session signal a prototype test can measure.
+- **Taste as knowledge.** The wiki page contract gains a `taste` entity — a kept/cut pair with the
+  user's quoted why — and `converge` flags cut darlings as taste-pair candidates. `harvest`'s
+  write discipline now states the measured power law: a handful of pages do the cross-project
+  work, so the discipline is refusal.
 - **`ARCHITECTURE.md`** — a map of how the product actually works: the four places files live, the
   two pointers skills resolve, the six file-based channels skills communicate through, the
   stage→artifact table, the 🔴 ritual, the wiki membrane, and the invariants a contributor must

@@ -25,29 +25,38 @@ override, but make the gap explicit.
 
 ## Process
 
-1. **Spec-first.** For each feature write a short plain-language spec (problem / behavior / decisions)
-   before any code — use plan mode. The spec serves the design; the code serves the spec.
-2. **Wire in the visual contract.** Move the vault `DESIGN.md` into the repo root as the first
+1. **Flows & IA first, then spec.** Before any code, map the **flows/IA layer** — task flows for the
+   core journeys, a screen inventory, and the navigation model — and review it with the user first;
+   prose specs alone are not a flow. Then, for each feature, write a short plain-language spec
+   (problem / behavior / decisions) — use plan mode. The spec serves the design; the code serves it.
+2. **Craft divergence.** For the core interaction, sketch 2-3 genuinely different takes (layout and
+   interaction model, not variations on one) and have the user pick before building — the same
+   anti-first-idea discipline `explore-directions` runs at strategy altitude, applied here at craft
+   altitude.
+3. **Wire in the visual contract.** Move the vault `DESIGN.md` into the repo root as the first
    committed act, leaving a link note in its place in the vault — the repo file is the only copy
    from here on (CONVENTIONS). Export the tokens into the stack's format and consume them from code
    (`npx @google/design.md export --format css-tailwind` for Tailwind, `--format dtcg` otherwise):
    components take values from tokens, never inline.
-3. **Build against the spec** in Claude Code. Once the structure exists, run parallel agents for
+4. **Build against the spec** in Claude Code. Once the structure exists, run parallel agents for
    detail work across different parts of the prototype — and start every agent's prompt with: read
    `DESIGN.md` first; every visual value comes from its tokens.
-4. **States / edge / a11y gate** (gap #5): before calling anything done, pass over empty, loading,
+5. **States / edge / a11y gate** (gap #5): before calling anything done, pass over empty, loading,
    error, and edge-case states, plus accessibility (focus, contrast, labels, keyboard). AI-built UI
    defaults to the happy path — this gate exists to break that default.
-5. **DESIGN.md consistency gate** (gap #5): audit the UI for hardcoded colors, type, spacing, or
+6. **Content gate** (beside the states gate): every state's words — labels, empty / error / loading
+   text, microcopy — are designed and laddered to the vocabulary research collected. Placeholder
+   text ("Lorem", "TODO", "Button") is a defect, exactly like a hardcoded hex.
+7. **DESIGN.md consistency gate** (gap #5): audit the UI for hardcoded colors, type, spacing, or
    radii that bypass the tokens. A missing token means `DESIGN.md` grows (edit it, re-lint,
    re-export) — never an inline value. Additive tokens are normal growth; reshaping the committed
    language gets a decision entry. If the client has an existing product system, reuse its
    components and patterns: `DESIGN.md` codifies that system; don't invent divergent ones.
-6. **Provenance honesty** (if starting from a starter app): track kept-vs-built; every "I built this"
+8. **Provenance honesty** (if starting from a starter app): track kept-vs-built; every "I built this"
    claim must be literally true against the source.
-7. **Record** build-shaping decisions (what the spec cut or reshaped, what was inherited). Link
+9. **Record** build-shaping decisions (what the spec cut or reshaped, what was inherited). Link
    `00 Dashboard.md` to the repo path.
-8. **Update `00 Dashboard.md`** (stage = build, next = validate).
+10. **Update `00 Dashboard.md`** (stage = build, next = validate).
 
 ## Handoff
 Point to `design-studio-validate`.

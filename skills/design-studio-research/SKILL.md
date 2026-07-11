@@ -35,13 +35,23 @@ Every claim must carry a source; a claim with no source is flagged `unverified` 
 4. **Competitive landscape** — decompose the best tools into **interaction patterns with lineage**
    (not feature lists); map tools × rubric; note gaps nobody fills well. → `02 Research/Landscape.md`.
 
-5. **Flag — don't decide.** If research surfaces a possible reframe ("these three things are one
+5. **Primary (generative) — optional, and the only sweep that isn't a proxy.** The four desk sweeps
+   above are proxies for the user; this one reaches them. Draft a short interview guide — 5-7 open
+   questions laddered to the restated problem — then hand it off: **the user runs the conversations;
+   the skill never simulates users.** Their notes land in `02 Research/Interviews.md`.
+
+6. **Flag — don't decide.** If research surfaces a possible reframe ("these three things are one
    primitive") or a load-bearing assumption, note it at the top of the relevant file and tell the
    user. Deciding the reframe is `reframe`'s job; verifying is `verify`'s. Findings that
    generalize beyond this project — a pattern with lineage, a standard, a trap — also get a
    one-line flag in `Harvest.md` (capture is free; distillation comes later).
 
-6. **Update the risk register** with any new assumptions, and update `00 Dashboard.md` (stage = research,
+7. **Synthesise.** Distill the sweeps into `02 Research/Synthesis.md`: a provisional persona or
+   JTBD statement (evidence-cited, marked `PROVISIONAL`) plus an as-is journey sketch with the
+   emotional lows marked. This file is a **named input to `reframe`** — experiential reframes are
+   found on journeys, not just in data models.
+
+8. **Update the risk register** with any new assumptions, and update `00 Dashboard.md` (stage = research,
    next = verify).
 
 ## Handoff

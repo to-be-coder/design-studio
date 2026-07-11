@@ -118,6 +118,12 @@ The pipeline is a **default path, not a mandatory ritual.** Every skill must:
   (insert `design-system` before `build` whenever the look matters and no client system exists).
   `debrief` proposes the route from how ambiguous the brief is; the user decides.
 
+### Override receipts
+Preconditions warn but never gate (rule 2 above). Whenever the user overrides a warned
+precondition — proceeding without an upstream artifact — the skill appends one dated line to a
+`## Overrides` section in `00 Dashboard.md` (create the section if missing), e.g.
+`- 2026-07-10 — built without design-system`. Not a gate; a receipt.
+
 ---
 
 ## The 🔴 ritual — never auto-decide a scaffold stage (fix #3)
@@ -127,13 +133,21 @@ The pipeline is a **default path, not a mandatory ritual.** Every skill must:
 drafts the answer "to save time" — manufacturing a generic point of view, the exact thing this
 pipeline exists to prevent.
 
-**Mandatory for every 🔴 moment:**
+**A two-phase protocol, spanning two turns — never one:**
+
+*Phase 1 — ask, then end the turn.*
 1. Lay out the structured inputs (evidence, options, costs) fully.
-2. Ask the decision question. Then **stop.**
-3. **Do NOT write the decision, reframe, spine, or cut yourself.** Wait for the user's actual words.
-4. Only after the user commits, record their decision into the log.
-5. If the user says "you decide," push back once — surface the trade-off and ask them to choose. If
-   they still decline, record `status: proposed` needing sign-off; never silently promote to `decided`.
+2. Ask the decision question. Then **STOP and end the turn.** Do NOT write the decision, reframe,
+   spine, or cut — no decision file may be created in the same turn as the question.
+
+*Phase 2 — record, in a later turn.*
+3. Only after the user has replied in their own words, record their decision into the log —
+   quoting them verbatim under `**In their words.**` and setting `authored_by: user` (see the
+   decision-log Authorship rule).
+4. If the user says "you decide," do not fold — **decompose.** Ask 2-3 narrow either/or questions
+   (e.g. "if you could ship only one of these two, which?") whose answers reconstruct the verdict.
+   If they still decline, record `status: proposed`, `authored_by: skill`; never silently promote
+   to `decided`.
 
 You may *sharpen* their thinking (name the trade-off, point out a fourth framing). You may not
 *supply* the verdict.
@@ -153,6 +167,7 @@ never reused).
 id: 0000
 stage: debrief            # which skill produced this
 status: proposed          # proposed | decided | deferred | superseded
+authored_by: user         # user | skill — who supplied the verdict
 date: YYYY-MM-DD          # use the known current date; never invent one
 rests_on:                 # [[link]] to the assumption this depends on, if any
 supersedes:               # [[0000 ...]] if this replaces an earlier decision
@@ -180,6 +195,26 @@ tags: [decision]
 - `deferred` — deliberately not yet; Status note says what unblocks it.
 - `superseded` — replaced. **Never delete a decision** (ADRs are immutable). Set `status: superseded`,
   fill `superseded_by`, link `supersedes` on the new entry. Keeps the real path visible (loop-backs).
+
+### Authorship
+- `authored_by` records who supplied the verdict: `user` or `skill`.
+- For decisions produced by 🔴 stages, `authored_by: user` additionally REQUIRES the user's
+  verbatim words in the body as a blockquote under a line `**In their words.**` — paraphrase is
+  not acceptable for a 🔴 decision. A 🔴 decision with no quotation cannot be `authored_by: user`
+  (record `authored_by: skill`, `status: proposed` instead).
+
+---
+
+## Success criteria — two registers
+
+Success criteria are recorded in two registers, not one:
+- **The shipped outcome** — how you'd know it worked in the world once shipped.
+- **The in-session signal** — the observable behaviour a prototype test can actually measure in a
+  room (a task completed unaided, a moment of recognition, a hesitation that doesn't come).
+
+`debrief` sets both (provisional); `validate` tests the **signal**, not the outcome — the outcome
+is usually unmeasurable before ship, so a criterion with no in-session signal gives `validate`
+nothing to check.
 
 ---
 
@@ -270,7 +305,7 @@ and the membrane don't change.
 ```yaml
 ---
 type: wiki-page
-entity: pattern      # pattern|play|trap|spark|standard|craft|client|tool|source
+entity: pattern      # pattern|play|trap|spark|standard|craft|taste|client|tool|source
 applies: mechanism   # mechanism = safe everywhere | taste = invited only (greenfield) | process
 origin: harvest      # harvest | starter | manual
 born:                # project slug the lesson/idea came from
@@ -282,7 +317,9 @@ last_confirmed: YYYY-MM-DD
 Body shapes — **pattern**: Works when / Breaks when / Seen in. **play**: The move / When it
 applies / Cost. **trap**: What happened / The decision shape that triggers it / Counter-move.
 **spark**: The idea / Why it was cut / What it needs to live. **standard**: The primitive / Where
-it applies / Source of truth. Supersede, never overwrite — ADR semantics apply to wiki pages too.
+it applies / Source of truth. **taste**: The kept / The cut / Why (the user's own sentence, quoted
+verbatim). A taste page records a judgment pair from a real converge; it is never authored from
+description alone. Supersede, never overwrite — ADR semantics apply to wiki pages too.
 
 ### Write discipline — what keeps it alive
 - **Few pages, each earns its place.** Prefer editing an existing page over minting a new one. A
