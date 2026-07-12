@@ -57,7 +57,7 @@ export function Sidebar({
         <div className="flex items-center justify-between gap-2">
           <Link
             href="/"
-            className="-ml-1 shrink-0 rounded-inset px-1 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+            className="-ml-1 shrink-0 rounded-inset px-1.5 py-0.5 text-[0.8125rem] text-ink-muted transition-colors hover:bg-paper-raised hover:text-ink"
           >
             ← Projects
           </Link>
@@ -65,7 +65,7 @@ export function Sidebar({
             type="button"
             onClick={onCollapse}
             aria-label="Hide index"
-            className="-mr-1 shrink-0 rounded-inset p-1 text-ink-faint transition-colors hover:text-ink"
+            className="-mr-1 shrink-0 rounded-inset p-1 text-ink-faint transition-colors hover:bg-paper-raised hover:text-ink"
           >
             <PanelCloseIcon />
           </button>
@@ -80,7 +80,7 @@ export function Sidebar({
           onClick={() => onFocus("all")}
           aria-pressed={focused === "all"}
           data-testid="focus-all"
-          className="w-full rounded-inset px-2 py-1.5 text-left text-[0.8125rem] font-medium transition-colors"
+          className="w-full rounded-inset px-2 py-1.5 text-left text-[0.8125rem] font-medium transition-colors hover:bg-paper-raised"
           style={
             focused === "all"
               ? { background: "var(--accent-wash)", color: "var(--accent)" }
@@ -129,7 +129,7 @@ export function Sidebar({
                     tabIndex={cursor === i ? 0 : -1}
                     onFocus={() => setCursor(i)}
                     onClick={() => onFocus(e.focusKey)}
-                    className="flex w-full items-center justify-between gap-2 rounded-inset px-2 py-1.5 text-left text-[0.875rem] transition-colors hover:bg-accent-wash focus-visible:bg-accent-wash"
+                    className="flex w-full items-center justify-between gap-2 rounded-inset px-2 py-1.5 text-left text-[0.875rem] transition-colors hover:bg-paper-raised focus-visible:bg-paper-raised"
                     style={
                       active
                         ? { background: "var(--accent-wash)", color: "var(--accent)", fontWeight: 600 }
