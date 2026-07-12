@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import type { BoardModel, Phase, StageMarkerState } from "@/lib/types";
 import { markerLabel, stageName } from "./util";
@@ -53,17 +54,23 @@ export function Sidebar({
       data-testid="sidebar"
     >
       <div className="border-b border-rule px-4 py-3">
-        <div className="flex items-start justify-between gap-2">
-          <p className="eyebrow">{model.project.name}</p>
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href="/"
+            className="-ml-1 shrink-0 rounded-inset px-1 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+          >
+            ← Projects
+          </Link>
           <button
             type="button"
             onClick={onCollapse}
             aria-label="Hide index"
-            className="-mr-1 -mt-0.5 shrink-0 rounded-inset p-1 text-ink-faint transition-colors hover:text-ink"
+            className="-mr-1 shrink-0 rounded-inset p-1 text-ink-faint transition-colors hover:text-ink"
           >
             <PanelCloseIcon />
           </button>
         </div>
+        <p className="eyebrow mt-2">{model.project.name}</p>
         <p className="mt-0.5 text-[0.75rem] text-ink-faint">Index — arrow keys, Enter to open</p>
       </div>
 

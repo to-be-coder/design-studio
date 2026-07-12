@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AssumptionState, BoardModel, Phase, RenderableBlock } from "@/lib/types";
 import { BoardView } from "./board-view";
@@ -421,16 +420,11 @@ export function Canvas({ model }: { model: BoardModel }) {
       ) : null}
 
       <div className="relative min-w-0 flex-1">
-        {/* Chrome. Top-left: Projects link is the leftmost item; the reopen-index
-            icon appears only while the sidebar is hidden (the in-sidebar collapse
+        {/* Chrome. Top-left: the reopen-index icon appears only while the
+            sidebar is hidden — Projects now lives in the sidebar header, so
+            it's reachable by reopening the index (the in-sidebar collapse
             icon is the only hide control while it's open). */}
         <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
-          <Link
-            href="/"
-            className="rounded-pill border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
-          >
-            ← Projects
-          </Link>
           {sidebarOpen ? null : (
             <button
               type="button"
