@@ -417,27 +417,30 @@ export function Canvas({ model }: { model: BoardModel }) {
     <SessionProvider slug={model.project.slug} componentNames={componentNames}>
     <div className="flex h-screen w-screen overflow-hidden bg-desk">
       {sidebarOpen ? (
-        <Sidebar model={model} focused={focused} onFocus={focusItem} />
+        <Sidebar model={model} focused={focused} onFocus={focusItem} onCollapse={toggleSidebar} />
       ) : null}
 
       <div className="relative min-w-0 flex-1">
-        {/* Chrome */}
+        {/* Chrome. Top-left: Projects link is the leftmost item; the reopen-index
+            icon appears only while the sidebar is hidden (the in-sidebar collapse
+            icon is the only hide control while it's open). */}
         <div className="absolute left-4 top-4 z-20 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-            aria-pressed={sidebarOpen}
-            className="rounded-pill border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
-          >
-            {sidebarOpen ? "Hide index" : "Index"}
-          </button>
           <Link
             href="/"
             className="rounded-pill border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
           >
             ← Projects
           </Link>
+          {sidebarOpen ? null : (
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label="Show index"
+              className="flex items-center rounded-pill border border-rule bg-paper px-3 py-1.5 text-ink-muted transition-colors hover:text-ink"
+            >
+              <PanelOpenIcon />
+            </button>
+          )}
         </div>
         {/* z-40: the mode toolbar must stay clickable above the tokens panel
             (z-30) — otherwise opening Tokens makes its own toggle unreachable. */}
@@ -516,6 +519,27 @@ function isValidView(v: unknown): v is View {
     typeof o.scale === "number" &&
     Number.isFinite(o.scale) &&
     o.scale > 0
+  );
+}
+
+/** Panel-open glyph for the chrome reopen-index button (shown when hidden). */
+function PanelOpenIcon() {
+  return (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+      <path d="m14 9 3 3-3 3" />
+    </svg>
   );
 }
 

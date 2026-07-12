@@ -255,10 +255,11 @@ test.describe("pan & zoom (/canvas/fixture-project)", () => {
     const after = await world.getAttribute("style");
     expect(after).not.toBe(before); // the canvas flew somewhere
 
-    // Sidebar can hide and show.
-    await page.getByRole("button", { name: /hide sidebar/i }).click();
+    // Sidebar can hide (via the in-sidebar collapse icon) and show (via the
+    // chrome reopen icon that appears only while it's hidden).
+    await page.getByRole("button", { name: /hide index/i }).click();
     await expect(page.getByTestId("sidebar")).toHaveCount(0);
-    await page.getByRole("button", { name: /show sidebar/i }).click();
+    await page.getByRole("button", { name: /show index/i }).click();
     await expect(page.getByTestId("sidebar")).toBeVisible();
 
     expect(errors, `console/page errors on sidebar index:\n${errors.join("\n")}`).toEqual([]);

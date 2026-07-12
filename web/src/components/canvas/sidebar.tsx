@@ -22,10 +22,12 @@ export function Sidebar({
   model,
   focused,
   onFocus,
+  onCollapse,
 }: {
   model: BoardModel;
   focused: string;
   onFocus: (focusKey: string) => void;
+  onCollapse: () => void;
 }) {
   const entries: IndexEntry[] = [];
   for (const s of model.stages) {
@@ -51,7 +53,17 @@ export function Sidebar({
       data-testid="sidebar"
     >
       <div className="border-b border-rule px-4 py-3">
-        <p className="eyebrow">{model.project.name}</p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="eyebrow">{model.project.name}</p>
+          <button
+            type="button"
+            onClick={onCollapse}
+            aria-label="Hide index"
+            className="-mr-1 -mt-0.5 shrink-0 rounded-inset p-1 text-ink-faint transition-colors hover:text-ink"
+          >
+            <PanelCloseIcon />
+          </button>
+        </div>
         <p className="mt-0.5 text-[0.75rem] text-ink-faint">Index — arrow keys, Enter to open</p>
       </div>
 
@@ -143,6 +155,27 @@ export function Sidebar({
         </dl>
       </div>
     </nav>
+  );
+}
+
+/** Panel-close glyph for the in-sidebar collapse button (chevron points inward). */
+function PanelCloseIcon() {
+  return (
+    <svg
+      width="17"
+      height="17"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect width="18" height="18" x="3" y="3" rx="2" />
+      <path d="M9 3v18" />
+      <path d="m16 15-3-3 3-3" />
+    </svg>
   );
 }
 

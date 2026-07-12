@@ -100,10 +100,11 @@ test.describe("interaction collisions", () => {
     const errors = trackConsoleErrors(page);
     const desktop = await openDraftOnCta(page);
 
-    // Toggling the sidebar with a draft open must not drop the draft.
-    await page.getByRole("button", { name: /hide sidebar/i }).click();
+    // Toggling the sidebar with a draft open must not drop the draft. Hide via
+    // the in-sidebar collapse icon, show via the chrome reopen icon.
+    await page.getByRole("button", { name: /hide index/i }).click();
     await expect(page.getByTestId("comment-draft")).toBeVisible();
-    await page.getByRole("button", { name: /show sidebar/i }).click();
+    await page.getByRole("button", { name: /show index/i }).click();
 
     // Save → a pin is injected into the frame document itself.
     await page.getByTestId("comment-save").click();
