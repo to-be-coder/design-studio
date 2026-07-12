@@ -71,7 +71,6 @@ export function Sidebar({
           </button>
         </div>
         <p className="eyebrow mt-2">{model.project.name}</p>
-        <p className="mt-0.5 text-[0.75rem] text-ink-faint">Index — arrow keys, Enter to open</p>
       </div>
 
       <div className="px-2 pt-2">
