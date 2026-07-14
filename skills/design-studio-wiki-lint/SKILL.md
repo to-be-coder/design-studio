@@ -16,6 +16,14 @@ report-first; semantic changes need the user.
 Weekly-ish, after a big crossing (backfill/derive), or whenever the wiki feels stale. Runs
 standalone.
 
+**Self-triggering — push, don't pull ([[0030 utilities-push-dont-pull]]).** The mechanical pass no
+longer waits to be remembered. Any skill, at its own close, reads `Studio Wiki/log.md`'s most recent
+`lint` entry; if it's stale — older than **~7 days** — the skill runs this lint's **mechanical**
+checks, applies their fixes directly (missing view rows, one-liner sync, log formatting — step 3),
+and appends the `lint` log line. The **semantic** proposals (supersede, fork, age-out, retire, amend
+a claim) are never auto-applied — they still queue for the user exactly as below. **No daemon:** the
+check rides on a skill already running, and `log.md` on disk is the only state it reads.
+
 ## Preconditions
 - A `Studio Wiki/` with pages. None → suggest `design-studio-harvest` to seed one.
 
@@ -40,16 +48,16 @@ standalone.
      questions to investigate and sources to look for (a `design-studio-research` sweep can
      execute); proposals only, never auto-ingested.
    - **Stale claims** — `last_confirmed` older than ~12 months on `mechanism`/`standard` pages →
-     re-verify against the primary source, adversarially (same spirit as `design-studio-verify`),
-     then bump the date or amend the page.
+     re-verify against the primary source, adversarially (same spirit as `design-studio-research`'s
+     pressure-test move), then bump the date or amend the page.
    - **Aging sparks** — untouched for ~6 months → propose `status: aged-out` (kept, moved to a
      greyed section of `_sparks.md`, never deleted).
    - **Harvest debt** — projects marked done/archived whose `Harvest.md` still holds undistilled
      flags → recommend a close-out `harvest`.
-   - **Decision provenance** — scan each project's `Decisions/` for 🔴-stage decisions
-     (`stage: reframe|converge`, or scope/directions decisions at their 🔴 moments) marked
-     `status: decided` but missing `authored_by: user` or missing an **In their words.** quotation
-     → report as integrity findings (report-first, like the rest; the fix stays the user's).
+   - **Decision provenance** — scan each project's `Decisions/` for 🔴 decisions (a `debrief` framing
+     lock, or a `research` directions-move pick) marked `status: decided` but missing
+     `authored_by: user` or missing an **In their words.** quotation → report as integrity findings
+     (report-first, like the rest; the fix stays the user's).
    - **View drift** — every live page in exactly the right views; one-liners still matching page
      content; `log.md` still append-only and parseable.
 3. **Fix:** mechanical (missing view rows, one-liner sync, log formatting) — apply directly.

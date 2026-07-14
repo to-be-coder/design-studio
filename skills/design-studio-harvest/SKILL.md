@@ -21,6 +21,19 @@ skill's spec (layout, page contract, membrane rules). Autonomy: 🟡 draft + �
 
 Runs standalone. The ONLY skill that writes the wiki; main thread only, never a sub-agent.
 
+**Agent-initiated — push, don't pull ([[0030 utilities-push-dont-pull]]).** Don't wait to be asked.
+The agent judges harvest-worthiness and offers a crossing **unprompted** at a natural moment:
+- a **round closes** (a research or build round whose flags include something that generalizes),
+- a **project goes `done`** (the close-out case, now surfaced by the agent rather than remembered),
+- a project's **undistilled flag-debt crosses a threshold** — suggest **~5 flags** pending in its
+  `Harvest.md`.
+
+At that moment, draft the candidate pages per the Process below and bring the user the page-by-page
+🔴 crossing review. The judgment of *whether* to harvest is the agent's; the judgment of *what
+crosses* stays the user's. **Only the remembering is removed** — the sole-writer law, the one-way
+membrane, and the 🔴 review are all unchanged. The pipeline skills reach this by checking harvest-debt
+at their own close (each names the hook); a passing check is honest — nothing worth crossing yet.
+
 ## Preconditions
 - For close-out/milestone: a project with a record (`Harvest.md`, `Decisions/`, stage artifacts).
   A thin record is workable — say so and harvest what exists.
@@ -43,9 +56,9 @@ Runs standalone. The ONLY skill that writes the wiki; main thread only, never a 
      draft baseline pattern/standard/craft pages describing what *is*, which later feeds
      `design-system`'s derive mode.
    Log the init in `log.md`.
-2. **Gather the source.** Close-out/milestone: the project's `Harvest.md` flags, `Decisions/`
-   (cuts and supersedes especially), rejected directions in `04 Directions.md`, findings in
-   `05 Validation.md`. Ingest mode: capture the excerpt into `raw/` first (immutable; save images
+2. **Gather the source.** Close-out/milestone: the project's `Harvest.md` flags (where rejected
+   directions and cut darlings already land), `Decisions/` (cuts and supersedes especially), the
+   directions menus in `02 Research/Synthesis.md`, evaluate-move findings and any `Drift Ledger.md`. Ingest mode: capture the excerpt into `raw/` first (immutable; save images
    locally rather than hotlinking, and read a capture's text before viewing its images — they
    don't come through in one pass), then work from the capture. An ingest crossing includes one
    brief **source page** (`entity: source`): a paragraph of what it says, a link to the raw
