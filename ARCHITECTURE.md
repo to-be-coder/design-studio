@@ -27,7 +27,7 @@ installing requires a **restart of Claude Code**.
 every skill reaches it by the relative path `../design-studio-shared/CONVENTIONS.md`. That relative
 path is why the folders must stay siblings. Copy the whole set or none of it.
 
-So: 15 folders, 14 skills, 11 pipeline stages, 3 utility skills.
+So: 10 folders, 9 skills, 5 pipeline stages, 4 utility skills.
 
 ---
 
@@ -67,14 +67,14 @@ writes to it.
       00 Dashboard.md            ← the project's answer to "where is this?"
       01 Brief & Problem.md      restated problem, rubric, principle, success criteria
       02 Research/               Company.md · Pain.md · Standards.md · Landscape.md
-      03 Scope.md                full scope + staged sequence + migration plan
-      04 Directions.md           directions + data-model comparison
-      05 Validation.md           prototype test findings
-      06 Spec.md                 audience-shaped render (may also write Align.md / Handoff.md)
+      03 Structure.md            user flows + information architecture (drafted by structure)
+      Spec.md                    on-demand audience-shaped render (compile-spec; may also write Align.md / Handoff.md)
       Decisions/                 ADR log: `NNNN <slug>.md`, immutable
+      Agreements.md              the scoping ledger: Agreed / Decided against / Deferred / The full vision
       Assumptions & Risks.md     living register: verified / partial / unverified / accepted
       DESIGN.md                  the visual contract — until build moves it to the repo
       Harvest.md                 flag inbox: one-liners bound for the wiki
+      Drift Ledger.md            on-demand: decision-log-vs-shipped-reality reconciliation (research's reconcile move)
       _assets/                   attachments, Excalidraw sketches, specimen boards/
 
   Studio Wiki/                   knowledge that outlives any one project
@@ -108,8 +108,7 @@ always answers "where is this project?" — for you, for the next skill, and for
 ---
 type: design-project      # this is what makes the portfolio queryable
 status: active            # active | blocked | done | archived
-stage: debrief            # debrief|research|verify|reframe|scope|directions|
-                          # converge|design-system|build|validate|spec
+stage: debrief            # debrief|research|structure|design-system|build
 client:
 route: full               # full | lite
 started: YYYY-MM-DD
@@ -119,7 +118,7 @@ prototype_repo:           # filled when build starts
 
 **3. `Decisions/` — the spine.** Each decision is one immutable file, captured at the moment it's
 made and never reconstructed. Status moves `proposed → decided`, or to `deferred`, or to
-`superseded` — but a decision is **never deleted**. When validation invalidates something and you
+`superseded` — but a decision is **never deleted**. When a finding invalidates something and you
 loop back, the new decision links `supersedes:` and the old one gets `superseded_by:`. The real
 path stays visible, loop-backs and all. `compile-spec` reads the whole folder and renders it for
 whichever audience needs it.
@@ -132,24 +131,30 @@ missing, and offer to proceed anyway.
 
 | Stage | Skill | Writes |
 |---|---|---|
-| 1 | `debrief` | `01 Brief & Problem.md` (+ scaffolds the whole project folder) |
-| 2 | `research` | `02 Research/` |
-| 3 | `verify` | `Assumptions & Risks.md` |
-| 4 | `reframe` | *decisions only* |
-| 5 | `scope-and-sequence` | `03 Scope.md` |
-| 6 | `explore-directions` | `04 Directions.md` |
-| 7 | `converge` | *decisions only* (+ the cut list) |
-| 8 | `design-system` | `DESIGN.md` |
-| 9 | `build` | *the prototype repo* (outside the vault) |
-| 10 | `validate` | `05 Validation.md` |
-| 11 | `compile-spec` | `06 Spec.md` / `Align.md` / `Handoff.md` |
+| 1 | `debrief` | `01 Brief & Problem.md` (+ scaffolds the whole project folder); the conversation pole of the Understand loop |
+| 2 | `research` | `02 Research/`, `Assumptions & Risks.md` (owns the register; runs the directions + pressure-test moves on demand; forced framing-check + migration-flag + primary-contact line + trap-check per report); the evidence pole of the Understand loop |
+| 3 | `structure` | `03 Structure.md` (user flows + information architecture) |
+| 4 | `design-system` | `DESIGN.md` |
+| 5 | `build` | *the prototype repo* (outside the vault); round-closing checklist runs the `design:diff` drift check |
+
+The pipeline ends at `build` ([[0028 compile-spec-is-a-render-utility]]). `compile-spec` is a **utility,
+not a stage**: on demand it renders the decision log into an audience-shaped document — `Spec.md`,
+or `Align.md` / `Handoff.md` — which are therefore **on-demand artifacts**, produced when you ask for a
+render, not milestones the project walks through.
+
+Reframes and honest full scope are no longer stages of their own — they're outcomes the
+Understand loop produces. `Agreements.md` is the scoping ledger: it's where a reframe's superseded
+framing decision, every deferred decision (with what unblocks it), and the full, unscoped vision
+all live, refreshed at the close of every debrief round instead of confronted once at a stage
+nobody always reached ([[0020 understand-is-one-loop-reframe-and-scope-fold]]).
 
 **5. `DESIGN.md` — the visual contract, single copy.** `design-system` authors it in the vault,
 where it stays canonical until a repo exists. `build`'s first committed act is to **move** it to
 the prototype repo root, leaving a link note behind. There is never a second copy to drift.
 Everything visual in the prototype — every color, type size, spacing step, radius — comes from its
-tokens; a hardcoded value is a defect, not a shortcut. `validate` diffs the build-start version out
-of git history against the current one, and drift without a matching decision entry is a finding.
+tokens; a hardcoded value is a defect, not a shortcut. `build`'s round-closing checklist diffs the
+signed-off (build-start) version out of git history against the current one, and drift without a
+matching decision entry is a finding.
 
 **6. `Harvest.md` — the flag inbox.** Skills drop one-liners here as they go: rejected directions,
 cut darlings, findings that generalize. You can flag anything too. It's project-local and costs
@@ -174,8 +179,8 @@ thinking — name a trade-off, point out a fourth framing — but it may not han
 
 This is the whole thesis. A skill that drafts the answer "to save time" isn't saving you anything;
 it's substituting the average of everything it has read for your point of view, which was the only
-part of the stage with value. A button cannot run a ritual — which is also why the dashboard shows
-you commands to copy rather than buttons that fire.
+part of the stage with value. A button cannot run a ritual — which is also why the dashboard
+renders the pipeline read-only, with nothing to click that would run a skill on your behalf.
 
 ### The membrane — one way into the wiki
 
@@ -189,8 +194,8 @@ you commands to copy rather than buttons that fire.
 ```
 
 **Projects read the wiki freely.** `debrief` checks precedents, `research` checks existing standards,
-`explore-directions` pulls patterns and unprompted sparks, `converge` checks traps, `design-system`
-pulls craft.
+pulls patterns and unprompted sparks in its directions move, and checks traps against the
+accumulating decisions; `design-system` pulls craft.
 
 **The wiki is written only through `design-studio-harvest`** — a reviewed distillation you approve
 like a PR. (Two mechanical exceptions, neither crossing project material: `setup` seeds the shipped
@@ -214,8 +219,10 @@ undistilled flags).
 cd web && npm install && npm run dev   # http://localhost:3000
 ```
 
-It reads your vault read-only and renders what the skills wrote: the portfolio with each project's
-stage, a knowledge graph, the decision log with its supersede chains, and the pipeline itself.
+It reads your vault read-only and renders what the skills wrote: the portfolio index, and per
+project the Canvas — the Understand → Build spine, the Decision Stream (a standalone section,
+consolidating the whole log) with its supersede chains, the assumption graph, design-system and
+component boards, and the running prototype in same-origin device frames.
 
 Two invariants a contributor must not break:
 
@@ -234,10 +241,10 @@ After any change under `web/`, both `npx tsc --noEmit` and `npm run build` must 
 - **Loose coupling.** Every skill runs standalone. None requires that the previous one ran this
   session — they read the vault for state. Missing upstream artifact? Warn, offer to proceed or to
   run the upstream skill. **Never hard-block.**
-- **Skippable by design.** A small project may run only `debrief → explore-directions → build`.
-  That's the **Lite** route (`debrief → explore-directions → build → compile-spec`, inserting
-  `design-system` when the look matters). `debrief` proposes Full or Lite from how ambiguous the
-  brief is; you decide. Nothing nags about skipped stages.
+- **Skippable by design.** A small project may run only `debrief → research → build`. That's the
+  **Lite** route (a short Understand loop → `build` → `compile-spec`, inserting `design-system` when
+  the look matters and `structure` when the flows aren't obvious). `debrief` proposes Full or Lite
+  from how ambiguous the brief is; you decide which stages to keep. Nothing nags about skipped stages.
 - **Any stage may loop back.** Loop-backs are recorded as superseded decisions, never as edits.
 - **Single writers.** Decisions: main thread only. The wiki: `harvest` only.
 - **Supersede, never overwrite.** True of decisions and of wiki pages alike.
