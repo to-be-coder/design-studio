@@ -40,12 +40,16 @@ test.describe("second fixture — mid-pipeline / empty states", () => {
       page.getByRole("heading", { level: 1, name: "Fixture Minimal", exact: true }),
     ).toBeVisible();
 
-    // The spine still shows every stage; the un-run ones read as Pending, not hidden.
+    // The spine still shows every stage; the un-run ones read as Pending, not
+    // hidden. Build is the pipeline's last stage now (compile-spec became an
+    // on-demand render utility off the spine — decision 0028), and it's still
+    // pending here since this project is only in research.
     await expect(page.locator("#region-research").getByText("Current", { exact: false }).first()).toBeVisible();
-    await expect(page.locator("#region-validate").getByText("Pending", { exact: false }).first()).toBeVisible();
+    await expect(page.locator("#region-build").getByText("Pending", { exact: false }).first()).toBeVisible();
 
-    // Zero decisions: the stream renders its empty state, not a broken card.
-    await expect(page.getByText(/spatial canvas/i)).toHaveCount(0);
+    // Zero decisions: no decision entries leak in, and the stream renders its
+    // empty state rather than a broken card.
+    await expect(page.locator("#d-0008")).toHaveCount(0);
 
     // No prototype configured → the designed empty state, not a dead frame.
     await expect(page.getByTestId("prototype-empty")).toBeVisible();
@@ -234,7 +238,7 @@ test.describe("prototype proxy (/prototype/<slug>/*)", () => {
 
 test.describe("api routes", () => {
   test("/api/card returns rendered blocks, guards missing params + bad slug", async ({ request }) => {
-    const ok = await request.get("/api/card?slug=fixture-project&file=" + encodeURIComponent("03 Scope.md"));
+    const ok = await request.get("/api/card?slug=fixture-project&file=" + encodeURIComponent("03 Structure.md"));
     expect(ok.status()).toBe(200);
     const body = await ok.json();
     expect(Array.isArray(body.blocks)).toBeTruthy();

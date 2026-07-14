@@ -9,7 +9,8 @@ interface IndexEntry {
   /** The focus key: a stage token, or "decision-stream". */
   focusKey: string;
   label: string;
-  phase: Phase;
+  /** A pipeline phase, or the standalone "Decisions" group for the stream. */
+  group: Phase | "Decisions";
   state?: StageMarkerState;
 }
 
@@ -32,11 +33,12 @@ export function Sidebar({
 }) {
   const entries: IndexEntry[] = [];
   for (const s of model.stages) {
-    entries.push({ focusKey: s.stage, label: stageName(s.stage), phase: s.phase, state: s.markerState });
-    if (s.stage === "converge") {
-      entries.push({ focusKey: "decision-stream", label: "Decision stream", phase: "Decide" });
-    }
+    entries.push({ focusKey: s.stage, label: stageName(s.stage), group: s.phase, state: s.markerState });
   }
+  // The Decision stream is its own group now — converge/explore-directions
+  // dissolved (decisions 0021/0023), so it no longer hangs off a decide stage.
+  entries.push({ focusKey: "decision-stream", label: "Decision stream", group: "Decisions" });
+  const groups: (Phase | "Decisions")[] = [...model.phases, "Decisions"];
 
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [cursor, setCursor] = useState(0);
@@ -105,14 +107,14 @@ export function Sidebar({
           }
         }}
       >
-        {model.phases.map((phase) => (
-          <div key={phase} className="mb-2">
+        {groups.map((group) => (
+          <div key={group} className="mb-2">
             <div className="px-2 py-1">
-              <span className="eyebrow text-ink">{phase}</span>
+              <span className="eyebrow text-ink">{group}</span>
             </div>
             {entries
               .map((e, i) => ({ e, i }))
-              .filter(({ e }) => e.phase === phase)
+              .filter(({ e }) => e.group === group)
               .map(({ e, i }) => {
                 const active = focused === e.focusKey;
                 return (

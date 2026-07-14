@@ -17,15 +17,9 @@ import path from "node:path";
 const STAGE_LABELS = [
   "Debrief",
   "Research",
-  "Verify",
-  "Reframe",
-  "Scope",
-  "Directions",
-  "Converge",
+  "Structure",
   "Design system",
   "Build",
-  "Validate",
-  "Spec",
 ];
 
 function trackConsoleErrors(page: Page): string[] {
@@ -59,7 +53,7 @@ test.describe("projects index (/)", () => {
 // ── Slice 2: the readable board ──────────────────────────────────────────────
 
 test.describe("canvas board (/canvas/fixture-project)", () => {
-  test("the spine shows all 11 stages, including the skipped one", async ({ page }) => {
+  test("the spine shows all 5 stages, build current", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const response = await page.goto("/canvas/fixture-project");
     expect(response?.ok()).toBeTruthy();
@@ -73,13 +67,13 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
       await expect(page.locator("p", { hasText: new RegExp(`^${label}$`) }).first()).toBeVisible();
     }
 
-    // The skipped stage (reframe) reads honestly as "not run".
-    const reframe = page.locator("#region-reframe");
-    await expect(reframe).toBeVisible();
-    await expect(reframe.getByText("Not run", { exact: false }).first()).toBeVisible();
+    // compile-spec is an on-demand render utility now (decision 0028), off the
+    // spine — the pipeline ends at build, so a mid-build project has no
+    // not-run stage left to show, and no #region-spec tick exists.
+    await expect(page.locator("#region-spec")).toHaveCount(0);
 
-    // The current stage is marked as such.
-    await expect(page.locator("#region-validate").getByText("Current", { exact: false }).first()).toBeVisible();
+    // The current stage (build, the pipeline's last) is marked as such.
+    await expect(page.locator("#region-build").getByText("Current", { exact: false }).first()).toBeVisible();
 
     // The override receipts are shown, not hidden.
     await expect(page.getByTestId("overrides")).toBeVisible();
@@ -121,8 +115,8 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
     await expect(
       page.getByText("the artifact and the decision that shaped it live", { exact: false }),
     ).toBeVisible();
-    // The scope cut list is readable.
-    await expect(page.getByText(/Cross-project knowledge graph/i)).toBeVisible();
+    // The structure stage's screen inventory is readable.
+    await expect(page.getByText(/screen inventory/i).first()).toBeVisible();
 
     // The malformed decision never surfaces.
     await expect(page.getByText("malformed frontmatter fixture")).toHaveCount(0);
@@ -393,33 +387,33 @@ test.describe("prototype frames (/canvas/fixture-project)", () => {
 });
 
 test.describe("live board — vault SSE (/canvas/fixture-project)", () => {
-  const SCOPE = path.resolve(
+  const STRUCTURE = path.resolve(
     __dirname,
-    "fixtures/vault/Design Studio/fixture-project/03 Scope.md",
+    "fixtures/vault/Design Studio/fixture-project/03 Structure.md",
   );
 
   test("a changed vault file updates the affected card in place, no reload", async ({ page }) => {
-    const original = await fs.readFile(SCOPE, "utf8");
+    const original = await fs.readFile(STRUCTURE, "utf8");
     const marker = `LIVE-SSE-${Date.now()}`;
     try {
       await page.goto("/canvas/fixture-project");
-      const card = page.locator("#card-scope-0");
+      const card = page.locator("#card-structure-0");
       await expect(card).toBeVisible();
       // Give the EventSource a moment to connect before we touch the file.
       await page.waitForTimeout(600);
 
       // Touch the vault file (the app never writes the vault; the test does).
       const changed = original.replace(
-        /# Scope & sequence/,
-        `# Scope & sequence\n\n${marker}`,
+        /# Structure/,
+        `# Structure\n\n${marker}`,
       );
-      await fs.writeFile(SCOPE, changed, "utf8");
+      await fs.writeFile(STRUCTURE, changed, "utf8");
 
       // The card refetches and swaps its blocks in place — no navigation.
       await expect(card).toHaveAttribute("data-live-updated", "true", { timeout: 8000 });
       await expect(card.getByText(marker)).toBeVisible();
     } finally {
-      await fs.writeFile(SCOPE, original, "utf8");
+      await fs.writeFile(STRUCTURE, original, "utf8");
     }
   });
 });
@@ -479,7 +473,10 @@ test.describe("comment + tweak + export (/canvas/fixture-project)", () => {
     expect(clip).toContain("Routing protocol");
     expect(clip).toMatch(/smallest unit that is reusable/i);
     expect(clip).toMatch(/Scope:/);
-    expect(clip).toContain("design-studio-validate");
+    // The close names both consumers: build's next round, or — after build —
+    // research's evaluate/reconcile moves (validate dissolved, decision 0027).
+    expect(clip).toContain("design-studio-build");
+    expect(clip).toContain("design-studio-research");
 
     expect(errors, `console/page errors on comment/tweak/export:\n${errors.join("\n")}`).toEqual([]);
   });

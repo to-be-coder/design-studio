@@ -3,22 +3,20 @@
 export type ProjectStatus = "active" | "blocked" | "done" | "archived";
 export type Route = "full" | "lite";
 
-/** The 11 pipeline stages — the `stage` frontmatter enum (short tokens). */
+/** The 5 pipeline stages — the `stage` frontmatter enum (short tokens). */
 export type Stage =
   | "debrief"
   | "research"
-  | "verify"
-  | "reframe"
-  | "scope"
-  | "directions"
-  | "converge"
+  | "structure"
   | "design-system"
-  | "build"
-  | "validate"
-  | "spec";
+  | "build";
 
-/** Utility skills that are not pipeline stages. */
-export type Utility = "harvest" | "wiki-lint" | "setup";
+/**
+ * Utility skills that are not pipeline stages. `compile-spec` joined them when
+ * it was reclassified from terminal stage to on-demand render utility (decision
+ * 0028) — the pipeline now ends at `build`.
+ */
+export type Utility = "harvest" | "wiki-lint" | "setup" | "compile-spec";
 
 export type Autonomy = "execute" | "draft" | "scaffold";
 
@@ -138,7 +136,7 @@ export interface AssumptionNode {
   id: string;
   title: string;
   state: AssumptionState;
-  /** verify's single riskiest load-bearing assumption. */
+  /** research's single riskiest load-bearing assumption (surfaced by its pressure-test move). */
   riskiest: boolean;
   /** An accepted-risk admission (e.g. "no primary user contact"). */
   accepted: boolean;
@@ -166,7 +164,11 @@ export interface DecisionStreamEntry {
   file: string;
 }
 
-export type Phase = "Understand" | "Decide" | "Build";
+// The Decide phase disappeared with converge/explore-directions (decisions
+// 0021/0023): the grouping is now Understand → Build. Decisions are made
+// throughout the loop and build, so the Decision Stream renders as its own
+// standalone section, not under a phase.
+export type Phase = "Understand" | "Build";
 
 export interface SpineStage {
   stage: Stage;
@@ -178,13 +180,9 @@ export interface SpineStage {
   /** Stable region id for fly-to, e.g. "region-research". */
   regionId: string;
   markerState: StageMarkerState;
-  /** reframe / converge — the column is a slice of the Decision Stream. */
-  isDecisionStage: boolean;
   cards: ArtifactCard[];
   /** Present only on the debrief stage. */
   framing: FramingModel | null;
-  /** Decision ids in this stage's slice (for reframe/converge columns). */
-  decisionSlice: string[];
 }
 
 export interface BoardHeader {

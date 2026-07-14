@@ -291,8 +291,8 @@ export const getProject = cache(async (slug: string): Promise<ProjectDetail | nu
 
   const outputsPresent: Stage[] = [];
   await Promise.all(
-    (["debrief", "research", "verify", "reframe", "scope", "directions", "converge",
-      "design-system", "build", "validate", "spec"] as Stage[]).map(async (stage) => {
+    (["debrief", "research", "structure",
+      "design-system", "build"] as Stage[]).map(async (stage) => {
       const def = stageDef(stage);
       if (!def || def.outputs.length === 0) return;
       for (const rel of def.outputs) {

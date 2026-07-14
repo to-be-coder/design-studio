@@ -12,7 +12,7 @@ export interface StageDef {
   stage: Stage;
   /** Full skill name (what you invoke: /<skill>). */
   skill: string;
-  phase: "Understand" | "Decide" | "Build";
+  phase: "Understand" | "Build";
   autonomy: Autonomy;
   /** Emoji shorthand shown in the UI (🟢 execute · 🟡 draft · 🔴 scaffold). */
   autonomyIcon: "🟢" | "🟡" | "🔴";
@@ -40,7 +40,7 @@ export const STAGES: StageDef[] = [
     autonomy: "scaffold",
     autonomyIcon: "🔴",
     runnable: false,
-    outputs: ["01 Brief & Problem.md"],
+    outputs: ["01 Brief & Problem.md", "Clarifications.md", "Agreements.md"],
     blurb: "Turn the brief into a restated problem + rubric; set up the workspace.",
     gate: "The route decision (Full vs Lite) is the 🔴 moment.",
   },
@@ -52,62 +52,19 @@ export const STAGES: StageDef[] = [
     autonomyIcon: "🟡",
     runnable: true,
     outputs: ["02 Research/"],
-    blurb: "Parallel fan-out into company, pain, standards, and landscape.",
+    blurb: "Parallel fan-out into company, pain, standards, and landscape; directions + pressure-test moves on demand.",
+    gate: "Directions move (🔴 pick) on demand; owns the risk register; forced framing-check + migration-flag + primary-contact + trap-check every report.",
   },
   {
-    stage: "verify",
-    skill: "design-studio-verify",
-    phase: "Understand",
+    stage: "structure",
+    skill: "design-studio-structure",
+    phase: "Build",
     autonomy: "draft",
     autonomyIcon: "🟡",
-    runnable: true,
-    outputs: ["Assumptions & Risks.md"],
-    blurb: "Pressure-test the riskiest load-bearing assumption.",
-    gate: "Drafts a user-study plan when the assumption needs humans.",
-  },
-  {
-    stage: "reframe",
-    skill: "design-studio-reframe",
-    phase: "Decide",
-    autonomy: "scaffold",
-    autonomyIcon: "🔴",
     runnable: false,
-    outputs: [],
-    blurb: "Reconsider the framing before committing (records decisions only).",
-    gate: "Full 🔴 ritual — may conclude no reframe is needed.",
-  },
-  {
-    stage: "scope",
-    skill: "design-studio-scope-and-sequence",
-    phase: "Decide",
-    autonomy: "scaffold",
-    autonomyIcon: "🔴",
-    runnable: false,
-    outputs: ["03 Scope.md"],
-    blurb: "Full scope + staged sequence + migration plan.",
-    gate: "🔴 sequencing decision + existing-user migration gate.",
-  },
-  {
-    stage: "directions",
-    skill: "design-studio-explore-directions",
-    phase: "Decide",
-    autonomy: "scaffold",
-    autonomyIcon: "🔴",
-    runnable: false,
-    outputs: ["04 Directions.md"],
-    blurb: "Contrasting directions + a data-model comparison.",
-    gate: "🔴 direction pick.",
-  },
-  {
-    stage: "converge",
-    skill: "design-studio-converge",
-    phase: "Decide",
-    autonomy: "scaffold",
-    autonomyIcon: "🔴",
-    runnable: false,
-    outputs: [],
-    blurb: "Name the spine and cut everything else (the cut list is a deliverable).",
-    gate: "🔴 — you must articulate the spine + every cut.",
+    outputs: ["03 Structure.md"],
+    blurb: "Draft user flows + information architecture from the accepted recommendation.",
+    gate: "🟡 — the skill drafts; you edit. Consumed by design-system and build.",
   },
   {
     stage: "design-system",
@@ -128,30 +85,8 @@ export const STAGES: StageDef[] = [
     autonomyIcon: "🟢",
     runnable: true,
     outputs: [],
-    blurb: "Spec-first clickable prototype in a separate repo (see prototype_repo).",
-    gate: "States / edge / a11y gate + DESIGN.md token audit.",
-  },
-  {
-    stage: "validate",
-    skill: "design-studio-validate",
-    phase: "Build",
-    autonomy: "draft",
-    autonomyIcon: "🟡",
-    runnable: true,
-    outputs: ["05 Validation.md"],
-    blurb: "Test with real users, or an expert/heuristic review.",
-    gate: "Back-edge — findings may supersede decisions.",
-  },
-  {
-    stage: "spec",
-    skill: "design-studio-compile-spec",
-    phase: "Build",
-    autonomy: "execute",
-    autonomyIcon: "🟢",
-    runnable: true,
-    outputs: ["06 Spec.md"],
-    blurb: "Render the decision log for an audience.",
-    gate: "Modes: align / stakeholder / eng-handoff.",
+    blurb: "Spec-first clickable prototype in a separate repo (see prototype_repo), built in rounds.",
+    gate: "Round-closing checklist: states / edge / a11y + content + DESIGN.md audit & design:diff drift + register receipt.",
   },
 ];
 
@@ -166,6 +101,21 @@ export interface UtilityDef {
 }
 
 export const UTILITIES: UtilityDef[] = [
+  {
+    // Reclassified from terminal stage to on-demand render utility (decision
+    // 0028): the pipeline ends at build, and a document is a projection of the
+    // decision log, not a milestone. Its Spec.md / Align.md / Handoff.md
+    // outputs are on-demand artifacts — declared here for completeness, but not
+    // rendered on the board spine (the board walks STAGES only, same as harvest's
+    // Harvest.md).
+    utility: "compile-spec",
+    skill: "design-studio-compile-spec",
+    autonomy: "execute",
+    autonomyIcon: "🟢",
+    runnable: true,
+    outputs: ["Spec.md"],
+    blurb: "On-demand render of the decision log for an audience (align / stakeholder / eng-handoff).",
+  },
   {
     utility: "harvest",
     skill: "design-studio-harvest",
@@ -221,26 +171,41 @@ export function stageDef(stage: Stage): StageDef | undefined {
 /**
  * Map a name as it appears in a dashboard's `## Pipeline log` (which uses the
  * LONG skill-derived names) to the short stage/utility token.
- *   scope-and-sequence -> scope   ·   explore-directions -> directions
- *   compile-spec -> spec          ·   harvest -> harvest
+ *   structure -> structure   ·   compile-spec -> compile-spec   ·   harvest -> harvest
+ *
+ * `compile-spec` (and its legacy `spec` alias) maps to the `compile-spec`
+ * UTILITY token — reclassified from terminal stage to on-demand render utility
+ * (decision 0028). Like a `harvest` line, a `compile-spec` line is KEPT in the
+ * parsed StageState[] (not silently dropped) — it just isn't one of the five
+ * spine STAGES, so the board (which walks STAGES) never renders it as a tick.
+ *
+ * The removed-stage tokens are deliberately NOT in this map, so a historical
+ * project's pipeline log drops them silently (never crashes, never mis-attributes
+ * onto a neighbouring stage): `verify` (decision 0018, folded into research),
+ * `reframe` + `scope` / `scope-and-sequence` (decision 0020, folded into the
+ * Understand loop + Agreements.md), `directions` / `explore-directions` +
+ * `converge` (decisions 0021 + 0023: directions became a research MOVE and
+ * converge dissolved — nothing locks before production), and `validate`
+ * (decision 0027: the drift check moved into build's round-closing checklist,
+ * user testing + expert review became research's evaluate move, and the
+ * decision-log-vs-reality check became its reconcile move). Real vaults still
+ * carry "Verify — Ran, ...", "Explore directions — ...", "Converge — ...", and
+ * "Validate — Ran, ..." lines from the old pipeline; they're left on disk
+ * untouched. Falling through to `?? null` means the line is dropped from the
+ * parsed StageState[] (parsePipelineLog in vault.ts `continue`s past any null) —
+ * the same silent-drop path as any other unrecognized line. The pipeline is now
+ * 5 stages.
  */
 export function normalizeStageName(logName: string): Stage | Utility | null {
   const n = logName.trim().toLowerCase().replace(/\s+/g, "-");
   const map: Record<string, Stage | Utility> = {
     debrief: "debrief",
     research: "research",
-    verify: "verify",
-    reframe: "reframe",
-    scope: "scope",
-    "scope-and-sequence": "scope",
-    directions: "directions",
-    "explore-directions": "directions",
-    converge: "converge",
+    structure: "structure",
     "design-system": "design-system",
     build: "build",
-    validate: "validate",
-    spec: "spec",
-    "compile-spec": "spec",
+    spec: "compile-spec",
+    "compile-spec": "compile-spec",
     harvest: "harvest",
     "wiki-lint": "wiki-lint",
     setup: "setup",

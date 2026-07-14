@@ -79,11 +79,7 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
 
   const stages: SpineStage[] = await Promise.all(
     STAGES.map(async (def): Promise<SpineStage> => {
-      const isDecisionStage = def.stage === "reframe" || def.stage === "converge";
-      const decisionSlice = decisions
-        .filter((d) => d.stage === def.stage)
-        .map((d) => d.id);
-      const cards = await buildCards(slug, def.stage, isDecisionStage);
+      const cards = await buildCards(slug, def.stage);
       return {
         stage: def.stage,
         skill: def.skill,
@@ -93,10 +89,8 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
         gate: def.gate ?? null,
         regionId: `region-${def.stage}`,
         markerState: markerState(def.stage, project, pipeline, outputsPresent),
-        isDecisionStage,
         cards,
         framing: def.stage === "debrief" ? framing : null,
-        decisionSlice,
       };
     }),
   );
@@ -104,7 +98,7 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
   return {
     project,
     header: buildHeader(project, dashboardBlocks),
-    phases: ["Understand", "Decide", "Build"],
+    phases: ["Understand", "Build"],
     stages,
     decisionStream,
     assumptions,
@@ -117,17 +111,7 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
 async function buildCards(
   slug: string,
   stage: Stage,
-  isDecisionStage: boolean,
 ): Promise<ArtifactCard[]> {
-  // Decision stages render as a slice of the stream — no artifact cards.
-  if (isDecisionStage) return [];
-
-  if (stage === "verify") {
-    // The register expands into the assumption graph; its card is synthesised
-    // from the parsed nodes, so no generic artifact card here.
-    return [];
-  }
-
   if (stage === "design-system") {
     // The design-system tick renders the living-specimen board (§6) directly
     // from the model's designSystem — BoardView special-cases it, no card here.

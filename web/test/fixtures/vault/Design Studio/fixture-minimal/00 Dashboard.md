@@ -16,7 +16,8 @@ board must render this honestly — empty and partial states designed, not crash
 
 ## Recommended next step
 
-Run `design-studio-research` to sweep the problem space, then verify the riskiest assumption.
+Run `design-studio-research` to sweep the problem space, then pressure-test the riskiest
+assumption before it locks in.
 
 ## Pipeline log
 

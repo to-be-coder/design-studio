@@ -7,8 +7,10 @@ import { buildPrototypeExport, copyText } from "./export-feedback";
 /**
  * The comment-mode toolbar + hotkey (§10/§12). C toggles comment mode; the
  * granularity toggle switches Element/Page; the count reflects the session's
- * ephemeral annotations; Export copies the validate loop-back block (preamble +
- * routing protocol + entries + closing line) to the clipboard with feedback.
+ * ephemeral annotations; Export copies the round-neutral prototype-feedback
+ * block (preamble + routing protocol + entries + closing line) to the clipboard
+ * with feedback — the named input to build's next round, or, after build, the
+ * input to research's evaluate/reconcile moves.
  */
 export function CommentToolbar({ project }: { project: string }) {
   const { mode, setMode, granularity, setGranularity, annotations, clearAnnotations } = useSession();

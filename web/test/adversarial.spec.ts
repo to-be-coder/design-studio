@@ -239,25 +239,25 @@ test.describe("localStorage resilience", () => {
 // ── SSE thrash: rapid successive writes settle to the final state ─────────────
 
 test.describe("live board — SSE under rapid writes", () => {
-  const SCOPE = path.resolve(
+  const STRUCTURE = path.resolve(
     __dirname,
-    "fixtures/vault/Design Studio/fixture-project/03 Scope.md",
+    "fixtures/vault/Design Studio/fixture-project/03 Structure.md",
   );
 
   test("five writes in ~1.5s: no thrash, the final marker wins", async ({ page }) => {
     const errors = trackConsoleErrors(page);
-    const original = await fs.readFile(SCOPE, "utf8");
+    const original = await fs.readFile(STRUCTURE, "utf8");
     let last = "";
     try {
       await page.goto("/canvas/fixture-project");
-      const card = page.locator("#card-scope-0");
+      const card = page.locator("#card-structure-0");
       await expect(card).toBeVisible();
       await page.waitForTimeout(600); // let the EventSource connect
 
       for (let i = 0; i < 5; i++) {
         last = `SSE-THRASH-${i}-${Date.now()}`;
-        const changed = original.replace(/# Scope & sequence/, `# Scope & sequence\n\n${last}`);
-        await fs.writeFile(SCOPE, changed, "utf8");
+        const changed = original.replace(/# Structure/, `# Structure\n\n${last}`);
+        await fs.writeFile(STRUCTURE, changed, "utf8");
         await page.waitForTimeout(250);
       }
 
@@ -266,7 +266,7 @@ test.describe("live board — SSE under rapid writes", () => {
       await expect(card.getByText(last)).toBeVisible();
       await expect(card.getByText("SSE-THRASH-0-", { exact: false })).toHaveCount(0);
     } finally {
-      await fs.writeFile(SCOPE, original, "utf8");
+      await fs.writeFile(STRUCTURE, original, "utf8");
     }
     expect(errors, errors.join("\n")).toEqual([]);
   });

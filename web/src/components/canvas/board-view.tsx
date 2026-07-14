@@ -99,30 +99,81 @@ export const BoardView = memo(function BoardView({
           onFly={onFly}
         />
       ) : (
-        model.phases
-          .filter((phase) => !hiddenPhases?.has(phase))
-          .map((phase) => (
-            <PhaseSection
-              key={phase}
-              phase={phase}
-              stages={model.stages.filter((s) => s.phase === phase && !hiddenStages?.has(s.stage))}
-              model={model}
-              selectedAssumption={selectedAssumption}
-              onSelectAssumption={onSelectAssumption}
-              highlightedDecisions={highlightedDecisions}
-              restsOnState={restsOnState}
-              filter={filter}
-              onFilter={onFilter}
-              expanded={expanded}
-              onToggleExpand={onToggleExpand}
-              liveCards={liveCards}
-              onFly={onFly}
-            />
-          ))
+        <>
+          {model.phases
+            .filter((phase) => !hiddenPhases?.has(phase))
+            .map((phase) => (
+              <PhaseSection
+                key={phase}
+                phase={phase}
+                stages={model.stages.filter((s) => s.phase === phase && !hiddenStages?.has(s.stage))}
+                model={model}
+                selectedAssumption={selectedAssumption}
+                onSelectAssumption={onSelectAssumption}
+                highlightedDecisions={highlightedDecisions}
+                expanded={expanded}
+                onToggleExpand={onToggleExpand}
+                liveCards={liveCards}
+                onFly={onFly}
+              />
+            ))}
+          {/* The Decision Stream is its own standalone section (no "Decide"
+              phase since converge/explore-directions dissolved — decisions 0021/
+              0023): it consolidates the whole log, made throughout the loop and
+              build, not at a single stage. */}
+          <DecisionStreamSection
+            model={model}
+            highlightedDecisions={highlightedDecisions}
+            restsOnState={restsOnState}
+            filter={filter}
+            onFilter={onFilter}
+            onSelectAssumption={onSelectAssumption}
+          />
+        </>
       )}
     </div>
   );
 });
+
+function DecisionStreamSection({
+  model,
+  highlightedDecisions,
+  restsOnState,
+  filter,
+  onFilter,
+  onSelectAssumption,
+}: {
+  model: BoardModel;
+  highlightedDecisions?: Set<string> | null;
+  restsOnState?: Record<string, RestsOnState>;
+  filter?: StreamFilter;
+  onFilter?: (f: StreamFilter) => void;
+  onSelectAssumption?: (id: string | null) => void;
+}) {
+  return (
+    <section className="relative z-10 ml-6 border-l border-rule pl-12" data-section="decisions">
+      <h2 className="eyebrow mb-8 text-ink">Decisions</h2>
+      <div className="relative mb-16 flex items-start gap-10">
+        <Marker state="ran" />
+        <div className="w-[13rem] shrink-0 pt-0.5">
+          <p className="font-sans text-[1rem] font-semibold text-ink">Decision stream</p>
+          <p className="mt-1 text-[0.8125rem] text-ink-muted">
+            The whole log consolidated into one readable page.
+          </p>
+        </div>
+        <DecisionStream
+          entries={model.decisionStream}
+          id="region-decision-stream"
+          highlighted={highlightedDecisions}
+          registerHref={(aid) => onSelectAssumption?.(aid)}
+          restsOnState={restsOnState}
+          filter={filter}
+          onFilter={onFilter}
+        />
+      </div>
+    </section>
+  );
+}
 
 /**
  * One board, isolated (§ focus mode). Renders exactly the chosen sidebar item —
@@ -162,7 +213,7 @@ function FocusedBoard({
   if (focused === "decision-stream") {
     return (
       <section className="relative z-10 ml-2" data-focused-board="decision-stream">
-        <h2 className="eyebrow mb-1 text-ink">Decide</h2>
+        <h2 className="eyebrow mb-1 text-ink">Decisions</h2>
         <p className="mb-6 font-sans text-[1rem] font-semibold text-ink">Decision stream</p>
         <DecisionStream
           entries={model.decisionStream}
@@ -205,9 +256,6 @@ function PhaseSection({
   selectedAssumption,
   onSelectAssumption,
   highlightedDecisions,
-  restsOnState,
-  filter,
-  onFilter,
   expanded,
   onToggleExpand,
   liveCards,
@@ -219,9 +267,6 @@ function PhaseSection({
   selectedAssumption?: string | null;
   onSelectAssumption?: (id: string | null) => void;
   highlightedDecisions?: Set<string> | null;
-  restsOnState?: Record<string, RestsOnState>;
-  filter?: StreamFilter;
-  onFilter?: (f: StreamFilter) => void;
   expanded?: Set<string>;
   onToggleExpand?: (id: string) => void;
   liveCards?: Record<string, RenderableBlock[]>;
@@ -234,28 +279,6 @@ function PhaseSection({
       {stages.map((s) => (
         <StageRow key={s.stage} stage={s} model={model} onSelectAssumption={onSelectAssumption} selectedAssumption={selectedAssumption} highlightedDecisions={highlightedDecisions} expanded={expanded} onToggleExpand={onToggleExpand} liveCards={liveCards} onFly={onFly} />
       ))}
-
-      {/* The Decision Stream is the centerpiece under the Decide phase. */}
-      {phase === "Decide" ? (
-        <div className="relative mb-16 flex items-start gap-10">
-          <Marker state="ran" />
-          <div className="w-[13rem] shrink-0 pt-0.5">
-            <p className="font-sans text-[1rem] font-semibold text-ink">Decision stream</p>
-            <p className="mt-1 text-[0.8125rem] text-ink-muted">
-              The log consolidated into one readable page.
-            </p>
-          </div>
-          <DecisionStream
-            entries={model.decisionStream}
-            id="region-decision-stream"
-            highlighted={highlightedDecisions}
-            registerHref={(aid) => onSelectAssumption?.(aid)}
-            restsOnState={restsOnState}
-            filter={filter}
-            onFilter={onFilter}
-          />
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -288,14 +311,50 @@ function StageRow({
       <StageMeta stage={stage} label={label} />
       <div className="flex items-start gap-12">
         {stage.stage === "debrief" && stage.framing ? (
-          <FramingPane framing={stage.framing} id="region-framing" />
-        ) : stage.stage === "verify" ? (
-          <RegisterCard
-            assumptions={model.assumptions}
-            id={stage.regionId}
-            selectedId={selectedAssumption}
-            onSelect={onSelectAssumption}
-          />
+          <>
+            <FramingPane framing={stage.framing} id="region-framing" />
+            {/* The framing pane already renders "01 Brief & Problem.md" in
+                full; the loop's other outputs (Clarifications.md,
+                Agreements.md) still need the generic artifact-card path. */}
+            {stage.cards
+              .filter((c) => c.file !== "01 Brief & Problem.md")
+              .map((c) => (
+                <ArtifactCard
+                  key={c.id}
+                  card={c}
+                  slug={model.project.slug}
+                  stageLabel={label}
+                  liveBlocks={liveCards?.[c.id]}
+                  expanded={onToggleExpand ? expanded?.has(c.id) ?? false : undefined}
+                  onToggleExpand={onToggleExpand ? () => onToggleExpand(c.id) : undefined}
+                />
+              ))}
+          </>
+        ) : stage.stage === "research" ? (
+          <>
+            {/* Research owns the risk register (decision 0018: verify folded
+                into research) — its pressure-test move updates the same
+                Assumptions & Risks.md the register renders, so the register
+                sits beside research's own artifact cards, not off on its own
+                stage. */}
+            {stage.cards.map((c) => (
+              <ArtifactCard
+                key={c.id}
+                card={c}
+                slug={model.project.slug}
+                stageLabel={label}
+                liveBlocks={liveCards?.[c.id]}
+                expanded={onToggleExpand ? expanded?.has(c.id) ?? false : undefined}
+                onToggleExpand={onToggleExpand ? () => onToggleExpand(c.id) : undefined}
+              />
+            ))}
+            <RegisterCard
+              assumptions={model.assumptions}
+              id="region-assumptions"
+              selectedId={selectedAssumption}
+              onSelect={onSelectAssumption}
+            />
+          </>
         ) : stage.stage === "design-system" ? (
           <DesignSystemBoard model={model.designSystem} prototype={model.prototype} id="design-system-board" />
         ) : stage.stage === "build" ? (
@@ -308,8 +367,6 @@ function StageRow({
               <ComponentBoard tokens={model.tokens} id="component-board" onFly={onFly} />
             ) : null}
           </>
-        ) : stage.isDecisionStage ? (
-          <DecisionSlice stage={stage} model={model} />
         ) : (
           stage.cards.map((c) => (
             <ArtifactCard
@@ -348,43 +405,6 @@ function StageMeta({ stage, label }: { stage: SpineStage; label: string }) {
           {stripDots(stage.gate)}
         </p>
       ) : null}
-    </div>
-  );
-}
-
-function DecisionSlice({ stage, model }: { stage: SpineStage; model: BoardModel }) {
-  const entries = model.decisionStream.filter((d) => stage.decisionSlice.includes(d.id));
-  return (
-    <div className="card-sheet w-[24rem] max-w-[88vw] px-6 py-5">
-      <p className="eyebrow mb-1">Decisions here</p>
-      {entries.length === 0 ? (
-        <p className="text-[0.875rem] italic text-ink-faint">
-          Not run — no decisions recorded at this stage.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {entries.map((e) => (
-            <li key={e.id} className="text-[0.875rem]">
-              <a href={`#d-${e.id}`} className="text-ink hover:text-accent">
-                <span className="font-mono text-[0.75rem] text-ink-faint">{e.id}</span>{" "}
-                {e.title}
-              </a>
-              {e.status === "superseded" ? (
-                <span className="ml-1 text-[0.6875rem] uppercase tracking-[0.08em] text-ink-faint">
-                  retired
-                </span>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="mt-3 text-[0.75rem] text-ink-faint">
-        This stage&rsquo;s slice of the{" "}
-        <a href="#region-decision-stream" className="text-accent hover:underline">
-          decision stream
-        </a>
-        .
-      </p>
     </div>
   );
 }
