@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "sanity": "node scripts/sanity.mjs",
+    "design:lint": "node scripts/design-lint.mjs",
+    "design:export": "node scripts/design-export.mjs",
+    "design:diff": "node scripts/design-diff.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
