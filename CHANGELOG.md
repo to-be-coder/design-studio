@@ -6,6 +6,14 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **A click is a verdict, and every card records itself** (vault decision 0037). The review
+  surface loses its last batch ceremony: the bottom "Record review" bar is gone, and each candidate
+  card gets its own Record verdict button (select a verdict, optionally add words, record), the
+  same immediate pattern as Record answer and Record ruling. The headless-verdict law is amended to
+  match: when the human typed words those are the quotable span; when she only clicked, the review
+  block's own transcribed line is the span and the recorder quotes it marked "chosen by click; no
+  words typed". A reshape ruling still requires her typed words. This unsticks click-only review
+  blocks the recorder previously (and correctly, under the old wording) refused to transcribe.
 - **One continuous cycle** (vault decision 0036). Three pauses die. Creating a project now chains
   the debrief seed straight into the research loop (no Run button; the first stop is two dry
   rounds or the round cap). A 🔴 moment (framing lock, framing departure, directions pick) still

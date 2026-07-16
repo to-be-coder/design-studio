@@ -61,11 +61,12 @@ export function WwbPane({
  * labels are plain words that say what the reader does or finds there (the
  * system vocabulary stays in the docs, never in the chrome).
  */
-type TabKey = "parked" | "questions" | "proposed" | "rulings" | "context";
+type TabKey = "needs-you" | "proposed" | "rulings" | "context";
 
 const TABS: { key: TabKey; label: string; showCount: boolean }[] = [
-  { key: "parked", label: "Your call", showCount: true },
-  { key: "questions", label: "Questions for you", showCount: true },
+  // One place for everything awaiting the human: parked rulings AND open
+  // questions. Different inputs, same job (your attention), so one tab.
+  { key: "needs-you", label: "Needs you", showCount: true },
   { key: "proposed", label: "Build candidates", showCount: true },
   { key: "rulings", label: "Already decided", showCount: false },
   { key: "context", label: "Background", showCount: false },
@@ -78,11 +79,14 @@ interface VerdictState {
   note: string;
   unblocks: string;
 }
+/**
+ * A ruling is accept or reject, nothing else: the candidate is either the
+ * project's direction or it is not. It records the moment you hit Record
+ * ruling (its own immediate post), not as part of the batched review below.
+ */
 interface RulingState {
   id: string;
-  disposition: "accept" | "reshape" | "reject";
-  words: string;
-  confirmed: boolean;
+  disposition: "accept" | "reject";
 }
 
 function WwbTabs({
@@ -102,12 +106,19 @@ function WwbTabs({
   const [verdicts, setVerdicts] = useState<Record<string, VerdictState>>({});
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ruling, setRuling] = useState<RulingState | null>(null);
-  const [confirmingSubmit, setConfirmingSubmit] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [rulingBusy, setRulingBusy] = useState<string | null>(null);
+  const [rulingDone, setRulingDone] = useState<Record<string, "accept" | "reject">>({});
+  const [rulingError, setRulingError] = useState<{ id: string; message: string } | null>(null);
+  const [answerBusy, setAnswerBusy] = useState<string | null>(null);
+  const [answersDone, setAnswersDone] = useState<Record<string, string>>({});
+  const [answerError, setAnswerError] = useState<{ id: string; message: string } | null>(null);
+  const [verdictBusy, setVerdictBusy] = useState<string | null>(null);
+  const [verdictsDone, setVerdictsDone] = useState<Record<string, WwbDisposition>>({});
+  const [verdictError, setVerdictError] = useState<{ id: string; message: string } | null>(null);
 
-  const rulingFirst = wwb.parked.length > 0;
+  // Ruling-first holds candidate triage only while a parked call still awaits
+  // a ruling; the moment every ruling is recorded, triage unlocks.
+  const rulingFirst = wwb.parked.some((p) => !p.recorded);
 
   // Research's dont-build-lean proposals are NOT human rulings: they render on
   // the Ideas-to-sort tab (a receded, uncounted group), never under Already
@@ -115,28 +126,27 @@ function WwbTabs({
   const ruledOut = wwb.dontBuild.filter((e) => e.source !== "proposed");
   const recommendedCuts = wwb.dontBuild.filter((e) => e.source === "proposed");
 
+  // Badge + default-tab counts are what still NEEDS you: a recorded ruling or
+  // answer stays visible on its tab but no longer counts against you.
+  // Badge + default-tab counts are what still NEEDS you: a recorded ruling or
+  // answer stays visible on its tab but no longer counts against you.
   const counts: Record<TabKey, number> = {
-    parked: wwb.parked.length,
-    questions: wwb.questions.length,
+    "needs-you":
+      wwb.parked.filter((p) => !p.recorded).length +
+      wwb.questions.filter((q) => !q.answered).length,
     proposed: wwb.proposed.length,
     rulings: wwb.buildNow.length + wwb.backlog.length + ruledOut.length,
     context: wwb.unruled.length + wwb.blocking.length,
   };
 
-  // Default tab: the first non-empty of Parked, Questions, Proposed; else Rulings.
-  // A parked 🔴 therefore lands the reader on the ruling first (ruling-first mode).
+  // Default tab: Needs you while anything awaits the human, else Proposed,
+  // else Rulings. A parked 🔴 still leads inside the tab (ruling-first mode).
   const defaultTab: TabKey =
-    counts.parked > 0
-      ? "parked"
-      : counts.questions > 0
-        ? "questions"
-        : counts.proposed > 0
-          ? "proposed"
-          : "rulings";
+    counts["needs-you"] > 0 ? "needs-you" : counts.proposed > 0 ? "proposed" : "rulings";
   const [active, setActive] = useState<TabKey>(defaultTab);
 
   const setVerdict = (id: string, verdict: WwbDisposition | null) => {
-    setConfirmingSubmit(false);
+    setVerdictError(null);
     setVerdicts((prev) => {
       const next = { ...prev };
       if (verdict == null || prev[id]?.verdict === verdict) delete next[id];
@@ -147,39 +157,14 @@ function WwbTabs({
   const patchVerdict = (id: string, patch: Partial<VerdictState>) =>
     setVerdicts((prev) => (prev[id] ? { ...prev, [id]: { ...prev[id], ...patch } } : prev));
 
-  const rulingCandidate = ruling ? wwb.parked.find((p) => p.id === ruling.id) ?? null : null;
 
-  const verdictList = Object.entries(verdicts).map(([id, v]) => ({
-    id,
-    verdict: v.verdict,
-    note: v.note.trim() || undefined,
-    unblocks: v.verdict === "backlog" && v.unblocks.trim() ? v.unblocks.trim() : undefined,
-  }));
-  const answerList = Object.entries(answers)
-    .map(([id, text]) => ({ id, text: text.trim() }))
-    .filter((a) => a.text.length > 0);
-  const rulingPayload =
-    ruling && ruling.confirmed && ruling.words.trim() && rulingCandidate
-      ? {
-          id: ruling.id,
-          kind: rulingCandidate.kind,
-          disposition: ruling.disposition,
-          words: ruling.words.trim(),
-          confirmed: true as const,
-          candidate: rulingCandidate.candidate,
-        }
-      : undefined;
-
-  const batchSize = verdictList.length + answerList.length + (rulingPayload ? 1 : 0);
-
-  const submit = async () => {
-    if (batchSize === 0 || busy) return;
-    if (!confirmingSubmit) {
-      setConfirmingSubmit(true);
-      return;
-    }
-    setBusy(true);
-    setError(null);
+  // Record answer posts one answer by itself, immediately, same as a ruling:
+  // typing an answer and hitting its button should not also require the batch.
+  const recordAnswer = async (q: WwbQuestion) => {
+    const text = (answers[q.id] ?? "").trim();
+    if (!text || answerBusy) return;
+    setAnswerBusy(q.id);
+    setAnswerError(null);
     try {
       const res = await fetch("/api/projects/review", {
         method: "POST",
@@ -188,87 +173,183 @@ function WwbTabs({
           slug,
           wwbRound: wwb.round,
           entriesHash: wwb.entriesHash,
-          verdicts: verdictList,
-          answers: answerList,
-          ruling: rulingPayload,
+          verdicts: [],
+          answers: [{ id: q.id, text }],
         }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(data.error ?? "Could not record the review.");
-        setBusy(false);
-        setConfirmingSubmit(false);
+        setAnswerError({ id: q.id, message: data.error ?? "Could not record the answer." });
+        setAnswerBusy(null);
         return;
       }
-      setDone(true);
-      setBusy(false);
+      setAnswersDone((prev) => ({ ...prev, [q.id]: text }));
+      setAnswerBusy(null);
       onRunStarted?.();
       router.refresh();
     } catch {
-      setError("Could not reach the server.");
-      setBusy(false);
-      setConfirmingSubmit(false);
+      setAnswerError({ id: q.id, message: "Could not reach the server." });
+      setAnswerBusy(null);
     }
   };
 
-  const isReviewTab = active === "parked" || active === "questions" || active === "proposed";
+  // Record ruling posts the ruling by itself, immediately: a framing ruling is
+  // the call everything else re-scopes on, so it does not wait in the batch.
+  const recordRuling = async (p: WwbParked) => {
+    if (!ruling || ruling.id !== p.id || rulingBusy) return;
+    setRulingBusy(p.id);
+    setRulingError(null);
+    try {
+      const res = await fetch("/api/projects/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          wwbRound: wwb.round,
+          entriesHash: wwb.entriesHash,
+          verdicts: [],
+          answers: [],
+          ruling: {
+            id: p.id,
+            kind: p.kind,
+            disposition: ruling.disposition,
+            words: "",
+            confirmed: true,
+            candidate: p.candidate,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setRulingError({ id: p.id, message: data.error ?? "Could not record the ruling." });
+        setRulingBusy(null);
+        return;
+      }
+      setRulingDone((prev) => ({ ...prev, [p.id]: ruling.disposition }));
+      setRulingBusy(null);
+      onRunStarted?.();
+      router.refresh();
+    } catch {
+      setRulingError({ id: p.id, message: "Could not reach the server." });
+      setRulingBusy(null);
+    }
+  };
+
+  // Record verdict posts one candidate's ruling by itself, immediately, the
+  // same as Record answer and Record ruling: no batch, no second surface.
+  const recordVerdict = async (e: WwbEntry) => {
+    const v = verdicts[e.id];
+    if (!v || verdictBusy) return;
+    setVerdictBusy(e.id);
+    setVerdictError(null);
+    try {
+      const res = await fetch("/api/projects/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          wwbRound: wwb.round,
+          entriesHash: wwb.entriesHash,
+          verdicts: [
+            {
+              id: e.id,
+              verdict: v.verdict,
+              note: v.note.trim() || undefined,
+              unblocks: v.verdict === "backlog" && v.unblocks.trim() ? v.unblocks.trim() : undefined,
+            },
+          ],
+          answers: [],
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setVerdictError({ id: e.id, message: data.error ?? "Could not record the verdict." });
+        setVerdictBusy(null);
+        return;
+      }
+      setVerdictsDone((m) => ({ ...m, [e.id]: v.verdict }));
+      setVerdicts((prev) => {
+        const next = { ...prev };
+        delete next[e.id];
+        return next;
+      });
+      setVerdictBusy(null);
+      onRunStarted?.();
+      router.refresh();
+    } catch {
+      setVerdictError({ id: e.id, message: "Could not reach the server." });
+      setVerdictBusy(null);
+    }
+  };
+
+  const isReviewTab = active === "needs-you" || active === "proposed";
+
+  // Needs you carries only what still awaits the human. A ruling or answer
+  // already in the ledger's Review log files under Already decided; the one
+  // you record THIS session stays in place with its confirmation banner
+  // (client state), then files on the next load.
+  const parkedNeeds = wwb.parked.filter((p) => !p.recorded);
+  const parkedFiled = wwb.parked.filter((p) => p.recorded);
+  const questionsNeeds = wwb.questions.filter((q) => !q.answered);
+  const questionsFiled = wwb.questions.filter((q) => q.answered);
 
   // #wwb-review lands here (the tabs), which show the default tab on mount.
   return (
     <div id="wwb-review" data-testid="wwb-review">
       <TabBar counts={counts} active={active} onSelect={setActive} />
 
-      <TabPanel tabKey="parked" active={active}>
-        {counts.parked === 0 ? (
-          <EmptyTab>Nothing is waiting on your decision right now.</EmptyTab>
+      <TabPanel tabKey="needs-you" active={active}>
+        {parkedNeeds.length === 0 && questionsNeeds.length === 0 ? (
+          <EmptyTab>Nothing needs you right now.</EmptyTab>
         ) : (
-          // Ruling-first: the parked 🔴 leads; proposed entries wait on the ruling.
-          wwb.parked.map((p) => (
-            <RulingCard
-              key={p.id}
-              parked={p}
-              slug={slug}
-              interactive={runsEnabled && !done}
-              ruling={ruling}
-              onFocusReceipt={onFocusReceipt}
-              onPick={(disposition) =>
-                setRuling((prev) =>
-                  prev && prev.id === p.id && prev.disposition === disposition
-                    ? null
-                    : { id: p.id, disposition, words: prev?.id === p.id ? prev.words : "", confirmed: false },
-                )
-              }
-              onWords={(words) =>
-                setRuling((prev) => (prev && prev.id === p.id ? { ...prev, words } : prev))
-              }
-              onConfirm={() =>
-                setRuling((prev) => (prev && prev.id === p.id ? { ...prev, confirmed: true } : prev))
-              }
-            />
-          ))
-        )}
-      </TabPanel>
-
-      <TabPanel tabKey="questions" active={active}>
-        {counts.questions === 0 ? (
-          <EmptyTab>No open questions for you right now.</EmptyTab>
-        ) : (
-          <ul className="space-y-4" data-testid="wwb-questions">
-            {wwb.questions.map((q) => (
-              <QuestionRow
-                key={q.id}
-                question={q}
+          <>
+            {/* Ruling-first: the parked 🔴 leads; everything re-scopes on it. */}
+            {parkedNeeds.map((p) => (
+              <RulingCard
+                key={p.id}
+                parked={p}
                 slug={slug}
-                interactive={runsEnabled && !done}
-                value={answers[q.id] ?? ""}
+                interactive={runsEnabled}
+                picked={ruling?.id === p.id ? ruling.disposition : null}
+                busy={rulingBusy === p.id}
+                recorded={rulingDone[p.id] ?? p.recorded ?? null}
+                error={rulingError?.id === p.id ? rulingError.message : null}
                 onFocusReceipt={onFocusReceipt}
-                onChange={(text) => {
-                  setConfirmingSubmit(false);
-                  setAnswers((prev) => ({ ...prev, [q.id]: text }));
-                }}
+                onPick={(disposition) =>
+                  setRuling((prev) =>
+                    prev && prev.id === p.id && prev.disposition === disposition
+                      ? null
+                      : { id: p.id, disposition },
+                  )
+                }
+                onRecord={() => recordRuling(p)}
               />
             ))}
-          </ul>
+            {questionsNeeds.length > 0 ? (
+              <>
+                {parkedNeeds.length > 0 ? (
+                  <p className="eyebrow mb-3 mt-6">Questions for you</p>
+                ) : null}
+                <ul className="space-y-4" data-testid="wwb-questions">
+                  {questionsNeeds.map((q) => (
+                    <QuestionRow
+                      key={q.id}
+                      question={q}
+                      slug={slug}
+                      interactive={runsEnabled}
+                      value={answers[q.id] ?? ""}
+                      answered={answersDone[q.id] ?? q.answered ?? null}
+                      busy={answerBusy === q.id}
+                      error={answerError?.id === q.id ? answerError.message : null}
+                      onFocusReceipt={onFocusReceipt}
+                      onChange={(text) => setAnswers((prev) => ({ ...prev, [q.id]: text }))}
+                      onRecord={() => recordAnswer(q)}
+                    />
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </>
         )}
       </TabPanel>
 
@@ -289,10 +370,14 @@ function WwbTabs({
                   entry={e}
                   slug={slug}
                   onFocusReceipt={onFocusReceipt}
-                  triage={runsEnabled && !rulingFirst && !done}
+                  triage={runsEnabled && !rulingFirst}
                   state={verdicts[e.id]}
+                  busy={verdictBusy === e.id}
+                  recorded={verdictsDone[e.id] ?? null}
+                  error={verdictError?.id === e.id ? verdictError.message : null}
                   onVerdict={(v) => setVerdict(e.id, v)}
                   onPatch={(patch) => patchVerdict(e.id, patch)}
+                  onRecord={() => recordVerdict(e)}
                 />
               ))}
             </ul>
@@ -302,10 +387,54 @@ function WwbTabs({
       </TabPanel>
 
       <TabPanel tabKey="rulings" active={active}>
-        {counts.rulings === 0 ? (
+        {counts.rulings === 0 && parkedFiled.length === 0 && questionsFiled.length === 0 ? (
           <EmptyTab>Nothing decided yet. What you rule lands here: build now, backlog, or don&rsquo;t build.</EmptyTab>
         ) : (
           <>
+            {/* Freshly recorded rulings and answers file here the moment they
+                are in the Review log; research folds them in next round. */}
+            {parkedFiled.length > 0 ? (
+              <section className="mb-8" data-testid="wwb-filed-rulings">
+                <p className="eyebrow mb-3">Rulings recorded</p>
+                {parkedFiled.map((p) => (
+                  <RulingCard
+                    key={p.id}
+                    parked={p}
+                    slug={slug}
+                    interactive={false}
+                    picked={null}
+                    busy={false}
+                    recorded={p.recorded}
+                    error={null}
+                    onFocusReceipt={onFocusReceipt}
+                    onPick={() => {}}
+                    onRecord={() => {}}
+                  />
+                ))}
+              </section>
+            ) : null}
+            {questionsFiled.length > 0 ? (
+              <section className="mb-8" data-testid="wwb-filed-answers">
+                <p className="eyebrow mb-3">Answers recorded</p>
+                <ul className="space-y-4">
+                  {questionsFiled.map((q) => (
+                    <QuestionRow
+                      key={q.id}
+                      question={q}
+                      slug={slug}
+                      interactive={false}
+                      value=""
+                      answered={q.answered}
+                      busy={false}
+                      error={null}
+                      onFocusReceipt={onFocusReceipt}
+                      onChange={() => {}}
+                      onRecord={() => {}}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <BuildNow entries={wwb.buildNow} slug={slug} onFocusReceipt={onFocusReceipt} />
             <Backlog entries={wwb.backlog} slug={slug} onFocusReceipt={onFocusReceipt} />
             <DontBuild entries={ruledOut} slug={slug} onFocusReceipt={onFocusReceipt} />
@@ -338,18 +467,10 @@ function WwbTabs({
         )}
       </TabPanel>
 
-      {isReviewTab ? (
-        <SubmitBar
-          runsEnabled={runsEnabled}
-          done={done}
-          busy={busy}
-          confirmingSubmit={confirmingSubmit}
-          batchSize={batchSize}
-          summary={summarize(verdictList, answerList, !!rulingPayload)}
-          error={error}
-          onSubmit={submit}
-          onBack={() => setConfirmingSubmit(false)}
-        />
+      {isReviewTab && !runsEnabled ? (
+        <p className="mt-6 text-[0.8125rem] text-ink-muted" data-testid="review-readonly">
+          Review runs from Claude Code.
+        </p>
       ) : null}
     </div>
   );
@@ -382,7 +503,6 @@ function TabBar({
     <div role="tablist" aria-label="What's Worth Building sections" className="mb-6 flex flex-wrap gap-2">
       {TABS.map((t, i) => {
         const isActive = active === t.key;
-        const empty = counts[t.key] === 0;
         return (
           <button
             key={t.key}
@@ -403,8 +523,11 @@ function TabBar({
               isActive
                 ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
                 : {
+                    // One resting color for every inactive tab: a faint tab
+                    // reads as disabled, and every tab here is clickable (an
+                    // empty one explains itself inside its panel).
                     background: "transparent",
-                    color: empty ? "var(--ink-faint)" : "var(--ink-muted)",
+                    color: "var(--ink-muted)",
                     borderColor: "var(--rule-strong)",
                   }
             }
@@ -451,115 +574,31 @@ function EmptyTab({ children }: { children: React.ReactNode }) {
 }
 
 /** The sticky review bar: the destination-split summary + the two-step submit. */
-function SubmitBar({
-  runsEnabled,
-  done,
-  busy,
-  confirmingSubmit,
-  batchSize,
-  summary,
-  error,
-  onSubmit,
-  onBack,
-}: {
-  runsEnabled: boolean;
-  done: boolean;
-  busy: boolean;
-  confirmingSubmit: boolean;
-  batchSize: number;
-  summary: string;
-  error: string | null;
-  onSubmit: () => void;
-  onBack: () => void;
-}) {
-  return (
-    <div
-      className="sticky bottom-0 z-10 mt-6 border-t bg-desk/95 px-1 py-3 backdrop-blur"
-      style={{ borderColor: "var(--accent-edge)" }}
-    >
-      {!runsEnabled ? (
-        <p className="text-[0.8125rem] text-ink-muted" data-testid="review-readonly">
-          Review runs from Claude Code.
-        </p>
-      ) : done ? (
-        <p className="text-[0.8125rem] text-ink-muted" data-testid="review-submitted">
-          Review recorded. Research is resuming in the background.
-        </p>
-      ) : (
-        <>
-          <p className="mb-2 text-[0.8125rem] text-ink-muted" data-testid="review-summary">
-            {summary}
-          </p>
-          {error ? <p className="mb-2 text-[0.8125rem] text-unverified">{error}</p> : null}
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={batchSize === 0 || busy}
-            data-testid="submit-review"
-            className="rounded-inset border px-3.5 py-1.5 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ borderColor: "var(--accent)", background: "var(--accent-wash)", color: "var(--accent)" }}
-          >
-            {busy ? "Recording review…" : confirmingSubmit ? "Confirm and record review" : "Record review"}
-          </button>
-          {confirmingSubmit && !busy ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="ml-3 text-[0.8125rem] text-ink-muted underline underline-offset-2 hover:text-ink"
-            >
-              Back
-            </button>
-          ) : null}
-        </>
-      )}
-    </div>
-  );
-}
-
-/** The destination-split live summary of the pending batch. */
-function summarize(
-  verdicts: { verdict: WwbDisposition }[],
-  answers: unknown[],
-  ruling: boolean,
-): string {
-  const n = (v: WwbDisposition) => verdicts.filter((x) => x.verdict === v).length;
-  const decisionBits: string[] = [];
-  if (n("build-now")) decisionBits.push(`${n("build-now")} build now`);
-  if (n("backlog")) decisionBits.push(`${n("backlog")} backlog`);
-  if (n("dont-build")) decisionBits.push(`${n("dont-build")} don't build`);
-  if (ruling) decisionBits.push("1 ruling");
-  const parts: string[] = [];
-  if (decisionBits.length) parts.push(`${decisionBits.join(", ")}: write to Decisions/.`);
-  if (answers.length) parts.push(`${answers.length} answer${answers.length === 1 ? "" : "s"}: resumes research.`);
-  return parts.length ? parts.join(" ") : "Nothing selected yet.";
-}
-
 // ── The ruling card: a decision only the human can make ───────────────────────
 
 function RulingCard({
   parked,
   slug,
   interactive,
-  ruling,
+  picked,
+  busy,
+  recorded,
+  error,
   onFocusReceipt,
   onPick,
-  onWords,
-  onConfirm,
+  onRecord,
 }: {
   parked: WwbParked;
   slug: string;
   interactive: boolean;
-  ruling: RulingState | null;
+  picked: "accept" | "reject" | null;
+  busy: boolean;
+  recorded: "accept" | "reject" | "reshape" | null;
+  error: string | null;
   onFocusReceipt?: (docKey: string) => void;
-  onPick: (d: "accept" | "reshape" | "reject") => void;
-  onWords: (w: string) => void;
-  onConfirm: () => void;
+  onPick: (d: "accept" | "reject") => void;
+  onRecord: () => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
-  const active = ruling?.id === parked.id ? ruling : null;
-  const words = active?.words ?? "";
-  const canRecord = interactive && !!active && words.trim().length > 0;
-
   return (
     <article
       data-testid="wwb-ruling"
@@ -602,89 +641,50 @@ function RulingCard({
         </div>
       ) : null}
 
-      {interactive ? (
+      {recorded ? (
+        // Read from the ledger's Review log, so it survives a page refresh:
+        // the card stays visible as a recorded ruling until research
+        // re-scopes What's Worth Building, then clears with the next round.
+        <p className="mt-2 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }} data-testid="ruling-recorded">
+          Ruling recorded: {recorded}. Research re-scopes around it, then this card clears.
+        </p>
+      ) : interactive ? (
         <>
-          <div className="mb-3 grid grid-cols-3 gap-2">
-            {(["accept", "reshape", "reject"] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                data-testid={`ruling-${d}`}
-                aria-pressed={active?.disposition === d}
-                onClick={() => {
-                  setConfirming(false);
-                  onPick(d);
-                }}
-                className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors"
-                style={
-                  active?.disposition === d
-                    ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-                    : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
-                }
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-
-          {active ? (
-            <div>
-              <textarea
-                value={words}
-                onChange={(e) => {
-                  setConfirming(false);
-                  onWords(e.target.value);
-                }}
-                rows={3}
-                placeholder="In your own words, the ruling, so research records your reasoning, not ours…"
-                data-testid="ruling-words"
-                className="w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
-              />
-
-              {active.confirmed ? (
-                <p className="mt-2 text-[0.8125rem] text-ink-muted" data-testid="ruling-recorded">
-                  Ruling ready. Record the review below to send it.
-                </p>
-              ) : confirming ? (
-                <div className="mt-3">
-                  <p className="mb-2 text-[0.8125rem] text-ink">
-                    {`This becomes the project's direction${parked.supersedes ? ` and replaces decision ${parked.supersedes.replace(/^Decisions\//, "").split(" ")[0]}` : ""}. The build plan re-scopes around your words.`}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onConfirm();
-                      setConfirming(false);
-                    }}
-                    data-testid="ruling-confirm"
-                    className="rounded-inset border px-3 py-1 text-[0.8125rem] font-semibold transition-colors"
-                    style={{ borderColor: "var(--accent)", background: "var(--accent-wash)", color: "var(--accent)" }}
-                  >
-                    Confirm ruling
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirming(false)}
-                    className="ml-3 text-[0.8125rem] text-ink-muted underline underline-offset-2 hover:text-ink"
-                  >
-                    Back
-                  </button>
-                </div>
-              ) : (
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              {(["accept", "reject"] as const).map((d) => (
                 <button
+                  key={d}
                   type="button"
-                  onClick={() => setConfirming(true)}
-                  disabled={!canRecord}
-                  data-testid="ruling-record"
-                  className="mt-3 rounded-inset border px-3 py-1 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-                  style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+                  data-testid={`ruling-${d}`}
+                  aria-pressed={picked === d}
+                  onClick={() => onPick(d)}
+                  className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors"
+                  style={
+                    picked === d
+                      ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
+                      : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+                  }
                 >
-                  Record ruling
+                  {d}
                 </button>
-              )}
+              ))}
             </div>
-          ) : null}
-        </>
+
+            {error ? <p className="mb-2 text-[0.8125rem] text-unverified">{error}</p> : null}
+
+            {/* One click records it: the ruling posts by itself, right now,
+                not as part of the review batch below. */}
+            <button
+              type="button"
+              onClick={onRecord}
+              disabled={!picked || busy}
+              data-testid="ruling-record"
+              className="rounded-inset border px-3 py-1 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+            >
+              {busy ? "Recording…" : "Record ruling"}
+            </button>
+          </>
       ) : null}
     </article>
   );
@@ -692,24 +692,38 @@ function RulingCard({
 
 // ── A proposed entry: verdict buttons (triage) or read-only ───────────────────
 
+const VERDICT_WORDS: Record<WwbDisposition, string> = {
+  "build-now": "build now",
+  backlog: "backlog",
+  "dont-build": "don't build",
+};
+
 function ProposedEntry({
   entry,
   slug,
   triage,
   state,
+  busy,
+  recorded,
+  error,
   onFocusReceipt,
   onVerdict,
   onPatch,
+  onRecord,
 }: {
   entry: WwbEntry;
   slug: string;
   triage: boolean;
   state?: VerdictState;
+  busy: boolean;
+  recorded: WwbDisposition | null;
+  error: string | null;
   onFocusReceipt?: (docKey: string) => void;
   onVerdict: (v: WwbDisposition | null) => void;
   onPatch: (patch: Partial<VerdictState>) => void;
+  onRecord: () => void;
 }) {
-  const pending = !!state;
+  const pending = !!state && !recorded;
   return (
     <li
       data-testid="wwb-entry"
@@ -722,7 +736,14 @@ function ProposedEntry({
     >
       <div className="mb-2 flex items-start justify-between gap-3">
         <h4 className="font-sans text-[1rem] font-semibold text-ink">{entry.title}</h4>
-        {pending ? (
+        {recorded ? (
+          <span
+            className="shrink-0 rounded-pill border border-rule-strong px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+            data-testid="verdict-recorded-pill"
+          >
+            Recorded
+          </span>
+        ) : pending ? (
           <span
             className="shrink-0 rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
             style={{ background: "var(--accent-wash)", color: "var(--accent)" }}
@@ -734,7 +755,11 @@ function ProposedEntry({
       </div>
       <Reasons entry={entry} slug={slug} onFocusReceipt={onFocusReceipt} />
 
-      {triage ? (
+      {recorded ? (
+        <p className="mt-3 text-[0.8125rem] text-ink-muted" data-testid="verdict-recorded">
+          Recorded as {VERDICT_WORDS[recorded]}. Research folds it in on the next pass.
+        </p>
+      ) : triage ? (
         <div className="mt-3">
           <div className="flex flex-wrap gap-2" role="group" aria-label={`Verdict for ${entry.title}`}>
             <VerdictButton label="Build now" verdict="build-now" testid="verdict-build-now" state={state} onVerdict={onVerdict} />
@@ -761,6 +786,17 @@ function ProposedEntry({
                   className="w-full rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] text-ink outline-none transition-colors focus-visible:border-accent"
                 />
               ) : null}
+              {error ? <p className="text-[0.8125rem] text-unverified">{error}</p> : null}
+              <button
+                type="button"
+                onClick={onRecord}
+                disabled={busy}
+                data-testid="verdict-record"
+                className="rounded-inset border px-3.5 py-1.5 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ borderColor: "var(--accent)", background: "var(--accent-wash)", color: "var(--accent)" }}
+              >
+                {busy ? "Recording…" : "Record verdict"}
+              </button>
             </div>
           ) : null}
         </div>
@@ -806,15 +842,24 @@ function QuestionRow({
   slug,
   interactive,
   value,
+  answered,
+  busy,
+  error,
   onFocusReceipt,
   onChange,
+  onRecord,
 }: {
   question: WwbQuestion;
   slug: string;
   interactive: boolean;
   value: string;
+  /** The recorded answer (from this session or the ledger's Review log), or null. */
+  answered: string | null;
+  busy: boolean;
+  error: string | null;
   onFocusReceipt?: (docKey: string) => void;
   onChange: (text: string) => void;
+  onRecord: () => void;
 }) {
   return (
     <li id={`wwb-q-${question.id}`} data-question={question.id} className="rounded-inset border border-rule bg-paper px-4 py-3">
@@ -834,15 +879,37 @@ function QuestionRow({
           <ReceiptLinks receipts={question.receipts} slug={slug} onFocus={onFocusReceipt} />
         </div>
       ) : null}
-      {interactive ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={2}
-          placeholder="Your answer…"
-          data-testid={`answer-${question.id}`}
-          className="mt-3 w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
-        />
+      {answered ? (
+        // Read from the ledger's Review log, so it survives a page refresh:
+        // the question reads as answered until research folds it in.
+        <div className="mt-3" data-testid={`answer-recorded-${question.id}`}>
+          <p className="text-[0.9375rem] leading-relaxed text-ink-muted">{answered}</p>
+          <p className="mt-1 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }}>
+            Answer recorded. Research picks it up, then this clears.
+          </p>
+        </div>
+      ) : interactive ? (
+        <>
+          <textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={2}
+            placeholder="Your answer…"
+            data-testid={`answer-${question.id}`}
+            className="mt-3 w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
+          />
+          {error ? <p className="mt-2 text-[0.8125rem] text-unverified">{error}</p> : null}
+          <button
+            type="button"
+            onClick={onRecord}
+            disabled={!value.trim() || busy}
+            data-testid={`answer-record-${question.id}`}
+            className="mt-2 rounded-inset border px-3 py-1 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+          >
+            {busy ? "Recording…" : "Record answer"}
+          </button>
+        </>
       ) : null}
     </li>
   );
