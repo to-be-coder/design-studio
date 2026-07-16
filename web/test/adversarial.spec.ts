@@ -301,12 +301,13 @@ test.describe("vault edge data (fixture-project)", () => {
     const dangling = page.locator("#d-0012");
     await expect(dangling).toBeVisible();
 
-    // Its supersede target does not exist → the connector is skipped, never
-    // half-drawn against a missing anchor.
+    // The reading pane draws no canvas edges at all, so a dangling supersede
+    // target can never leave a half-drawn edge behind.
     await expect(page.locator('[data-edge^="d-0012->"]')).toHaveCount(0);
 
-    // The known-good chain still draws, proving the skip was surgical.
-    await expect(page.locator('[data-edge="d-0008->d-0009"]')).toBeVisible();
+    // The known-good chain still renders its in-page supersede link, proving the
+    // entries render honestly.
+    await expect(page.locator("#d-0008").getByRole("link", { name: /superseded by 0009/i })).toBeVisible();
 
     expect(errors, `console/page errors on dangling refs:\n${errors.join("\n")}`).toEqual([]);
   });

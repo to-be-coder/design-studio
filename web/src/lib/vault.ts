@@ -5,6 +5,7 @@ import matter from "gray-matter";
 import { cache } from "react";
 import { parseMarkdownBody } from "./parse-markdown";
 import { normalizeStageName, stageDef } from "./schema";
+import { findStatusLine, parseLoopStatus } from "./loop-status";
 import type {
   Decision,
   DecisionStatus,
@@ -150,6 +151,9 @@ async function readProject(slug: string): Promise<Project | null> {
   const stage = str(d.stage);
   const route = str(d.route);
   const mtime = await mtimeOf(abs);
+  // Home-index badges: read the Current stage line ONLY (never the whole ledger).
+  const statusLine = findStatusLine(parsed.content);
+  const loop = statusLine ? parseLoopStatus(statusLine) : null;
   return {
     slug,
     name: firstH1(parsed.content) ?? humanize(slug),
@@ -160,6 +164,10 @@ async function readProject(slug: string): Promise<Project | null> {
     started: dateStr(d.started),
     prototypeRepo: str(d.prototype_repo),
     mtime,
+    agendaCount: loop?.agendaCount ?? null,
+    reviewCount: loop?.reviewCount ?? loop?.agendaCount ?? null,
+    loopTerminal: loop?.terminal ?? null,
+    loopRound: loop?.running ? loop.round : null,
   };
 }
 
@@ -264,6 +272,8 @@ export interface ProjectDetail {
   project: Project;
   /** Rendered dashboard body. */
   dashboardBlocks: RenderableBlock[];
+  /** Raw dashboard body (frontmatter stripped): the status-line grep source. */
+  dashboardBody: string;
   pipeline: StageState[];
   decisions: Decision[];
   /** Stages whose output artifact(s) exist on disk. */
@@ -307,6 +317,7 @@ export const getProject = cache(async (slug: string): Promise<ProjectDetail | nu
   return {
     project,
     dashboardBlocks,
+    dashboardBody: body,
     pipeline: parsePipelineLog(body),
     decisions,
     outputsPresent,
@@ -421,6 +432,38 @@ export async function readProjectFile(
 export async function projectFileExists(slug: string, rel: string): Promise<boolean> {
   return exists(path.join(await projectDir(slug), rel));
 }
+
+const PROJECT_SKIP_DIRS = new Set(["_assets", ".obsidian", ".git", ".trash", "node_modules"]);
+
+async function collectProjectFiles(dir: string, relBase: string, out: string[]): Promise<void> {
+  let entries: import("node:fs").Dirent[];
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    if (e.name.startsWith(".")) continue;
+    const rel = relBase ? `${relBase}/${e.name}` : e.name;
+    if (e.isDirectory()) {
+      if (PROJECT_SKIP_DIRS.has(e.name)) continue;
+      await collectProjectFiles(path.join(dir, e.name), rel, out);
+    } else if (e.isFile() && e.name.endsWith(".md")) {
+      out.push(rel);
+    }
+  }
+}
+
+/**
+ * Every markdown file inside a project folder, as project-relative paths (e.g.
+ * "02 Research/Company.md"). Used by the receipt resolver to turn a `[[link]]`
+ * into an in-canvas target. Skips assets + dot dirs; never throws.
+ */
+export const listProjectFiles = cache(async (slug: string): Promise<string[]> => {
+  const out: string[] = [];
+  await collectProjectFiles(await projectDir(slug), "", out);
+  return out;
+});
 
 // ---- decisions -------------------------------------------------------------
 

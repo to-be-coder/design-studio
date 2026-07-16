@@ -25,10 +25,17 @@ tolerance: those rows must be dropped, never crashed on, never mislabeled onto a
 also keeps a `Compile spec` row to exercise the utility-mapping tolerance — kept, not dropped (like
 `harvest`), since compile-spec is now a render utility (decision 0028), not a stage.
 
+## Current stage
+
+Current stage: research: converged-humans-needed: round 3, review 5
+
+Research ran to exhaustion and compiled the review surface; five items now need a human across
+proposed candidates, questions, and a parked framing call.
+
 ## Recommended next step
 
 Run `design-studio-compile-spec` for the handoff render, or an evaluate round in
-`design-studio-research` to test the prototype against the two in-session signals — recording any
+`design-studio-research` to test the prototype against the two in-session signals, recording any
 decision-invalidating findings as superseding entries.
 
 ## Overrides

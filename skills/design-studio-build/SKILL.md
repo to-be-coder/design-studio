@@ -34,6 +34,9 @@ prevents. If `03 Structure.md` is missing, offer `design-studio-structure` first
 the flows/IA, it no longer authors them ([[0024 structure-stage-flows-and-ia]]). If only `DESIGN.md`
 is missing, offer `design-studio-design-system` first — one shared visual contract is what keeps
 parallel agents from each inventing their own UI. The user may override, but make the gap explicit.
+Build consumes only the **human-confirmed Build now** set: if `What's Worth Building.md`'s Build now
+section is empty, warn (no human-confirmed Build now entries; triage the Proposed candidates in What's
+Worth Building first), warn-never-block.
 
 **Register gate** (warn, never block — a receipt; the pipeline's *only* register gate now lives here,
 at build's door, per [[0023 nothing-locks-before-production]]). Before starting the build, read

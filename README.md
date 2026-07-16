@@ -12,8 +12,8 @@ The skills are meant to be run roughly in order, though several can be used on d
 
 | # | Skill | What it does |
 |---|-------|--------------|
-| 1 | `design-studio-debrief` | Restate the brief as a *problem*, extract the hidden rubric, set up the project workspace. Client/team pole of the Understand loop. |
-| 2 | `design-studio-research` | Fan out parallel research across the product spine, user pain, prior art, and competitors — one orchestrator running named moves, including a **directions** move for hard decisions, a **pressure-test** move to refute a claim, an **evaluate** move to test the prototype against the success criteria (users or expert review), and a **reconcile** move that checks the decision log against shipped reality — and flag whether findings follow, subtract from, or depart the debrief framing. Evidence pole of the Understand loop. |
+| 1 | `design-studio-debrief` | Restate the brief as a *problem*, extract the hidden rubric, set up the project workspace, and seed `Knowns & Unknowns.md` (no question pre-labeled "ask a human"). The human pole of the Understand loop: the framing 🔴 and answer-batch ingestion. |
+| 2 | `design-studio-research` | The loop engine: run headless rounds over the ledger, attempting every open unknown per round (desk sweeps, plus **directions** / **pressure-test** / **evaluate** / **reconcile** moves on demand), spawning new unknowns as it answers old ones, until it provably runs dry (dry-streak convergence, round cap, 🔴 parks). Each round recompiles `What's Worth Building.md`, the **single review surface**: parked 🔴 calls, exhausted questions, and candidates to triage (Build now / Backlog / Don't build), a receipt on every reason. You rule there; a recorder transcribes your verdicts into the decision log; downstream stages consume only what you confirmed Build now. |
 | 3 | `design-studio-structure` | Draft user flows + information architecture from the accepted recommendation — bones before skin, so design-system and build build against a known structure. |
 | 4 | `design-studio-design-system` | Codify the visual language into a linted `DESIGN.md` — tokens + rationale — derived from the client's brand or chosen from rendered specimen boards. |
 | 5 | `design-studio-build` | Build the clickable prototype spec-first against `DESIGN.md` and the structure's flows/IA, in rounds — with round-closing gates for states, edge cases, and a11y; real content; DESIGN.md consistency plus the owned `design:diff` drift check against the signed-off ref; and the pipeline's only register gate. The pipeline ends here. |
@@ -37,6 +37,12 @@ the signed-off version.
 
 ## How a project runs
 
+- **One continuous cycle.** Submit a brief and the rest is automatic: it is sorted into
+  `Knowns & Unknowns.md`, research starts immediately, and the first stop is two rounds with no
+  progress (or the round cap). A 🔴 moment along the way (framing lock or departure, a directions
+  pick) is parked as a `proposed` decision without stopping the rounds. You review everything in
+  What's Worth Building; anything you submit (answers, verdicts, a new brief at any stage,
+  including build) is just another input: sorted into the ledger, and research runs again.
 - **Two routes.** `debrief` proposes one from how ambiguous the brief is: **Full** — the whole
   pipeline, for meaty, net-new problems — or **Lite** (a short Understand loop → `build`, inserting
   `design-system` when the look matters and `structure` when the flows aren't obvious, with

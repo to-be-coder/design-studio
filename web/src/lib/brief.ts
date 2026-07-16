@@ -4,19 +4,6 @@ import { blockText, findSection, splitByH2, type Section } from "./blocks";
 import type { FramingModel, RenderableBlock } from "./types";
 
 const BRIEF_FILE = "01 Brief & Problem.md";
-const CLARIFICATIONS_FILE = "Clarifications.md";
-const AGREEMENTS_FILE = "Agreements.md";
-
-/**
- * Read a companion vault file that reads as a debrief document (Clarifications,
- * Agreements). Drops its leading "# …" heading — the reader labels the doc.
- */
-async function readDocFile(slug: string, file: string): Promise<RenderableBlock[] | null> {
-  const f = await readProjectFile(slug, file);
-  if (!f) return null;
-  const blocks = await parseMarkdownBody(f.body);
-  return blocks.length && blocks[0].kind === "heading_1" ? blocks.slice(1) : blocks;
-}
 
 /**
  * Parse `01 Brief & Problem.md` into the framing model behind the board's
@@ -55,11 +42,6 @@ export async function getFraming(slug: string): Promise<FramingModel | null> {
   );
   const extras = sections.filter((s) => s.title && !used.has(s));
 
-  // The agenda and the agreements ledger live in their own files but read as
-  // debrief documents.
-  const clarifications = await readDocFile(slug, CLARIFICATIONS_FILE);
-  const agreements = await readDocFile(slug, AGREEMENTS_FILE);
-
   return {
     originalBrief: original?.blocks ?? null,
     restatedProblem: restated?.blocks ?? null,
@@ -69,8 +51,6 @@ export async function getFraming(slug: string): Promise<FramingModel | null> {
     successSignal: signal?.blocks ?? null,
     routeDecision: route?.blocks ?? null,
     extras,
-    clarifications,
-    agreements,
   };
 }
 

@@ -13,6 +13,46 @@ function stageLabel(stage: string | null): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/**
+ * The loop badge for a project card, read from its cheaply-parsed status line:
+ * accent "Review: N" when items await the human (converged-humans-needed or a
+ * parked ruling), a quiet "Ready for review" / "Paused" for the other terminals,
+ * and a faint "round N" while it is actively researching. No loop status →
+ * nothing.
+ */
+function LoopBadge({ project }: { project: Project }) {
+  const t = project.loopTerminal;
+  if (t === "converged-humans-needed" || t === "parked") {
+    const n = project.reviewCount;
+    return (
+      <span
+        data-testid="home-badge"
+        data-badge="review"
+        className="rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
+        style={{ background: "var(--accent-wash)", color: "var(--accent)" }}
+      >
+        {n != null ? `Review: ${n}` : "Review"}
+      </span>
+    );
+  }
+  if (t === "converged-complete" || t === "capped") {
+    const label = t === "converged-complete" ? "Ready for review" : "Paused";
+    return (
+      <span data-testid="home-badge" data-badge={t} className="text-[0.75rem] text-ink-muted">
+        {label}
+      </span>
+    );
+  }
+  if (project.loopRound != null) {
+    return (
+      <span data-testid="home-badge" data-badge="researching" className="font-mono text-[0.75rem] text-ink-faint">
+        round {project.loopRound}
+      </span>
+    );
+  }
+  return null;
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsIndex() {
@@ -51,7 +91,10 @@ export default async function ProjectsIndex() {
                   <h2 className="font-serif text-xl font-semibold text-ink group-hover:text-accent">
                     {shortProjectName(p.name)}
                   </h2>
-                  <span className="eyebrow shrink-0">{stageLabel(p.stage)}</span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span className="eyebrow">{stageLabel(p.stage)}</span>
+                    <LoopBadge project={p} />
+                  </div>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-ink-faint">
                   {p.client ? <span className="text-ink-muted">{p.client}</span> : null}

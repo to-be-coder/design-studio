@@ -187,7 +187,10 @@ kept as the reading alias but points at the same sans stack, so no serif is used
 carries ids and code. The reading scale is deliberate —
 `body` 17px at 1.72 leading on a 34rem measure, a true `artifactH1/H2/H3` hierarchy, and an italic
 `pullQuote` for the **In their words.** voice so the human is visibly distinct from the tool's prose.
-Type is the loud element here; everything else is quiet.
+Type is the loud element here; everything else is quiet. Sidebar navigation items are one size:
+0.875rem/14px (the `text-sm` step), across all groups (root docs, stage rows, the decision stream).
+The hero row (What's Worth Building) keeps its active accent color but never a larger size, so the
+index reads as one even list, not a ladder of weights.
 
 ## Layout
 A vertical **spine** runs down the left — the two phases (Understand / Build) as sections,

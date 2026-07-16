@@ -40,20 +40,23 @@ export const STAGES: StageDef[] = [
     autonomy: "scaffold",
     autonomyIcon: "🔴",
     runnable: false,
-    outputs: ["01 Brief & Problem.md", "Clarifications.md", "Agreements.md"],
-    blurb: "Turn the brief into a restated problem + rubric; set up the workspace.",
-    gate: "The route decision (Full vs Lite) is the 🔴 moment.",
+    outputs: ["01 Brief & Problem.md", "Knowns & Unknowns.md"],
+    blurb: "Restate the brief as a problem, extract the rubric, and seed the knowns/unknowns ledger.",
+    gate: "The framing lock is the 🔴 moment; debrief seeds the ledger, it never drafts a client agenda.",
   },
   {
     stage: "research",
     skill: "design-studio-research",
     phase: "Understand",
-    autonomy: "draft",
-    autonomyIcon: "🟡",
+    // Reclassified by decision 0034: the loop engine executes rounds
+    // autonomously (🟢) and parks on every 🔴 (framing lock / departure /
+    // directions pick) instead of drafting for per-round review.
+    autonomy: "execute",
+    autonomyIcon: "🟢",
     runnable: true,
-    outputs: ["02 Research/"],
-    blurb: "Parallel fan-out into company, pain, standards, and landscape; directions + pressure-test moves on demand.",
-    gate: "Directions move (🔴 pick) on demand; owns the risk register; forced framing-check + migration-flag + primary-contact + trap-check every report.",
+    outputs: ["02 Research/", "What's Worth Building.md"],
+    blurb: "The loop engine: attempt every unknown, spawn new ones, run to exhaustion and convergence, then compile What's Worth Building.",
+    gate: "Loops headlessly round by round; only a proven dry streak surfaces a human agenda; compiles What's Worth Building from the ledger.",
   },
   {
     stage: "structure",
@@ -87,6 +90,46 @@ export const STAGES: StageDef[] = [
     outputs: [],
     blurb: "Spec-first clickable prototype in a separate repo (see prototype_repo), built in rounds.",
     gate: "Round-closing checklist: states / edge / a11y + content + DESIGN.md audit & design:diff drift + register receipt.",
+  },
+];
+
+/**
+ * The project-level "root docs" the canvas surfaces ABOVE the pipeline stages:
+ * the compiled artifacts a human reads first, not stage outputs. Rendered once,
+ * here, so the sidebar's PROJECT group walks this list (never a hardcoded set),
+ * the same way the board spine walks STAGES.
+ */
+export type RootDocKind = "wwb" | "ledger";
+
+export interface RootDocDef {
+  key: RootDocKind;
+  /** Sidebar + pane label. */
+  label: string;
+  /** The one the canvas lands on by default (the compiled verdict). */
+  hero?: boolean;
+  /** Candidate vault-relative filenames, in preference order. Empty = derived. */
+  files: string[];
+  /** True when the doc is a projection of other docs, with no file of its own. */
+  derived?: boolean;
+  /** One line on what the doc is for (reading-pane tooltip). */
+  blurb: string;
+}
+
+export const ROOT_DOCS: RootDocDef[] = [
+  {
+    key: "wwb",
+    label: "What's worth building",
+    hero: true,
+    files: ["What's Worth Building.md"],
+    blurb:
+      "The compiled verdict: what to build and what not to, every reason carrying a receipt to the evidence.",
+  },
+  {
+    key: "ledger",
+    label: "Knowns & unknowns",
+    files: ["Knowns & Unknowns.md"],
+    blurb:
+      "The loop's spine: every known and unknown, its state, the attempts against it, and the receipts that answered it.",
   },
 ];
 

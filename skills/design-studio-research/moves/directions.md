@@ -3,7 +3,7 @@
 Loaded only when a **directions round** runs ([[0021 directions-fold-into-the-loop]]). The old
 `explore-directions` stage folds into research as this move: the craft is ported intact, the
 ceremony is gone. Use it for the trickiest architectural or product decisions — the hard,
-non-obvious calls, especially the ones recorded `deferred` in `Agreements.md`.
+non-obvious calls, especially the ones recorded `deferred` in the log (rendered under Backlog in `What's Worth Building.md`).
 
 The hardest decisions don't have an obvious right answer. Don't commit to the first instinct.
 Generate genuinely different approaches, price their true cost, and watch for the fourth framing
@@ -55,7 +55,8 @@ are the skill's job; the pick is the user's (the 🔴 ritual in CONVENTIONS).
 - The **menu** (candidates + data models + costs) → the directions section of the round's research
   report (`02 Research/Synthesis.md`).
 - The **outcome** (pick, rejected alternatives, true cost) → the decision entry.
-- The **settled state** → `Agreements.md` (chosen under Agreed, rejected under Decided against).
+- The **settled state** → `What's Worth Building.md` (the chosen direction under Build now once the
+  human rules it, rejected directions under Don't build; until then the pick sits in Parked decisions).
 
 Return to the orchestrator's report contract to fold the menu and the trap-check
 (`../SKILL.md`) — a directions round **always** runs the trap-check against the decisions on the

@@ -22,10 +22,13 @@ projects — where the look *is* the product — may run it earlier, alongside t
 Runs standalone. Also use it alone to derive a DESIGN.md from an existing product or brand.
 
 ## Preconditions
-- Expects the **accepted recommendation** (the leading `decided` decision), `Agreements.md`, and
-  `03 Structure.md` (the flows + IA the language must serve). If missing, warn and offer to run
-  `design-studio-structure` (or the loop) first — the user may proceed from brief-level knowledge,
-  but name what the language is anchored to instead.
+- Expects the **accepted recommendation** (the leading `decided` decision), `What's Worth Building.md`
+  (the **Build now** scope, human-confirmed only), and `03 Structure.md` (the flows + IA the language
+  must serve). If missing, warn and offer to run `design-studio-structure` (or the loop) first; the
+  user may proceed from brief-level knowledge, but name what the language is anchored to instead.
+- **Empty Build now?** If `What's Worth Building.md`'s **Build now** section has no entries, warn: no
+  human-confirmed Build now entries; triage the Proposed candidates in What's Worth Building first.
+  Warn, never block.
 
 ## Process
 

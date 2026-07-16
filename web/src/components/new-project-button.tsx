@@ -116,19 +116,16 @@ export function NewProjectButton() {
                 {created.drafting ? (
                   <>
                     <p className="mb-4 text-[0.9375rem] leading-relaxed text-ink-muted">
-                      &ldquo;{created.name}&rdquo; is seeded, and a framing draft is running in the
-                      background — <span className="text-ink">design-studio-debrief round 1</span>:
-                      restating the problem, extracting the rubric, and drafting the clarification
-                      agenda to take to your client.
+                      &ldquo;{created.name}&rdquo; is seeded, and{" "}
+                      <span className="text-ink">design-studio-debrief</span> is drafting the framing
+                      now: restating the problem, extracting the rubric, setting success criteria.
+                      Then research runs by itself.
                     </p>
                     <div className="mb-5 rounded-inset border border-rule bg-paper-raised px-4 py-3">
                       <p className="text-[0.9375rem] leading-relaxed text-ink">
-                        Open it in a minute to review the draft (everything stays{" "}
-                        <span className="italic">proposed</span>), or run{" "}
-                        <code className="rounded-[3px] bg-ink/8 px-1.5 py-0.5 font-mono text-[0.85em] text-ink">
-                          /design-studio-debrief
-                        </code>{" "}
-                        in Claude Code to continue the loop with your client.
+                        Review <span className="italic">What&rsquo;s Worth Building</span> when the
+                        loop stops for you. Everything stays{" "}
+                        <span className="italic">proposed</span> until you rule on it.
                       </p>
                     </div>
                   </>

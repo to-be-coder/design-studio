@@ -8,10 +8,19 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { buildSections } from "./doc-sections";
 import { navRowActiveStyle, navRowClass, stageName } from "./util";
 
-type Group = Phase | "Decisions";
+type Group = "Project" | Phase | "Decisions";
 
-/** A stage row, or a document sub-row folded in under a doc-mode stage. */
+/** A root doc, a stage row, or a document sub-row folded in under a doc-mode stage. */
 type Entry =
+  | {
+      kind: "rootdoc";
+      focusKey: string;
+      label: string;
+      group: "Project";
+      hero: boolean;
+      /** Accent review-count pill (on the WWB row), or null. */
+      pill: number | null;
+    }
   | {
       kind: "stage";
       focusKey: string;
@@ -53,14 +62,39 @@ export function Sidebar({
   // when it's focused and not retracted; opening one is the accordion default.
   const [retracted, setRetracted] = useState<Set<string>>(new Set());
 
-  const groups: Group[] = [...model.phases, "Decisions"];
-
   // The focused doc-stage's documents drive both the accordion sub-rows and the
   // "which sub-row is active" highlight (selectedDoc, or the first by default).
   const focusedSections = buildSections(model, focused);
   const effectiveDoc = selectedDoc ?? focusedSections[0]?.key ?? null;
 
-  const entries: Entry[] = [];
+  // The PROJECT group: the compiled root docs the canvas surfaces, walked from
+  // model.rootDocs (never hardcoded), rendered ABOVE the pipeline phases. The
+  // review-count pill rides the WWB row now (the review surface); reviewCount is
+  // the WWB's own proposed + questions + parked, else the status line's fallback.
+  const reviewItems = model.wwb
+    ? model.wwb.proposed.length + model.wwb.questions.length + model.wwb.parked.length
+    : model.header.loop?.reviewCount ?? 0;
+  const terminal = model.header.loop?.terminal;
+  const showReviewPill = reviewItems > 0 || terminal === "converged-humans-needed" || terminal === "parked";
+
+  const rootEntries: Entry[] = [];
+  for (const rd of model.rootDocs) {
+    if (!rd.present) continue;
+    rootEntries.push({
+      kind: "rootdoc",
+      focusKey: rd.key,
+      label: rd.label,
+      group: "Project",
+      hero: rd.hero,
+      pill: rd.key === "wwb" && showReviewPill ? reviewItems : null,
+    });
+  }
+
+  const groups: Group[] = rootEntries.length
+    ? ["Project", ...model.phases, "Decisions"]
+    : [...model.phases, "Decisions"];
+
+  const entries: Entry[] = [...rootEntries];
   for (const s of model.stages) {
     const expandable = buildSections(model, s.stage).length > 0;
     entries.push({
@@ -167,6 +201,40 @@ export function Sidebar({
               .map((e, i) => ({ e, i }))
               .filter(({ e }) => e.group === group)
               .map(({ e, i }) => {
+                if (e.kind === "rootdoc") {
+                  const active = focused === e.focusKey;
+                  return (
+                    <button
+                      key={e.focusKey}
+                      ref={(el) => {
+                        btnRefs.current[i] = el;
+                      }}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      aria-current={active ? "true" : undefined}
+                      tabIndex={cursor === i ? 0 : -1}
+                      onFocus={() => setCursor(i)}
+                      onClick={() => onFocus(e.focusKey)}
+                      // Every sidebar nav row is one size (0.875rem/14px, text-sm)
+                      // across all groups, the hero (WWB) row included; it keeps its
+                      // accent only when active (navRowActiveStyle), never a larger size.
+                      className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-[0.875rem] ${navRowClass(active)}`}
+                      style={active ? navRowActiveStyle : undefined}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{e.label}</span>
+                      {e.pill != null ? (
+                        <span
+                          data-testid="review-pill"
+                          className="ml-1 shrink-0 rounded-pill px-1.5 py-0.5 text-[0.6875rem] font-semibold"
+                          style={{ background: "var(--accent-wash)", color: "var(--accent)" }}
+                        >
+                          {e.pill}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                }
                 if (e.kind === "doc") {
                   const active = e.docKey === effectiveDoc;
                   return (
@@ -224,10 +292,46 @@ export function Sidebar({
         ))}
       </div>
 
-      <div className="mt-auto flex justify-end px-3 py-3">
-        <ThemeToggle iconOnly />
+      <div className="mt-auto px-3 py-3">
+        {model.header.loop?.running ? (
+          <div className="mb-2 px-1" data-testid="loop-footer">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[0.75rem] text-ink-muted">
+                round {model.header.loop.round ?? "?"}
+              </span>
+              <DryStreakPips filled={model.header.loop.dryStreak ?? 0} target={2} />
+              <GeneratingDot />
+            </div>
+            {model.header.loop.parkedCount && model.header.loop.parkedCount > 0 ? (
+              <p className="mt-1 text-[0.75rem] leading-snug text-ink-muted" data-testid="loop-parked">
+                {model.header.loop.parkedCount} decision
+                {model.header.loop.parkedCount === 1 ? "" : "s"} parked for your review
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="flex justify-end">
+          <ThemeToggle iconOnly />
+        </div>
       </div>
     </nav>
+  );
+}
+
+/** A dry-streak meter: dots filling toward the target (K, default 2). */
+function DryStreakPips({ filled, target }: { filled: number; target: number }) {
+  const n = Math.max(target, filled);
+  return (
+    <span className="inline-flex items-center gap-1" data-testid="dry-streak" title={`Dry streak ${filled} of ${target}`}>
+      {Array.from({ length: n }).map((_, i) => (
+        <span
+          key={i}
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{ background: i < filled ? "var(--accent)" : "transparent", border: "1px solid var(--rule-strong)" }}
+          aria-hidden
+        />
+      ))}
+    </span>
   );
 }
 

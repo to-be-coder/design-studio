@@ -9,8 +9,8 @@ one artifact, **`Drift Ledger.md`**, to the project folder.
 ## The move
 
 1. **Take both sides.**
-   - **The record** — `Decisions/` (what was decided and why), `Agreements.md` (Agreed / Decided
-     against / Deferred), `03 Structure.md` (the flows/IA the build was supposed to realize).
+   - **The record**: `Decisions/` (what was decided and why), `What's Worth Building.md` (Build now /
+     Backlog / Don't build / Implied but unruled), `03 Structure.md` (the flows/IA the build was supposed to realize).
    - **The shipped reality** — the running prototype and its repo (the `prototype_repo` path in
      `00 Dashboard.md`). Where they disagree, **the built thing wins** ([[0013
      built-reality-is-canonical]]): the code is the fact, the record is the claim.

@@ -67,14 +67,16 @@ writes to it.
   Design Studio/                 all projects live here
     _Design Studio.md            portfolio dashboard (Dataview auto-discovers projects)
     <slug>/                      one folder per project — the only deep nesting
-      00 Dashboard.md            ← the project's answer to "where is this?"
+      00 Dashboard.md            ← the project's answer to "where is this?" (the status line is the loop's commit fence)
       01 Brief & Problem.md      restated problem, rubric, principle, success criteria
-      02 Research/               Company.md · Pain.md · Standards.md · Landscape.md
+      Knowns & Unknowns.md       the ledger: every unknown and known, receipts, round log + review log (the loop's spine)
+      02 Research/               Company.md · Pain.md · Standards.md · Landscape.md · Synthesis.md
       03 Structure.md            user flows + information architecture (drafted by structure)
       Spec.md                    on-demand audience-shaped render (compile-spec; may also write Align.md / Handoff.md)
       Decisions/                 ADR log: `NNNN <slug>.md`, immutable
-      Agreements.md              the scoping ledger: Agreed / Decided against / Deferred / The full vision
-      Assumptions & Risks.md     living register: verified / partial / unverified / accepted
+      What's Worth Building.md   THE review surface: parked 🔴 calls, questions, and candidates to triage
+                                 (Build now / Backlog / Don't build), every reason receipted; a render, never hand-authored
+      Assumptions & Risks.md     render of the ledger's load-bearing knowns: verified / partial / unverified / accepted
       DESIGN.md                  the visual contract — until build moves it to the repo
       Harvest.md                 flag inbox: one-liners bound for the wiki
       Drift Ledger.md            on-demand: decision-log-vs-shipped-reality reconciliation (research's reconcile move)
@@ -134,8 +136,8 @@ missing, and offer to proceed anyway.
 
 | Stage | Skill | Writes |
 |---|---|---|
-| 1 | `debrief` | `01 Brief & Problem.md` (+ scaffolds the whole project folder); the conversation pole of the Understand loop |
-| 2 | `research` | `02 Research/`, `Assumptions & Risks.md` (owns the register; runs the directions + pressure-test moves on demand; forced framing-check + migration-flag + primary-contact line + trap-check per report); the evidence pole of the Understand loop |
+| 1 | `debrief` | `01 Brief & Problem.md` + seeds `Knowns & Unknowns.md` (+ scaffolds the whole project folder); the human pole of the Understand loop: framing 🔴 and answer-batch ingestion |
+| 2 | `research` | `02 Research/`, and each round recompiles `What's Worth Building.md` + `Assumptions & Risks.md` from the ledger; the loop engine: attempts every open unknown per round until exhaustion (forced framing-check + migration-flag + primary-contact line + trap-check per report) |
 | 3 | `structure` | `03 Structure.md` (user flows + information architecture) |
 | 4 | `design-system` | `DESIGN.md` |
 | 5 | `build` | *the prototype repo* (outside the vault); round-closing checklist runs the `design:diff` drift check |
@@ -145,11 +147,23 @@ not a stage**: on demand it renders the decision log into an audience-shaped doc
 or `Align.md` / `Handoff.md` — which are therefore **on-demand artifacts**, produced when you ask for a
 render, not milestones the project walks through.
 
-Reframes and honest full scope are no longer stages of their own — they're outcomes the
-Understand loop produces. `Agreements.md` is the scoping ledger: it's where a reframe's superseded
-framing decision, every deferred decision (with what unblocks it), and the full, unscoped vision
-all live, refreshed at the close of every debrief round instead of confronted once at a stage
-nobody always reached ([[0020 understand-is-one-loop-reframe-and-scope-fold]]).
+Reframes and honest full scope are no longer stages of their own: they're outcomes the
+Understand loop produces. The loop itself is an **exhaustion engine**
+([[0034 understand-loop-is-an-exhaustion-engine]]): `debrief` seeds `Knowns & Unknowns.md`, and
+`research` runs headless rounds over it, attempting every open unknown (no question is pre-labeled
+"ask a human") until it provably runs dry; only then do humans get an agenda. The cycle is
+continuous ([[0036 one-continuous-cycle]]): creating a project chains the seed straight into the
+loop, a 🔴 moment parks a `proposed` decision without stopping the rounds, every review submission
+chains a fresh research invocation, and new input (a design brief, notes, feedback, at any stage
+including build) drops verbatim into `02 Research/_inbox/` and runs the same cycle. `What's Worth
+Building.md` is the **single review surface** ([[0035 wwb-is-the-single-review-surface]]): parked 🔴
+calls, the exhausted questions, and every candidate (a sticky `W<N>` id minted in the
+recommendation's Candidates table) funnel there, and the human triages each one Build now, Backlog,
+or Don't build. A canvas review is persisted verbatim as an anchored block in the ledger's Review
+log, then a headless recorder transcribes it into `Decisions/` citing the block (the amended
+headless-verdict law: no citation, no verdict). Downstream stages consume only the human-confirmed
+Build now set. The full unscoped vision stays confronted every round in Implied but unruled
+([[0020 understand-is-one-loop-reframe-and-scope-fold]]).
 
 **5. `DESIGN.md` — the visual contract, single copy.** `design-system` authors it in the vault,
 where it stays canonical until a repo exists. `build`'s first committed act is to **move** it to

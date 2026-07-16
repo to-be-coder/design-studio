@@ -102,6 +102,12 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
       await expect(sidebar.getByRole("option", { name: label, exact: true })).toBeVisible();
     }
 
+    // The PROJECT group sits above the phases: the compiled root docs. The canvas
+    // lands on What's Worth Building (the hero verdict) by default.
+    await expect(sidebar.getByRole("option", { name: "What's worth building" })).toBeVisible();
+    await expect(sidebar.getByRole("option", { name: "Knowns & unknowns", exact: true })).toBeVisible();
+    await expect(page.getByTestId("wwb-pane")).toBeVisible();
+
     // compile-spec is an on-demand render utility now (decision 0028), off the
     // spine — no spec stage appears in the index.
     await expect(sidebar.getByRole("option", { name: /spec/i })).toHaveCount(0);
@@ -123,15 +129,17 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // Debrief is the default board and reads off the canvas as a document. Its
-    // document list is folded into the sidebar as an accordion (no separate
-    // contents column): the brief, the restated problem, and the guiding
-    // principle are each their own sub-row that swaps the reading pane.
+    // The default landing is now What's Worth Building; Debrief reads off the
+    // canvas as a document once selected. Its document list is folded into the
+    // sidebar as an accordion (no separate contents column): the brief, the
+    // restated problem, and the guiding principle are each their own sub-row that
+    // swaps the reading pane.
     const sidebar = page.getByTestId("sidebar");
     const pane = page.getByTestId("doc-view");
     await expect(pane).toBeVisible();
     await expect(page.getByTestId("doc-contents")).toHaveCount(0);
 
+    await sidebar.getByRole("option", { name: "Debrief", exact: true }).click();
     await sidebar.getByRole("option", { name: "Original brief" }).click();
     await expect(pane.getByText(/look modern/i)).toBeVisible();
     await sidebar.getByRole("option", { name: "Problem statement" }).click();
@@ -169,12 +177,13 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
 // ── Slice 3: decision stream + assumption graph ──────────────────────────────
 
 test.describe("decision stream + assumption graph (/canvas/fixture-project)", () => {
-  test("supersede chain is drawn, not just linked", async ({ page }) => {
+  test("supersede chain is linked in the reading pane, retired entry in place", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
     await page.getByRole("option", { name: "Decision stream", exact: true }).click();
 
-    // The consolidated stream is one page; the retired entry stays in place.
+    // The stream reads as a scrollable document now (no drawn canvas edges); the
+    // consolidated page still keeps the retired entry in place, visibly superseded.
     const superseded = page.locator("#d-0008");
     const superseding = page.locator("#d-0009");
     await expect(superseded).toBeVisible();
@@ -182,10 +191,10 @@ test.describe("decision stream + assumption graph (/canvas/fixture-project)", ()
     await expect(superseded).toHaveAttribute("data-superseded", "true");
     await expect(superseded.getByText("superseded", { exact: true })).toBeVisible();
 
-    // The supersede connector is DRAWN between them (both endpoints on this board).
-    await expect(page.locator('[data-edge="d-0008->d-0009"]')).toBeVisible();
+    // The supersede is an in-page anchor to the superseding entry (the doc idiom).
+    await expect(superseded.getByRole("link", { name: /superseded by 0009/i })).toBeVisible();
 
-    expect(errors, `console/page errors on connectors:\n${errors.join("\n")}`).toEqual([]);
+    expect(errors, `console/page errors on the stream:\n${errors.join("\n")}`).toEqual([]);
   });
 
   test("an In-their-words quote gets pull-quote treatment", async ({ page }) => {

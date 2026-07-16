@@ -22,8 +22,8 @@ Whenever you need to communicate decisions — there is no fixed slot. The natur
 - the **PRD** render after `design-system`, as the pre-build eng-handoff of everything decided so far;
 - the **handoff** render after `build`, when the built thing is ready to travel.
 
-Runs standalone; reads `Decisions/` + the artifacts. `Agreements.md` stays the living client-facing
-state — this skill supplies audience-shaped projections of it, never a rival source of truth.
+Runs standalone; reads `Decisions/` + the artifacts. `What's Worth Building.md` stays the living
+client-facing state; this skill supplies audience-shaped projections of it, never a rival source of truth.
 
 ## Modes (ask which, or infer from when it's called)
 
@@ -57,8 +57,15 @@ assumptions, flows/IA, DESIGN.md, cuts with reasons); the PRD is the `eng-handof
 log. Single source, multiple projections, no drift.
 
 ## Process
-1. Read all of `Decisions/`, `01 Brief & Problem.md`, and the relevant artifacts.
+1. Read all of `Decisions/`, `01 Brief & Problem.md`, and the relevant artifacts (including
+   `What's Worth Building.md`, the single review surface: Build now is the human-confirmed set,
+   Proposed is what still awaits her ruling).
 2. Render the requested mode to `Spec.md` (or `Align.md` / `Handoff.md`), reframed for that audience.
+   Every rendered decision or candidate **carries its source mark** (`decided-by-human` or
+   `proposed-by-AI`) so a reader can tell a human ruling from an engine proposal. When any Proposed
+   candidates remain untriaged in `What's Worth Building.md` (not yet ruled into Build now / Backlog /
+   Don't build), lead the render with a header line **`review partial: N of M ruled`** (N candidates
+   ruled of M total); a handoff that hides unruled scope is a defect.
 3. Match structure to format if told (live deck vs sent doc): a live presentation is process-heavy
    and invites interruption; a sent doc is a polished one-way walkthrough.
 4. **Update `00 Dashboard.md`** with the link to what was produced.

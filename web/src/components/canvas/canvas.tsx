@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AssumptionState, BoardModel, RenderableBlock } from "@/lib/types";
+import { AddInputButton } from "./add-input";
 import { BoardView } from "./board-view";
 import { DocView } from "./doc-view";
 import { Sidebar } from "./sidebar";
@@ -19,7 +20,10 @@ import { componentBaseNames } from "@/lib/tokens";
 export type StreamFilter = "all" | "live" | "scaffold";
 
 /** Stages with an on-demand "Run" control on their board (must match the runner). */
-const RUNNABLE_STAGES = new Set(["research", "structure"]);
+const RUNNABLE_STAGES = new Set(["research"]);
+
+/** Doc-mode focuses render off the canvas as a reading pane, not a spatial board. */
+const DOC_FOCUSES = new Set(["debrief", "research", "wwb", "ledger", "agenda", "decision-stream"]);
 
 export interface RestsOnState {
   assumptionId: string;
@@ -56,6 +60,12 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   const spaceHeld = useRef(false);
   const drag = useRef<{ active: boolean; px: number; py: number } | null>(null);
   const reduceMotion = useRef(false);
+  // True once persisted + URL state is applied; gates the deep-link reflection
+  // so it never clobbers the incoming ?focus=&doc= before we've read it.
+  const hydrated = useRef(false);
+  // Set on the first user-driven focus/doc change: the URL reflects real
+  // navigation, so a fresh load stays clean (no ?focus= until you move).
+  const interacted = useRef(false);
 
   const [pct, setPct] = useState(100);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -65,9 +75,12 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<StreamFilter>("all");
   // Focus mode: which single board is shown. Clicking any sidebar item isolates
-  // it ("one board per item"). Default is the first stage (Debrief, which reads
-  // as a document); a click narrows to any other board — and the choice persists.
-  const [focused, setFocused] = useState<string>(() => model.stages[0]?.stage ?? "debrief");
+  // it ("one board per item"). Default landing is What's Worth Building (the
+  // compiled verdict) when it exists, else the first stage; a click narrows to
+  // any other board, and the choice persists.
+  const [focused, setFocused] = useState<string>(() =>
+    model.rootDocs.find((r) => r.key === "wwb")?.present ? "wwb" : model.stages[0]?.stage ?? "debrief",
+  );
   // Which document a doc-mode stage (debrief/research) is showing — picked from
   // the sidebar accordion; null means the stage's first document.
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
@@ -77,6 +90,11 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   // Bump to (re)start the status poll — e.g. right after triggering a run.
   const [pollNonce, setPollNonce] = useState(0);
   const [runError, setRunError] = useState<string | null>(null);
+  // A `?runs=1` client override enables the WWB review-band controls for a
+  // preview even when server autorun is off. It affects ONLY the band's UI; the
+  // /api/projects/review route still gates the actual recording on autorun, so
+  // this can never spawn an agent on its own.
+  const [reviewOverride, setReviewOverride] = useState(false);
   const router = useRouter();
 
   // Poll the skill-run status while a headless generation is in flight — pulse
@@ -272,10 +290,43 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
     } catch {
       /* ignore */
     }
+    // Deep links win over the persisted focus: a receipt / agenda URL lands the
+    // reader exactly where it pointed (?focus=&doc=).
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const f = params.get("focus");
+      const d = params.get("doc");
+      if (f) {
+        restoredFocus.current = true;
+        setFocused(f);
+      }
+      if (d) setSelectedDoc(d);
+      if (params.get("runs") === "1") setReviewOverride(true);
+    } catch {
+      /* ignore */
+    }
+    hydrated.current = true;
     applyView(false);
     syncPct();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Reflect focus/doc into the URL so receipts + agenda links are real,
+  // shareable URLs (replaceState, so no history spam, no navigation). Only after
+  // a real interaction, so a fresh load with no query string stays clean.
+  useEffect(() => {
+    if (!hydrated.current || !interacted.current) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      params.set("focus", focused);
+      if (selectedDoc) params.set("doc", selectedDoc);
+      else params.delete("doc");
+      const qs = params.toString();
+      window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+    } catch {
+      /* history unavailable, non-fatal */
+    }
+  }, [focused, selectedDoc]);
 
   // Re-assert the transform after any React render (hidden/expanded/selection),
   // since React owns other style props on the world container.
@@ -482,10 +533,17 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   // Focusing a board resets the doc selection so a doc-stage opens on its first
   // document; the sidebar accordion drives it from there.
   const focusItem = useCallback((key: string) => {
+    interacted.current = true;
     setFocused(key);
     setSelectedDoc(null);
   }, []);
-  const selectDoc = useCallback((docKey: string) => setSelectedDoc(docKey), []);
+  // A review submission spawns the recorder headless; bump the poll so the
+  // sidebar dot pulses and the board refreshes when it lands.
+  const onRunStarted = useCallback(() => setPollNonce((n) => n + 1), []);
+  const selectDoc = useCallback((docKey: string) => {
+    interacted.current = true;
+    setSelectedDoc(docKey);
+  }, []);
   const toggleExpand = useCallback(
     (id: string) =>
       setExpanded((prev) => {
@@ -499,11 +557,12 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
 
   const componentNames = useMemo(() => componentBaseNames(model.tokens), [model.tokens]);
 
-  // Debrief and research are prose stages — they read as a document, not a
-  // spatial board. In doc mode we replace the pannable viewport (and hide the
+  // Debrief and research (prose stages), the project root docs (What's Worth
+  // Building, the ledger, the agenda), and the decision stream read as documents,
+  // not spatial boards. In doc mode we replace the pannable viewport (and hide the
   // zoom HUD, since there's nothing to zoom) with the reading view. The sidebar
   // still drives `focused`, so navigating in or out is one click away.
-  const docMode = focused === "debrief" || focused === "research";
+  const docMode = DOC_FOCUSES.has(focused);
 
   return (
     <FramesProvider>
@@ -541,6 +600,12 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
         {/* z-40: the mode toolbar must stay clickable above the tokens panel
             (z-30) — otherwise opening Tokens makes its own toggle unreachable. */}
         <div className="absolute right-4 top-4 z-40 flex items-center gap-2">
+          {/* Add input, anytime (decision 0036): every project accepts new input
+              at any stage; it lands in the research inbox and the loop sorts it
+              in. Shown on every board when runs are enabled (?runs=1 previews it). */}
+          {runsEnabled || reviewOverride ? (
+            <AddInputButton slug={model.project.slug} onRunStarted={onRunStarted} />
+          ) : null}
           {/* A runnable stage's on-demand run control (opt-in) — spawns that
               stage's skill headless; the sidebar dot pulses on it while it works. */}
           {RUNNABLE_STAGES.has(focused) && runsEnabled ? (
@@ -573,9 +638,16 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
         </div>
 
         {docMode ? (
-          // Off the canvas entirely: the debrief/research reading view fills the
-          // flex-1 area in place of the pannable viewport.
-          <DocView model={model} focused={focused} selectedDoc={selectedDoc} />
+          // Off the canvas entirely: the debrief/research/root-doc reading view
+          // fills the flex-1 area in place of the pannable viewport.
+          <DocView
+            model={model}
+            focused={focused}
+            selectedDoc={selectedDoc}
+            runsEnabled={runsEnabled || reviewOverride}
+            onFocusReceipt={focusItem}
+            onRunStarted={onRunStarted}
+          />
         ) : (
           /* The pannable viewport. */
           <div

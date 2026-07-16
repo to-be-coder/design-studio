@@ -7,6 +7,14 @@ Structure follows researched Obsidian best practice: **few folders by lifecycle,
 in YAML; one dedicated parent folder for design projects; one subfolder per project (the only deep
 nesting); number-prefixed stage files; an immutable ADR decision log.**
 
+## Output voice (hard rule)
+
+Never write an em dash or an en dash, in anything any skill produces: ledger entries, renders,
+decision entries, dashboards, reports, notes, commit messages. Use a comma, a colon, parentheses,
+a semicolon, "to" or "through" for ranges, or two sentences. ONE exception: a receipt's quoted
+span is verbatim source text and keeps exactly the punctuation the source has; never edit a quote
+to comply.
+
 ---
 
 ## The pipeline's grammar — loops, stages, moves ([[0031 loops-are-law]])
@@ -17,7 +25,7 @@ stage-by-stage rethink discovered this grammar empirically before it had a name 
 
 - **Loop** — *work that converges with a human in the middle.* Rounds of AI work → artifact →
   human review → sharpen, **closed only by the human** as risk-acceptor. There are two: the
-  **Understand loop** (`debrief` ⇄ `research`, `Agreements.md` the ledger between them) and
+  **Understand loop** (`debrief` ⇄ `research`, the `Knowns & Unknowns.md` ledger between them) and
   **`build`** (specs → agents → Canvas review → the round-closing gates).
 - **Stage** — *exists only where an artifact must precede its consumers.* `structure` before
   `design-system` and `build`; `design-system` before `build`. A skill earns stage-hood by being a
@@ -89,38 +97,55 @@ SORT file.mtime ASC
 
 ```
 <vault>/Design Studio/<slug>/
-  00 Dashboard.md          ← project home note; YAML below; links every artifact + the repo
-  01 Brief & Problem.md    ← restated problem, rubric, principle, success criteria (provisional early)
-  Clarifications.md        ← debrief's per-round clarification agenda: open questions (client-friendly
-                             phrasing) plus a retired section (question, answer, who, round), never deleted
-  02 Research/             ← Company.md / Pain.md / Standards.md / Landscape.md
+  00 Dashboard.md           ← project home note; YAML below; links every artifact + the repo. Its
+                              Current stage line follows the closed colon grammar (state machine
+                              below); it carries the status line + the utility standing lines only.
+                              Parked 🔴 calls are NOT listed here: they render in What's Worth
+                              Building's Parked decisions section (the single review surface)
+  01 Brief & Problem.md     ← restated problem, rubric, principle, success criteria (provisional early)
+  Knowns & Unknowns.md      ← THE LEDGER: the Understand loop's spine. Unknowns + Knowns in one
+                              monotonic L<N> id space (each exhausted unknown keeps its ask: field),
+                              the convergence block, Retired, an append-only round log, and an
+                              append-only Review log region (the durable receipt every human verdict
+                              cites; there is no Human agenda section). Machine-owned: debrief seeds
+                              it, research runs rounds over it. Full contract in "The Understand loop
+                              state machine" below. Absorbs the deleted Clarifications.md
+  02 Research/              ← Company.md / Pain.md / Standards.md / Landscape.md
     _inbox/                ← fed-in data lands here; research's first move each round is to list
-                             it, read each item, then move it to where it belongs in 02 Research/
-                             with a provenance note (source, date fed in, round) — fed-in data
-                             becomes a file before it becomes evidence
-  03 Structure.md          ← user flows + information architecture, drafted by design-studio-structure
-                             from the accepted recommendation + Agreements.md (fills the retired 03
-                             slot; a directions move's data-model sketch lives in the research report,
-                             not here). 04 Directions.md and 05 Validation.md are retired — testing
-                             folded into research's evaluate move (see [[0027 validate-dissolves-6-stages]]).
-  Spec.md                  ← audience-shaped render of the log (on demand; align / eng-handoff
-                             modes may write Align.md / Handoff.md beside it)
-  Decisions/               ← ADR log: NNNN <slug>.md, immutable, superseded-not-deleted
-  Agreements.md            ← living render of the decision log, four sections: Agreed (building now) / Decided
-                             against / Deferred (each with what unblocks it) / The full vision (everything the
-                             solved problem implies, acknowledged but not yet ruled) — clean one-liners +
-                             [[wikilinks]] into Decisions/; sequencing is human-authored and recorded here too
-                             (see the Understand-loop section below); refreshed at the close of every debrief
-                             round; a RENDER only — never hand-authored, never a second source of truth
-  Assumptions & Risks.md   ← living register (verified / partial / unverified / accepted);
-                             research's responsibility — sorted every round, pressure-tested on
-                             demand; build is the ONE gate (warn-never-block) on an unverified
-                             load-bearing assumption — the register gate lives only at build's door
-  DESIGN.md                ← the visual contract (design.md format); moves to the prototype repo at build
-  Harvest.md               ← flag inbox: one-line keepers for the Studio Wiki (project-local until harvest)
-  Drift Ledger.md          ← on-demand: decision-log-vs-shipped-reality reconciliation, written by
-                             research's reconcile move ([[0027 validate-dissolves-6-stages]])
-  _assets/                 ← attachments scoped to this project (incl. boards/ specimen pages)
+                              it, read each item, then move it to where it belongs in 02 Research/
+                              with a provenance note (source, date fed in, round): fed-in data
+                              becomes a file before it becomes evidence
+    Synthesis.md           ← the living prose research report (findings, recommendation, standing
+                              lines); kept, but its round log now lives in the ledger, not here
+  03 Structure.md           ← user flows + information architecture, drafted by design-studio-structure
+                              from the accepted recommendation + What's Worth Building.md's Build
+                              section (fills the retired 03 slot; a directions move's data-model
+                              sketch lives in the research report, not here). 04 Directions.md and
+                              05 Validation.md are retired: testing folded into research's evaluate
+                              move (see [[0027 validate-dissolves-6-stages]]).
+  Spec.md                   ← audience-shaped render of the log (on demand; align / eng-handoff
+                              modes may write Align.md / Handoff.md beside it)
+  Decisions/                ← ADR log: NNNN <slug>.md, immutable, superseded-not-deleted; the only
+                              verdict source (the ledger owns evidence, Decisions/ owns verdicts)
+  What's Worth Building.md  ← THE COMPILE and the single human review surface (v2). A render of
+                              Decisions/ (verdicts) annotated by the ledger (evidence), tiered:
+                              Parked decisions / Questions for you / Proposed (tier 1, needs a ruling),
+                              Build now / Backlog / Don't build (tier 2, standing rulings), Implied but
+                              unruled / Open unknowns blocking a verdict (tier 3, context). Every
+                              candidate carries a sticky W<N> id; downstream consumes Build now only.
+                              Every reason carries a receipt or a literal ASSUMPTION: mark. A RENDER
+                              only, never hand-authored; recompiled at every round close. Full
+                              contract in "The Understand loop state machine" below
+  Assumptions & Risks.md    ← living register (verified / partial / unverified / accepted), now a
+                              RENDER of the ledger's load-bearing Knowns. Same filename and table
+                              shape so build's register gate and the web parser stay untouched;
+                              research owns it, build is the ONE gate (warn-never-block) on an
+                              unverified load-bearing assumption, at build's door only
+  DESIGN.md                 ← the visual contract (design.md format); moves to the prototype repo at build
+  Harvest.md                ← flag inbox: one-line keepers for the Studio Wiki (project-local until harvest)
+  Drift Ledger.md           ← on-demand: decision-log-vs-shipped-reality reconciliation, written by
+                              research's reconcile move ([[0027 validate-dissolves-6-stages]])
+  _assets/                  ← attachments scoped to this project (incl. boards/ specimen pages)
 ```
 
 The **clickable prototype** is a separate code repo, NOT in the vault. `00 Dashboard.md` links to it.
@@ -140,9 +165,12 @@ prototype_repo:       # filled when build starts
 ---
 ```
 
-`stage` above is the enum token only. The dashboard body's **Current stage** line is free prose and
-may carry a round sub-state while `debrief` loops with a client (see that skill), e.g.
-"debrief — round 2, awaiting meeting" — no schema change, no new enum value.
+`stage` above is the enum token only. The dashboard body's **Current stage** line is a status string
+both the loop controller and the web board parse. While the Understand loop runs it follows a
+**closed, colon-delimited grammar** (first field the stage enum, then the loop sub-state), e.g.
+`Current stage: research: researching: round 3, dry-streak 1, open 12, parked 1` or
+`Current stage: debrief: seeded: round 1`. The full grammar and every terminal state live in "The
+Understand loop state machine" below. No schema change, no new enum value.
 
 The dashboard body also carries a **harvest-debt standing line** — free prose, kept current whenever
 a skill closes ([[0030 utilities-push-dont-pull]]):
@@ -234,6 +262,25 @@ pipeline exists to prevent.
 You may *sharpen* their thinking (name the trade-off, point out a fourth framing). You may not
 *supply* the verdict.
 
+**Headless park clause.** When the loop runs headless (a `research` spawn with no human in the turn)
+there is no user reply to quote, so phase 2 cannot be satisfied. A headless spawn therefore NEVER
+writes a 🔴 verdict itself. It **parks the decision** by writing a `proposed` 🔴 decision to
+`Decisions/`: `status: proposed`, `authored_by: skill`, naming exactly what the 🔴 blocks (a framing
+lock, a framing departure, a directions pick, or a route call), carrying the candidate verbatim with
+both sides and the reframe-test legs, a `supersedes_if_taken:` target, a `blocks:` line, and its
+receipts. Each fresh park **supersedes the skill's own prior parked proposal** for that same 🔴 rather
+than accumulating a pile, so exactly one proposal is live per open call. **Parking a 🔴 no longer stops
+the loop** ([[0036 one-continuous-cycle]]): the round records the `proposed` decision and the loop
+CONTINUES its rounds to the dry streak or the round cap, exactly like any other round; the park is a
+decision waiting for the human, not a halt. There is no `## Awaiting you` dashboard bullet anymore
+(that convention is deleted): the
+`proposed` 🔴 decisions ARE the render source for What's Worth Building's Parked decisions section
+(tier 1), the single surface the human reviews. A headless spawn may write `authored_by: user` or
+`status: decided` ONLY through the review-ingestion recorder under the amended headless-verdict law
+(state machine below); the loop controller quarantines any other decision file in the run's window
+that does. The verdict waits for the human's own words in a later turn: automation extends the
+two-phase protocol, it never bypasses it.
+
 ---
 
 ## Decision log — the spine (ADR pattern)
@@ -284,6 +331,47 @@ tags: [decision]
   verbatim words in the body as a blockquote under a line `**In their words.**` — paraphrase is
   not acceptable for a 🔴 decision. A 🔴 decision with no quotation cannot be `authored_by: user`
   (record `authored_by: skill`, `status: proposed` instead).
+
+### The recommendation's Candidates table and W-ids (entry identity law, [[0035 wwb-is-the-single-review-surface]])
+
+`research`'s recommendation decision carries a **Candidates table**, the mint for every build
+candidate's identity:
+
+```
+| W | title | lean | rests_on |
+|---|---|---|---|
+| W1 | <candidate title> | build | L4, L7 |
+| W2 | <candidate title> | dont-build | L9 |
+```
+
+`lean` is `build` or `dont-build` (the engine's proposed direction, never a human verdict);
+`rests_on` lists the ledger `L`-ids the candidate depends on. **`W<N>` ids are sticky**: minted here,
+monotonic, they **survive supersession** (when a new recommendation supersedes an older one, surviving
+candidates keep their ids) and are **retired, never reused** when a candidate is dropped. Questions
+keep their ledger `L<N>` id; parked calls are referenced by their decision id. This is the identity
+every What's Worth Building tier renders against (contract in the state machine below).
+
+### The dispositions decision (the review recorder's output)
+
+When the human reviews (the review protocol in the state machine below), the recorder writes ONE
+**dispositions decision** per review batch: `status: decided`, `authored_by: user`, frontmatter
+`review_batch: B` (the authorized batch id), citing the batch's review block
+(`[[Knowns & Unknowns#review B]]`), listing every W-id ruling (build-now / backlog / dont-build), and
+quoting the human per entry under **In their words.** For each 🔴 the human ruled, the recorder also
+writes one **verdict decision** (a framing supersession, a directions pick, a route call), same
+`review_batch: B`, citing the same block, with her verbatim words. These may carry `authored_by: user`
+and `status: decided` because they satisfy the amended headless-verdict law; nothing else a headless
+spawn writes may.
+
+### Extra frontmatter (review and parked proposals)
+- `review_batch:` sits on a dispositions or verdict decision the recorder wrote; it names the
+  authorized batch id B. Its presence in FRONTMATTER is what lets a headless-written decision carry a
+  human verdict (amended headless-verdict law); a body mention never counts.
+- `supersedes_if_taken:` sits on a `proposed` 🔴 park decision; it names the decision (e.g.
+  `[[0001 ...]]`) this proposal would supersede if the human takes it. Distinct from `supersedes:`,
+  which fills only when a verdict actually lands.
+- `blocks:` sits on a `proposed` 🔴 park decision; one line naming what the unresolved 🔴 blocks
+  downstream.
 
 ---
 
@@ -453,45 +541,341 @@ backfilled from someone else's work — taste is grown; that's the point.
 - 🟡 **draft** — first version the user edits.
 - 🔴 **scaffold** — the skill must NOT produce the answer; run the 🔴 ritual.
 
+## The Understand loop state machine ([[0034 understand-loop-is-an-exhaustion-engine]])
+
+The Understand loop is an **exhaustion engine**. `debrief` seeds a ledger of knowns and unknowns;
+`research` runs rounds over it, attempting **every** open unknown and spawning new unknowns as it
+answers old ones, until it provably runs dry. Only then do humans get questions: the ones
+research could not answer. This section is the law both skills obey and the loop controller enforces;
+`debrief` and `research` each do their own job against it.
+
+### The ledger: `Knowns & Unknowns.md`
+
+One file, one monotonic `L<N>` id space, holding every unknown and known plus the convergence block,
+the Retired section, an append-only round log, and an append-only Review log region. There is no
+Human agenda section: an exhausted unknown keeps its `ask:` field and renders straight into What's
+Worth Building's Questions for you tier. Two-source model: `Decisions/` owns verdicts, this ledger
+owns evidence; `What's Worth Building.md` and `Assumptions & Risks.md` are regenerated renders of the
+two, never authored by hand.
+
+Each entry is an H3 followed by labeled lines:
+
+```
+### L7: Does the current user base rely on CSV export?
+kind: unknown              # unknown | known
+state: research-exhausted  # unknown: open | researching | research-exhausted | answered | retired
+                           # known:   verified | partial | unverified | accepted
+load_bearing: true
+assumption: true           # present + true when load-bearing and not verified (mechanical)
+attempts: 2                # DERIVED by counting this L-id in the round log; never a stored counter
+spawned_by: L3             # lineage: the unknown or known whose answer minted this one
+answered_by:               # the round or answer-batch that answered it, once answered
+receipts:                  # one per line: [[target#anchor]] "verbatim quoted span"
+note:                      # free machine note
+ask:                       # human-facing phrasing, filled only once an unknown latches exhausted
+```
+
+`attempts` is **derived**, always: count the entry's appearances in the round log, never trust a
+stored number. Unknown states walk `open → researching → research-exhausted → answered` (or `retired`
+when a superseding L-id takes over); known grades are `verified | partial | unverified | accepted`.
+
+### Receipts: quote-plus-link, or it is an assumption
+
+A **receipt** is a wikilink **plus** a verbatim quoted span: `[[target#anchor]]` followed by a quoted
+span of **25 words maximum** that must occur **literally** in the target file (whitespace normalized).
+A bare `[[wikilink]]` is **not** a receipt. A grade of `verified` or `partial` REQUIRES at least one
+conforming receipt; without one the entry is mechanically downgraded and marked `assumption: true`.
+`receipt-verify.mjs` (beside `design-lint.mjs`) checks that every receipt parses, that its target
+resolves, and that the quoted span really occurs in the target, failing the round otherwise.
+
+### Exhaustion and convergence (the termination guarantee)
+
+Two independent latches, both configurable in the ledger's convergence block:
+
+- **Per-question latch `M` (default 2).** After `M` attempts with no progress on a single unknown it
+  flips to `research-exhausted`: human-eligible, and re-openable at most **1** more time (re-open cap).
+- **Loop-level dry streak `K` (default 2).** After `K` committed rounds in a row with no progress the
+  loop surfaces the exhausted questions (What's Worth Building's Questions for you tier) and parks.
+  `C` (default 6) is a hard round cap per invocation, and `U_max` (default 40) caps total unknowns per
+  human-cycle so a spawning storm cannot run forever.
+
+Even an obviously human-only question ("what is the budget?") still gets its `M` attempts and **fails
+fast**, recording `no research surface: <why>`; dryness is **proven, never pre-labeled**. The
+convergence block lives in the ledger, verbatim, so both skills read the same defaults:
+
+```
+<!-- convergence -->
+K: 2         # loop-level dry-streak rounds that trigger the questions surfacing + park
+M: 2         # per-question no-progress attempts that latch research-exhausted
+C: 6         # hard round cap per research invocation
+U_max: 40    # total unknowns cap per human-cycle
+reopen_cap: 1
+<!-- /convergence -->
+```
+
+### Progress (strict, anti-gaming)
+
+**Only a distinct unknown reaching `answered` WITH a conforming receipt counts as progress.** Grade
+bumps, rewordings, and freshly spawned questions never count. `answered` is **sticky**: a later
+contradiction does not edit the answer, it opens a **new superseding `L`-id** (the old one goes
+`retired`, its `answered_by` points forward). A lineage may reopen at most **2** times; the third
+contradiction **auto-escalates** to the human instead of spawning again.
+
+### Round anatomy (the fixed order)
+
+Every research round, in order:
+
+1. **Rollback check.** First act: if the round log ends in an unclosed `<!-- round:N:begin -->` block
+   (a crash mid-round), truncate it back to the last `<!-- round:N:end -->` before doing anything else.
+2. **Intake.** Ingest `_inbox/` and any pending anchored human-answer batch (see file discipline
+   below). A headless run reads the answer batch embedded in its own prompt; the app never writes the
+   vault.
+3. **Attempt every open unknown.** Batched sub-agent moves; the pressure-test rides the riskiest
+   load-bearing entry. Sub-agents return findings, only the main thread writes.
+4. **Grade and record.** Mint Knowns from receipted evidence, latch exhausted unknowns, spawn new
+   unknowns with `spawned_by` lineage. Run `receipt-verify.mjs`; any `verified`/`partial` without a
+   conforming receipt downgrades and is marked `assumption: true`.
+5. **Recompile the renders.** `What's Worth Building.md`, `Assumptions & Risks.md`, and `Synthesis.md`
+   are regenerated wholesale from the ledger + `Decisions/`.
+6. **Evaluate convergence.** Compute this round's progress, the dry streak, the open count, and the
+   agenda; decide the terminal state.
+7. **Write the round block, then the status line LAST.** Append the round's
+   `<!-- round:N:begin -->` … `<!-- round:N:end -->` block, then write the dashboard Current stage
+   line **last** as the commit fence: the status line's presence is what says the round committed.
+
+### Crash idempotence
+
+The round log is **append-only truth** inside anchored `<!-- round:N:begin -->` / `<!-- round:N:end -->`
+blocks. Every other section of the ledger and every render is a **wholesale-rewritten projection** of
+that log plus `Decisions/`, so a re-run rebuilds them deterministically. Human-answer batches are
+anchored the same way (`<!-- answers:B:begin -->` / `<!-- answers:B:end -->`). The status line, written
+last, is the fence that says a round fully committed; an unclosed block is truncated first (step 1).
+
+### Status grammar (closed, colon-delimited)
+
+While the loop runs, the dashboard **Current stage** line is exactly one of these (the controller and
+the web board parse field 2 as the state keyword):
+
+```
+Current stage: research: researching: round N, dry-streak D, open Y, parked K
+Current stage: research: converged-complete: round N
+Current stage: research: converged-humans-needed: round N, agenda X, review R
+Current stage: research: capped: round C, agenda X, open Y, review R
+Current stage: debrief: seeded: round 1
+Current stage: debrief: ingested: batch B
+```
+
+`researching` means keep looping; its `parked K` field is the count of live `proposed` 🔴 calls this
+round carries (a 🔴 parks a decision and the loop keeps running, [[0036 one-continuous-cycle]], so a
+park is now an in-flight field, not a stop). The three terminal states for the invocation are
+`converged-complete`, `converged-humans-needed`, and `capped`. `review R` is the count of items
+awaiting the human on the human-facing terminals, R = proposed candidates to triage + open questions +
+parked calls (the same total What's Worth Building's summary line breaks out). `debrief: seeded: round 1`
+is debrief's seed fence, and `debrief: ingested: batch B` is the recorder's fence after it ingests a
+review batch (renamed from `answers-ingested`); the controller chains a fresh research invocation from
+either. **Legacy parse (never emitted by a new round, read tolerantly):**
+`research: parked-decision: <target>, review R` was the old terminal when a 🔴 stopped the loop;
+`review: awaiting: R` was the old recorder fence after a partial triage; `debrief: answers-ingested: batch B`
+was the old spelling of the ingested fence. All three still parse and never crash the parser. Other
+legacy free-prose lines are read tolerantly too.
+
+### File discipline: machine-owned vs human-append
+
+- **Machine-owned, wholesale-rewritten:** `Knowns & Unknowns.md` (except its append-only round-log,
+  answer-batch, and Review-log blocks), `What's Worth Building.md`, `Assumptions & Risks.md`, and
+  `Synthesis.md` (except its round log, which moved to the ledger). Never hand-author these; edit the
+  source (`Decisions/`, or answer a ledger unknown) and let the round recompile them.
+- **Human-append:** answers and rulings arrive as anchored blocks in the ledger's Review log region,
+  never as an in-place edit of a projection. `debrief` writes an interactive `<!-- answers:B -->`
+  batch when it ingests a meeting's answers, or one rides embedded in a headless `research` prompt.
+  The web app has **two bounded write exceptions**, both transcription and never authorship: (1) it may
+  append a `<!-- review:B -->` block to the ledger's Review log region, transcribing the human's own
+  typed words as the durable receipt every verdict cites; and (2) it may write a verbatim,
+  provenance-headed input file into `02 Research/_inbox/` (the always-open door, "Fed-in input" below).
+  Neither may ever write a render, a decision, or any machine section. The recorder reads the review
+  block and re-renders; the human never edits a projection in place. Full mechanics in "The review
+  protocol" and "Fed-in input (the always-open door)" below.
+
+### Fed-in input (the always-open door)
+
+A project accepts new text at any stage, including build. The app may write a verbatim,
+provenance-headed input file into `02 Research/_inbox/` (its **second** bounded vault write, the same
+transcription spirit as the review block: the app transcribes, it never authors) and start the loop.
+The next round's intake reads that file, moves it into the sweep file it feeds with a provenance note,
+and sorts what it says into the ledger, exactly as any fed-in data is handled. Every human submission is
+just another brief ([[0036 one-continuous-cycle]]): the text sorts into the ledger and research runs
+again, whether it arrives at debrief, mid-loop, or during build.
+
+### What's Worth Building v2: the single review surface ([[0035 wwb-is-the-single-review-surface]])
+
+`What's Worth Building.md` is where the human comes in: everything needing her ruling funnels here so
+she never has to read the ledger, `Decisions/`, or the research docs (those stay click-through
+receipts). It is a **render** of `Decisions/` (verdicts) plus the ledger (evidence), recompiled every
+round, never hand-authored. Top matter: frontmatter (`type` / `stage` / `date` / `round`) and one
+summary line, `Awaiting you: P to triage, Q questions, K parked calls` (P proposed candidates, Q open
+questions, K live parked 🔴 calls; the same three that sum to `review R` on the status line). There is
+no v1 warning banner: that convention is dead.
+
+Eight `##` sections in three tiers, in this reading order:
+
+**Tier 1, needs your ruling.**
+- `## Parked decisions`: one entry per live 🔴, rendered from the `proposed` 🔴 decisions research
+  writes (framing-departure, directions-pick, route-call). Each entry carries the candidate text
+  **verbatim** (its both-sides material and reframe-test legs intact), a `supersedes_if_taken:` target,
+  a `blocks:` line, and receipts. A decision only the human can make.
+- `## Questions for you`: rendered straight from the research-exhausted L-entries' `ask:` fields plus
+  their receipts. No separate agenda file or section exists anywhere; this section is it.
+- `## Proposed`: untriaged `build`-lean candidates (each an `### W<N>: <title>` entry with receipts
+  and ASSUMPTION marks), awaiting a triage ruling.
+
+**Tier 2, standing rulings.**
+- `## Build now`: **human-confirmed ONLY**, the single section downstream (`structure`,
+  `design-system`, `build`) consumes. Each entry carries `ruled_by:` (the review batch + the recorder
+  dispositions decision) and `in_their_words:` (the human's verbatim ruling).
+- `## Backlog`: ruled-but-parked candidates, each with an `unblocks:` line. Supersedable; nothing
+  locks.
+- `## Don't build`: human-ruled rejections PLUS research's `dont-build`-lean proposals, each
+  source-marked (`decided-by-human` or `proposed-by-AI`); a re-ruling can resurrect any of them.
+
+**Tier 3, context.**
+- `## Implied but unruled`: the full-vision confrontation the framing honestly implies, rebuilt every
+  round.
+- `## Open unknowns blocking a verdict`: the open ledger unknowns a verdict waits on.
+
+**Entry markup (so the render parses deterministically).** A candidate is an H3 `### W<N>: <title>`
+under Proposed / Build now / Backlog / Don't build, carrying its `lean`, receipts, and marks as
+labeled lines; Build now adds `ruled_by:` and `in_their_words:`, Backlog adds `unblocks:`. A question
+is an H3 `### L<N>: <ask>` under Questions for you. A parked decision is an H3 naming its decision id
+under Parked decisions. W-ids are the sticky identity from the recommendation's Candidates table
+(decision-log section above).
+
+**Disposition resolution.** The newest review-batch recorder decision naming a W-id wins. An untriaged
+candidate renders by its `lean` (a `build`-lean candidate under Proposed, a `dont-build`-lean one under
+Don't build, source-marked `proposed-by-AI`); nothing silently promotes to Build now. A ruled entry
+whose cited `L`-ids later retired or downgraded gets a mechanical **"confirmed, evidence moved:
+re-rule"** flag (the evidence-moved cross-check against the ledger, run at recompile).
+
+### The review protocol ([[0035 wwb-is-the-single-review-surface]])
+
+How a human ruling gets from the review surface into `Decisions/` and back out as a render, without
+ever letting a machine invent her verdict.
+
+**The Review log region.** The ledger gains an append-only `## Review log` region, a sibling of the
+round log, preserved verbatim across every wholesale rewrite of the ledger. It holds both legacy
+`<!-- answers:B -->` answer batches and the new `<!-- review:B:begin -->` … `<!-- review:B:end -->`
+review blocks. `B` is monotonic across both kinds. A review block's contents: date, reviewer, then
+three machine-parseable lists:
+- `<!-- dispositions -->`: one line per triaged candidate, `- W1: build-now, "her words"` (optional
+  `unblocks:` on a backlog ruling).
+- `<!-- rulings -->`: one line per 🔴 ruled, naming the target (framing / directions / route), the
+  disposition, her words, and the supersede target.
+- `<!-- answers -->`: one line per answered question, `- L7: "..."`.
+
+Each block also stamps the WWB `round` and the entry-set hash it reviewed (the stale-review guard).
+
+**The review block, a bounded app-write.** The web app may append a review block to the Review log
+region and nothing else. It transcribes the human's own typed words; it is the durable receipt every
+verdict cites. (The app's other bounded write is the fed-in input file, "Fed-in input (the always-open
+door)" above.) The interactive Claude-session path (the two-turn 🔴 ritual) is unchanged and needs no
+block.
+
+**The recorder.** `design-studio-debrief`'s review-ingestion mode (its own numbered section in that
+skill), headless-runnable. The controller spawns it with the authorized batch id `B` and the block's
+content hash passed **out of band** (process args, never via the vault). It:
+1. Reads block `B`. **Stale-review guard first:** if the block's stamped WWB round or entry-set hash no
+   longer matches the live WWB (the loop recompiled since she read it), it **rejects and re-surfaces**
+   the moved entries, never applies blind.
+2. Writes ONE **dispositions decision** for the batch (`status: decided`, `authored_by: user`,
+   `review_batch: B`, citing the block, quoting her per entry under **In their words.**).
+3. Writes one **verdict decision** per 🔴 ruled (framing supersession, directions pick, route call),
+   same `review_batch: B`, citing the same block, her verbatim words.
+4. **Folds the answers** into the ledger (the existing ingestion: resolve the unknown to `answered`,
+   mint knowns, spawn child unknowns with lineage).
+5. **Re-renders** What's Worth Building and the register.
+6. Writes the **status line LAST** as the fence: always `debrief: ingested: batch B`, whatever the
+   batch contained (verdicts-only included).
+
+**Bounded, and idempotent.** The recorder may ONLY: write decisions that cite the authorized block,
+fold that block's answers, re-render, and fence. It may never invent a verdict; a ruling absent from
+the block does not exist. A re-run is idempotent: skip any decision already carrying `review_batch: B`.
+
+**Loop interplay.** The app persists a review block immediately, even mid-round, but the recorder is
+gated behind the loop's single-flight lock (queued until the loop settles at a terminal state). The
+controller ALWAYS chains a fresh research invocation after a clean `debrief: ingested` fence, whatever
+the batch contained ([[0036 one-continuous-cycle]]): a verdicts-only batch that adds no answers simply
+converges again in one cheap round, since exhausted questions are not re-attempted. Review ingestion is
+a human-cycle boundary: the round counter and `U_max` reset. Partial reviews are first-class: an
+untriaged candidate stays Proposed, an unanswered question stays exhausted.
+
+### Headless-verdict law (the integrity fence, amended)
+
+A headless spawn NEVER writes a human's verdict on its own authority. The one amendment: a headless
+spawn may write `authored_by: user` / `status: decided` **only** through the review-ingestion recorder,
+and only when the decision's FRONTMATTER carries `review_batch: B` for the batch id the controller
+authorized, the cited review block exists and is **unaltered** (its content hash matches what the
+controller captured at write time), and the decision's In-their-words span occurs **literally** inside
+that block. Everything else quarantines, loudly.
+
+Both validators enforce this with ONE shared predicate, scoped to **frontmatter**: the runner's
+`quarantineHeadlessVerdicts` and `receipt-verify.mjs`. A decision "claims a human verdict" iff its
+frontmatter has `authored_by: user` or `status: decided` (a body mention of "decided" never trips it,
+which fixes the old whole-file-regex divergence). In a plain research-round window (no batch
+authorized) any such claim is quarantined. In the recorder's window (`--review B`, batch B authorized)
+a claim is clean only when it carries `review_batch: B` and its quoted span is inside block B; anything
+else quarantines.
+
+Every 🔴 the loop reaches headlessly (a framing lock, a framing departure that passes the ported
+reframe test, a directions pick, a route call) is still a **park**, not a self-made decision: the loop
+writes a `proposed` 🔴 decision that renders into What's Worth Building's Parked decisions section (the
+park clause in the 🔴 ritual above), and the verdict waits for the human's own words, carried back
+through the recorder or the interactive ritual.
+
 ## The pipeline (5 stages)
 
 **Understand is one loop, not two sequential stages** ([[0020
 understand-is-one-loop-reframe-and-scope-fold]]). `debrief` (client/team conversation) and
-`research` (evidence) are its two poles; `Agreements.md` is the ledger between them — framing locks
-with the team, research runs against it, findings return to the team, the agreement updates,
-research continues. Reframes and honest full scope are *outcomes the loop produces*, not stages:
-a research round whose framing check finds the evidence *departs* the debrief framing never decides
-that itself — it routes back through debrief's convergence loop and supersedes the framing decision
-with the team's own words; the full-vision confrontation lives in `Agreements.md`, rebuilt every
-round rather than confronted once at a stage nobody always reached.
+`research` (evidence) are its two poles. Between them sits **one ledger**, `Knowns & Unknowns.md`:
+debrief seeds it, and the seed chains straight into research with no approval gate between them
+([[0036 one-continuous-cycle]]); research runs headless rounds over it attempting every open unknown
+until the loop provably runs dry (the first stop is two dry rounds), and the questions research could
+not answer become What's Worth Building's Questions
+for you tier that debrief carries to the team. The loop is an **exhaustion engine** now, not a
+two-party chat with a question list drafted up front ([[0034 understand-loop-is-an-exhaustion-engine]]); its full law is "The Understand loop state
+machine" above. Reframes and honest full scope are *outcomes the loop produces*, not stages: a
+research round whose framing check finds the evidence *departs* the debrief framing never decides that
+itself; it records a `proposed` parked decision and keeps looping, and the departure routes back through
+debrief's convergence loop to supersede the framing decision with the team's own words. The full-vision confrontation lives in `What's Worth Building.md`
+(its *Implied but unruled* section), rebuilt every round rather than confronted once at a stage nobody
+always reached.
 
 **Nothing locks before production** ([[0023 nothing-locks-before-production]]). There is no commit
-ceremony between the loop and build — the only real lock is shipped production code, so `Agreements.md`
-is always a living ledger, never a settled state, and moving on to `structure`/`design-system`/`build`
-is the user deciding attention moves, reversible and recorded, nothing more. `explore-directions` and
-`converge` are gone: directions became a **move inside research** ([[0021 directions-fold-into-the-loop]]),
-and the register gate lives **only at build's door**. **Validate is gone too**
-([[0027 validate-dissolves-6-stages]]): testing the built thing against the success criteria is
-research's **evaluate** move (users, or a Nielsen/walkthrough/a11y expert review), the log-vs-reality
-check is its **reconcile** move (→ `Drift Ledger.md`), the visual-drift diff moved into build's
-round-closing checklist where drift happens, and the supersede back-edge — any finding from anywhere
-supersedes the decision it invalidates — is **universal law, not a stage**. **Bones before skin**:
-`structure` ([[0024 structure-stage-flows-and-ia]]) drafts user flows + IA from the accepted
-recommendation so the visual language and the build are made for a known structure.
+ceremony between the loop and build: the only real lock is shipped production code, so
+`What's Worth Building.md` is always a living render, never a settled state, and moving on to
+`structure`/`design-system`/`build` is the user deciding attention moves, reversible and recorded,
+nothing more. `explore-directions` and `converge` are gone: directions became a **move inside
+research** ([[0021 directions-fold-into-the-loop]]), and the register gate lives **only at build's
+door**. **Validate is gone too** ([[0027 validate-dissolves-6-stages]]): testing the built thing
+against the success criteria is research's **evaluate** move (users, or a Nielsen/walkthrough/a11y
+expert review), the log-vs-reality check is its **reconcile** move (writing `Drift Ledger.md`), the
+visual-drift diff moved into build's round-closing checklist where drift happens, and the supersede
+back-edge (any finding from anywhere supersedes the decision it invalidates) is **universal law, not a
+stage**. **Bones before skin**: `structure` ([[0024 structure-stage-flows-and-ia]]) drafts user flows
++ IA from the accepted recommendation so the visual language and the build are made for a known
+structure.
 
 **The pipeline ends at build** ([[0028 compile-spec-is-a-render-utility]]). `compile-spec` is **not a
-terminal stage** — it is an **on-demand render utility**, invocable at any moment to shape the record
+terminal stage**: it is an **on-demand render utility**, invocable at any moment to shape the record
 for an audience (an early align one-pager, a why-first stakeholder spec, an eng-handoff, the pre-build
 PRD). A document is a projection of the decision log, not a milestone; the work ends at the built
-thing, and the handoff is a render you ask for. Its law is unchanged — a render of the log, never a
-second authored document — and `Agreements.md` stays the living client-facing state that compile-spec
-supplies audience-shaped projections of.
+thing, and the handoff is a render you ask for. Its law is unchanged (a render of the log, never a
+second authored document), and `What's Worth Building.md` stays the living client-facing state that
+compile-spec supplies audience-shaped projections of.
 
 | Phase | Skill | Autonomy |
 |---|---|---|
-| Understand | `design-studio-debrief` | 🟡→🔴 (framing lock + route call) |
-|  | `design-studio-research` | 🟡 (🔴 for the directions-move pick); owns the risk register; forced framing-check + migration-flag + standing primary-contact line + wiki trap-check every report; on-demand **evaluate** (test the prototype — users or expert review) and **reconcile** (log vs. shipped reality → `Drift Ledger.md`) moves |
-| Build | `design-studio-structure` | 🟡 (user flows + IA from the accepted recommendation + Agreements.md) |
+| Understand | `design-studio-debrief` | 🟡→🔴 (framing lock + route call); seeds the ledger (unknowns + load-bearing knowns, no client questions drafted) which chains straight into research with no gate, and ingests answer batches back into it |
+|  | `design-studio-research` | 🟢 loop engine, 🔴 for the directions-move pick and a mid-loop framing departure (each recorded as a `proposed` parked decision the loop continues past, [[0036 one-continuous-cycle]], never a self-made verdict): runs headless rounds over the ledger, attempting every open unknown until per-question exhaustion (M-latch) and loop convergence (K dry-streak, the first stop; C round cap) terminate it; mints receipted Knowns, spawns child unknowns, recompiles `What's Worth Building.md` + `Assumptions & Risks.md` each round; owns the risk register; forced framing-check + migration-flag + standing primary-contact line + wiki trap-check every round; on-demand **evaluate** and **reconcile** (writing `Drift Ledger.md`) moves |
+| Build | `design-studio-structure` | 🟡 (user flows + IA from the accepted recommendation + What's Worth Building.md) |
 |  | `design-studio-design-system` | 🟡 + gate (lint + user sign-off) |
 |  | `design-studio-build` | 🟢, runs in rounds (specs → parallel agents → Canvas review → the four gates close each round; the exported Canvas feedback is the next round's specs); gates: states/edge/a11y + content + DESIGN.md consistency & drift (owned design:diff vs the signed-off ref) + register — the pipeline's only register gate |
 

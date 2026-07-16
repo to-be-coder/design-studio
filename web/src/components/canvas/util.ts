@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Autonomy, AssumptionState, StageMarkerState } from "@/lib/types";
+import type { Autonomy, AssumptionState, LedgerState, StageMarkerState } from "@/lib/types";
 
 /**
  * The shared nav-row treatment — the ONE definition the sidebar index rows and
@@ -86,4 +86,66 @@ export function assumptionFill(state: AssumptionState): Fill {
 }
 export function assumptionColorVar(state: AssumptionState): string {
   return `var(--${state})`;
+}
+
+/**
+ * Ledger-state marks. The known grades (verified / partial / unverified /
+ * accepted) reuse the assumption idiom exactly; the unknown lifecycle states get
+ * their own fill/word within the SAME existing color vars, never a new token.
+ *   open → outline ink-muted · researching → half accent (live) ·
+ *   research-exhausted → solid partial (needs you) · answered → solid verified ·
+ *   retired → outline ink-faint (receded).
+ */
+export function ledgerFill(state: LedgerState): Fill {
+  switch (state) {
+    case "verified":
+    case "answered":
+      return "solid";
+    case "research-exhausted":
+      return "solid";
+    case "partial":
+    case "researching":
+    case "accepted":
+      return "half";
+    default:
+      return "outline"; // open, unverified, retired
+  }
+}
+
+export function ledgerColorVar(state: LedgerState): string {
+  switch (state) {
+    case "verified":
+    case "answered":
+      return "var(--verified)";
+    case "partial":
+      return "var(--partial)";
+    case "research-exhausted":
+      return "var(--partial)";
+    case "unverified":
+      return "var(--unverified)";
+    case "accepted":
+      return "var(--accepted)";
+    case "researching":
+      return "var(--accent)";
+    case "retired":
+      return "var(--ink-faint)";
+    default:
+      return "var(--ink-muted)"; // open
+  }
+}
+
+const LEDGER_LABELS: Record<LedgerState, string> = {
+  open: "Open",
+  researching: "Researching",
+  "research-exhausted": "Needs you",
+  answered: "Answered",
+  retired: "Retired",
+  verified: "Verified",
+  partial: "Partial",
+  unverified: "Unverified",
+  accepted: "Accepted",
+};
+
+export function ledgerLabel(state: LedgerState): string {
+  return LEDGER_LABELS[state] ?? state;
 }

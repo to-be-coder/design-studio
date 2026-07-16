@@ -1,6 +1,18 @@
 import type { BoardModel, RenderableBlock } from "@/lib/types";
 import { Reading } from "./markdown";
 import { RegisterCard } from "./register";
+import { WwbPane } from "./wwb-pane";
+import { LedgerPane } from "./ledger-pane";
+import { DecisionStreamPane } from "./decision-stream";
+
+/** Interaction context threaded from the canvas into the reading-pane bodies. */
+export interface DocCtx {
+  slug: string;
+  runsEnabled?: boolean;
+  onFocusReceipt?: (docKey: string) => void;
+  /** Bump the status poll after a review submission spawns the recorder. */
+  onRunStarted?: () => void;
+}
 
 /** One document in a doc-mode stage: a nav label and the body shown when picked. */
 export interface DocSection {
@@ -33,20 +45,70 @@ const DEBRIEF_ABOUT: Record<string, string> = {
   "success-outcome": "How you'd know it worked in the world, once shipped.",
   "success-signal":
     "The behaviour a prototype test can measure that would predict the shipped outcome.",
-  "clarification-agenda": "The plain-language questions to take to your client or PM.",
-  agreements:
-    "The living ledger — what's agreed, decided against, deferred, and the full vision. Regenerated from the decision log.",
 };
 
 /**
- * The documents of a doc-mode stage (debrief + research), in reading order.
- * Shared by the sidebar (which folds them in as an accordion under the stage)
- * and the reading pane (which renders the selected one). Non-doc stages → [].
+ * The documents of a doc-mode focus (debrief + research stages, or a project
+ * root doc). Shared by the sidebar (which folds stage documents in as an
+ * accordion) and the reading pane (which renders the selected one). Non-doc
+ * focuses → []. `ctx` carries interaction wiring for the interactive root-doc
+ * panes; the sidebar calls without it (it reads labels only).
  */
-export function buildSections(model: BoardModel, focused: string): DocSection[] {
+export function buildSections(model: BoardModel, focused: string, ctx?: DocCtx): DocSection[] {
   if (focused === "debrief") return debriefSections(model);
   if (focused === "research") return researchSections(model);
+  // `agenda` is a kept focus alias (old deep links): the review surface is now
+  // the WWB pane, so it lands there.
+  if (focused === "wwb" || focused === "agenda") return wwbSection(model, ctx);
+  if (focused === "ledger") return ledgerSection(model, ctx);
+  if (focused === "decision-stream") return decisionStreamSection(model);
   return [];
+}
+
+/** The decision stream, read off the canvas as a scrollable reading column. */
+function decisionStreamSection(model: BoardModel): DocSection[] {
+  return [
+    {
+      key: "decision-stream",
+      label: "Decision stream",
+      ownHeading: true,
+      body: <DecisionStreamPane model={model} />,
+    },
+  ];
+}
+
+/** What's Worth Building, the hero root doc, and the single review surface. */
+function wwbSection(model: BoardModel, ctx?: DocCtx): DocSection[] {
+  const body = model.wwb ? (
+    <WwbPane
+      wwb={model.wwb}
+      slug={model.project.slug}
+      runsEnabled={ctx?.runsEnabled}
+      onFocusReceipt={ctx?.onFocusReceipt}
+      onRunStarted={ctx?.onRunStarted}
+    />
+  ) : (
+    <p className="text-[0.9375rem] italic text-ink-faint">
+      Not compiled yet. Research writes What&rsquo;s Worth Building once the loop has evidence.
+    </p>
+  );
+  return [{ key: "wwb", label: "What's worth building", ownHeading: true, body }];
+}
+
+/** The knowns/unknowns ledger, in full (Questions for you → Open → Retired). */
+function ledgerSection(model: BoardModel, ctx: DocCtx | undefined): DocSection[] {
+  const body = model.ledger ? (
+    <LedgerPane
+      ledger={model.ledger}
+      slug={model.project.slug}
+      onFocusReceipt={ctx?.onFocusReceipt}
+    />
+  ) : (
+    <p className="text-[0.9375rem] italic text-ink-faint">
+      No ledger yet. Debrief seeds the knowns and unknowns; research works them.
+    </p>
+  );
+  return [{ key: "ledger", label: "Knowns & unknowns", ownHeading: true, body }];
 }
 
 /**
@@ -83,22 +145,6 @@ function debriefSections(model: BoardModel): DocSection[] {
   prose("route", "Route", framing.routeDecision);
   prose("success-outcome", "Shipped outcome", framing.successOutcome);
   prose("success-signal", "In-session signal", framing.successSignal);
-  if (framing.clarifications) {
-    out.push({
-      key: "clarification-agenda",
-      label: "Clarification agenda",
-      about: DEBRIEF_ABOUT["clarification-agenda"],
-      body: <Reading blocks={framing.clarifications} />,
-    });
-  }
-  if (framing.agreements) {
-    out.push({
-      key: "agreements",
-      label: "Agreements",
-      about: DEBRIEF_ABOUT["agreements"],
-      body: <Reading blocks={framing.agreements} />,
-    });
-  }
   framing.extras.forEach((extra, i) => {
     prose(`extra-${i}`, extra.title, extra.blocks);
   });

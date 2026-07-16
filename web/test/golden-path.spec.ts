@@ -46,9 +46,13 @@ test.describe("golden path (/canvas/fixture-project)", () => {
     await sidebar.getByRole("option").first().focus();
     await expect(sidebar.getByRole("option").first()).toBeFocused();
 
+    // The canvas lands on What's Worth Building (the compiled verdict).
+    await expect(page.getByTestId("wwb-pane")).toBeVisible();
+
     // 0 · Debrief → the document reader (off the canvas). Its documents are folded
     // into the sidebar as an accordion (no middle contents column). Selecting the
     // reframe swaps the pane; the guiding principle reads large.
+    await sidebar.getByRole("option", { name: "Debrief", exact: true }).click();
     await expect(pane).toBeVisible();
     await expect(page.getByTestId("doc-contents")).toHaveCount(0);
     await expect(page.getByTestId("framing-transform")).toHaveCount(0);
@@ -80,12 +84,13 @@ test.describe("golden path (/canvas/fixture-project)", () => {
     await expect(dsBoard.locator('[data-component-base="button"]')).toBeVisible();
     await expect(page.getByTestId("contrast-ratio").first()).toBeVisible();
 
-    // 5 · Decision stream → the supersede chain is drawn, not just linked.
+    // 5 · Decision stream → reads as a scrollable document; the supersede chain is
+    // an in-page link, the retired entry stays in place.
     await sidebar.getByRole("option", { name: "Decision stream", exact: true }).click();
     const superseded = page.locator("#d-0008");
     await expect(superseded).toBeVisible();
     await expect(superseded).toHaveAttribute("data-superseded", "true");
-    await expect(page.locator('[data-edge="d-0008->d-0009"]')).toBeVisible();
+    await expect(superseded.getByRole("link", { name: /superseded by 0009/i })).toBeVisible();
 
     // ── Markup half: annotate a real component at component scope, then export ─
     await page.getByRole("option", { name: "Build", exact: true }).click();

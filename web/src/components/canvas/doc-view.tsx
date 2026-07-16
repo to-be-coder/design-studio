@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { BoardModel } from "@/lib/types";
-import { buildSections } from "./doc-sections";
+import { buildSections, type DocCtx } from "./doc-sections";
 
 /**
  * The document reading view (debrief + research). These two stages are prose —
@@ -10,29 +10,46 @@ import { buildSections } from "./doc-sections";
  * read best as documents, not as cards on a zoomable canvas. The contents list
  * lives in the sidebar now (folded in as an accordion under the stage); this is
  * purely the reading pane, showing exactly ONE selected document at a time —
- * the one the sidebar sub-row picked, defaulting to the first. The build-phase
- * stages and the decision stream stay on the canvas; this is off it entirely.
+ * the one the sidebar sub-row picked, defaulting to the first. The decision
+ * stream reads here too (its own scrollable column); the build-phase stages stay
+ * on the canvas. This is off it entirely.
  */
 export function DocView({
   model,
   focused,
   selectedDoc,
+  runsEnabled,
+  onFocusReceipt,
+  onRunStarted,
 }: {
   model: BoardModel;
   focused: string;
   /** Which document the sidebar picked; null → the stage's first document. */
   selectedDoc: string | null;
+  runsEnabled?: boolean;
+  /** Focus a doc the canvas surfaces (a receipt click, an old agenda link). */
+  onFocusReceipt?: (docKey: string) => void;
+  /** Bump the status poll after a review submission spawns the recorder. */
+  onRunStarted?: () => void;
 }) {
-  const stage = model.stages.find((s) => s.stage === focused);
+  // A doc-mode focus is a debrief/research stage, a project root doc (`agenda`
+  // is a kept alias landing on the WWB review surface), or the decision stream.
+  const isStage = !!model.stages.find((s) => s.stage === focused);
+  const isRootDoc = focused === "wwb" || focused === "ledger" || focused === "agenda";
+  const isDecisionStream = focused === "decision-stream";
+  const ctx = useMemo<DocCtx>(
+    () => ({ slug: model.project.slug, runsEnabled, onFocusReceipt, onRunStarted }),
+    [model.project.slug, runsEnabled, onFocusReceipt, onRunStarted],
+  );
   const sections = useMemo(
-    () => (stage ? buildSections(model, focused) : []),
-    [model, focused, stage],
+    () => (isStage || isRootDoc || isDecisionStream ? buildSections(model, focused, ctx) : []),
+    [model, focused, isStage, isRootDoc, isDecisionStream, ctx],
   );
 
-  if (!stage) {
+  if (!isStage && !isRootDoc && !isDecisionStream) {
     return (
       <div className="flex h-full w-full items-center justify-center" data-testid="doc-view">
-        <p className="text-ink-muted">No such stage.</p>
+        <p className="text-ink-muted">No such document.</p>
       </div>
     );
   }

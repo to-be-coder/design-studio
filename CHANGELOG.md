@@ -6,6 +6,67 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **One continuous cycle** (vault decision 0036). Three pauses die. Creating a project now chains
+  the debrief seed straight into the research loop (no Run button; the first stop is two dry
+  rounds or the round cap). A 🔴 moment (framing lock, framing departure, directions pick) still
+  never gets decided headlessly, but it no longer stops the loop: it is recorded as a `proposed`
+  parked decision, rendered in What's Worth Building's Parked section, and the rounds continue
+  (the in-flight status line now carries `parked K`; `parked-decision` and `review: awaiting` are
+  legacy-parse-only). Every review submission, verdicts-only included, chains a fresh research
+  invocation (a batch that adds nothing converges again in one cheap round). And every project
+  accepts new input at any stage, including build: an "Add input" control in the canvas writes the
+  text verbatim (with a provenance header) into `02 Research/_inbox/` via a new
+  `/api/projects/input` route, the app's second bounded vault write, and the loop runs, sorting it
+  into the ledger like any other evidence. The floating loop banner is removed: the canvas lands on
+  What's worth building anyway, so the sidebar's review pill and the home-card badge carry the
+  needs-you signal without a third overlay.
+- **What's Worth Building is the single human review surface** (vault decision 0035). Everything
+  needing the human funnels into `What's Worth Building.md`: parked 🔴 calls (framing departure,
+  directions pick, route call: research now parks them as `proposed` decisions, and the dashboard's
+  Awaiting-you section is gone), the research-exhausted questions (the ledger's Human agenda
+  section is gone; the render pulls each entry's ask: field), and every candidate, each carrying a
+  sticky `W<N>` id minted in the recommendation decision's new Candidates table. The human triages
+  each candidate Build now / Backlog (with what unblocks it) / Don't build; structure,
+  design-system, build, and compile-spec consume ONLY the human-confirmed Build now set (empty set
+  warns and points back to review, never blocks). In the canvas, the WWB pane grows a review band:
+  verdict buttons per proposed entry, answer boxes per question, and a ruling card for a parked
+  framing departure that requires your own words plus an explicit confirm; one batch submits to a
+  new `/api/projects/review` route (the answers-only route is retired). The app's one bounded vault
+  write appends the batch verbatim as an anchored block in the ledger's new Review log region; a
+  headless recorder (debrief's review-ingestion mode) transcribes it into the decision log, citing
+  the block. The headless-verdict law is amended precisely: a headless spawn may claim a human
+  verdict only when the decision cites the authorized, present, unaltered block (content hash held
+  by the controller) and quotes words that occur literally inside it; both validators share one
+  frontmatter-scoped predicate and quarantine everything else. Reviews are stamped with the WWB
+  round they reviewed (a stale batch is rejected and re-surfaced), partial reviews are first-class,
+  Backlog stays supersedable, and a ruled entry whose evidence later moves gets a mechanical
+  "confirmed, evidence moved: re-rule" flag.
+- **The Understand loop is an exhaustion engine** (vault decision 0034). The loop is rebuilt around
+  two artifacts and one inversion. `Knowns & Unknowns.md` is the new per-project ledger (one
+  monotonic `L<N>` id space): debrief seeds it from the framing, and no question is pre-labeled
+  "ask a human". Research attempts every open unknown, round after headless round, spawning new
+  unknowns as it answers old ones, until it provably runs dry: per-question latch after M=2
+  no-progress attempts, loop-level convergence after K=2 dry rounds, hard cap C=6 rounds per
+  invocation, and the loop parks (never proceeds) on any 🔴 (framing lock, framing departure,
+  directions pick), writing an "Awaiting you" list on the dashboard. Only exhaustion hands humans
+  an agenda. `What's Worth Building.md` replaces `Agreements.md` at the project root: a render of
+  `Decisions/` annotated by the ledger (Build / Don't build / Implied but unruled / open unknowns
+  blocking a verdict), recompiled every round; every reason carries a quote-plus-link receipt (a
+  verbatim span that must occur literally in its target, checked by the new
+  `receipt-verify.mjs`), and a clause resting on a non-verified load-bearing known gets a
+  mechanical `ASSUMPTION:` prefix. `Clarifications.md` is absorbed into the ledger;
+  `Assumptions & Risks.md` becomes a render of the ledger's load-bearing knowns (same filename and
+  table shape, so build's register gate is untouched). Progress is strict: only a distinct unknown
+  reaching answered with a conforming receipt counts; answered is sticky, contradictions open a
+  superseding id. Rounds commit through anchored round-log blocks with the dashboard status line
+  written last as the crash fence, in a closed colon grammar
+  (`Current stage: research: researching: round N, ...`). A headless spawn may never write
+  `authored_by: user` or `status: decided`. The web Canvas lands on What's Worth Building as the
+  hero doc, adds a Questions-for-you queue and the ledger with state/grade chips and receipt
+  links, shows loop telemetry (round counter, dry-streak pips, terminal banners, home-card
+  badges), and the runner becomes a single-flight spawn-per-round loop controller with an
+  answer-and-resume route so human answers re-enter the loop without the app ever writing the
+  vault.
 - **A prototype-review gate in `build`** (vault decision 0033). Build's round close gains a fifth
   round-closing gate that drives the *running* prototype in the Canvas instead of only reading the
   code: capture every screen across its states (empty, loading, error) and both themes (light and
@@ -268,6 +329,13 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Fixed
 
+- **Hard-wrapped vault markdown no longer renders broken mid-sentence.** The ledger and What's
+  Worth Building parsers read line by line, so a sentence wrapped at a column width parsed as
+  several fragments, each rendered as its own paragraph. A shared soft-wrap pass
+  (`web/src/lib/soft-wrap.ts`) now glues continuation lines back onto their bullet, label, or
+  paragraph before parsing: indented lines continue a label's value, an unindented line after a
+  label starts a new paragraph, and unknown `key:` metadata keeps its own line. The body
+  collectors also keep blank lines, so separate paragraphs stay separate instead of fusing.
 - **Malformed vault files no longer reappear as blank decisions.** `gray-matter`'s content-keyed
   cache stores its file object *before* parsing completes, so a frontmatter YAML error was only
   skipped on the first read per server lifetime — later reads silently returned the half-built

@@ -1,6 +1,6 @@
 ---
 name: design-studio-structure
-description: Draft the product's bones before its skin — user flows and information architecture — from the accepted recommendation and Agreements.md. Task flows for the core journeys, a screen/state inventory, and the navigation model, so design-system and build both build against a known structure instead of inventing it. 🟡 draft the user edits; supersedable like everything else — nothing locks before production. Writes 03 Structure.md. Third stage of the design-studio pipeline.
+description: Draft the product's bones before its skin (user flows and information architecture) from the accepted recommendation and What's Worth Building.md. Task flows for the core journeys, a screen/state inventory, and the navigation model, so design-system and build both build against a known structure instead of inventing it. 🟡 draft the user edits; supersedable like everything else, since nothing locks before production. Writes 03 Structure.md. Third stage of the design-studio pipeline.
 ---
 
 # design-studio-structure
@@ -25,16 +25,21 @@ structure still earns its place — a thin flow + screen list is cheaper than di
 mid-build. Come back to it whenever a later stage's finding reshapes the flows.
 
 ## Preconditions
-- Expects the **accepted recommendation** and `Agreements.md`. Read the leading recommendation
-  decision in `Decisions/` (the one the user ruled `decided`), `Agreements.md`'s *Agreed* section,
-  and any directions-move data-model sketch in the research report. If the recommendation is still
-  only `proposed` (the loop hasn't closed), warn and offer to run another `design-studio-research`
-  round or proceed from what the user states — name what the structure is anchored to instead.
+- Expects the **accepted recommendation** and `What's Worth Building.md`. Read the leading recommendation
+  decision in `Decisions/` (the one the user ruled `decided`), `What's Worth Building.md`'s **Build now**
+  section (human-confirmed only), and any directions-move data-model sketch in the research report. If
+  the recommendation is still only `proposed` (the loop hasn't closed), warn and offer to run another
+  `design-studio-research` round or proceed from what the user states, naming what the structure is
+  anchored to instead.
+- **Empty Build now?** If `What's Worth Building.md`'s **Build now** section has no entries, warn: no
+  human-confirmed Build now entries; triage the Proposed candidates in What's Worth Building first
+  (the human rules them into Build now). Warn, never block: the user may still proceed from what they
+  state, and loose coupling means the triage can happen later.
 
 ## Process
 
-1. **Gather the inputs.** The accepted recommendation and its assumptions, the *Agreed* scope in
-   `Agreements.md`, the as-is journey / provisional persona / JTBD carried in the research report,
+1. **Gather the inputs.** The accepted recommendation and its assumptions, the **Build now** scope
+   (human-confirmed only) in `What's Worth Building.md`, the as-is journey / provisional persona / JTBD carried in the research report,
    and any data-model sketch from a directions move. Pull the Studio Wiki too: `applies: mechanism`
    pattern/play pages for flows and IA that already solved this problem shape; cite and reuse rather
    than re-derive.
@@ -66,14 +71,14 @@ mid-build. Come back to it whenever a later stage's finding reshapes the flows.
    It fills the retired `03` slot ([[0024 structure-stage-flows-and-ia]]); `04 Directions.md` and
    `03 Scope.md` are both retired, so this is the only numbered artifact between research and
    design-system. A RENDER-adjacent artifact but not a pure render: it's the skill's drafted solution
-   design, which the user edits — so it carries its own content, unlike `Agreements.md`.
+   design, which the user edits, so it carries its own content, unlike `What's Worth Building.md`.
 
 7. **Review and record.** Walk the flows and IA with the user; adjust until they'd defend the shape.
    Where the structure makes a real decision (a flow chosen over an alternative, a screen cut), record
    it as a decision entry so the reasoning is kept and the artifact stays supersedable. Team review
    rides on `design-studio-debrief`'s conversation loop when the user wants it. Then **update
    `00 Dashboard.md`** (stage = structure, next = design-system) and, if a flow contradicts something
-   in `Agreements.md`, route it back into the loop rather than silently diverging.
+   in `What's Worth Building.md`, route it back into the loop rather than silently diverging.
 
    **At close, run the utility check** ([[0030 utilities-push-dont-pull]]): refresh the harvest-debt
    standing line (`Harvest flags pending: N · last crossing: <date | none>`) on `00 Dashboard.md`; if
