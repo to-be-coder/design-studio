@@ -583,6 +583,13 @@ function RulingCard({
         </blockquote>
       ) : null}
 
+      {parked.supersedes || parked.blocks ? (
+        <div className="mb-3 space-y-1 text-[0.8125rem] text-ink-muted" data-testid="ruling-stakes">
+          {parked.supersedes ? <p>Taking this replaces decision {parked.supersedes.replace(/^Decisions\//, "").split(" ")[0]}.</p> : null}
+          {parked.blocks ? <p>Waiting on this: {parked.blocks}</p> : null}
+        </div>
+      ) : null}
+
       {parked.bodyBlocks.length ? (
         <div className="mb-3 max-w-[34rem] text-[0.9375rem]">
           <Reading blocks={parked.bodyBlocks} />
@@ -641,7 +648,7 @@ function RulingCard({
               ) : confirming ? (
                 <div className="mt-3">
                   <p className="mb-2 text-[0.8125rem] text-ink">
-                    {`Recording ${parked.supersedes ? `supersedes decision ${parked.supersedes} and ` : ""}re-scopes Build now against your ruling.`}
+                    {`This becomes the project's direction${parked.supersedes ? ` and replaces decision ${parked.supersedes.replace(/^Decisions\//, "").split(" ")[0]}` : ""}. The build plan re-scopes around your words.`}
                   </p>
                   <button
                     type="button"

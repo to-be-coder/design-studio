@@ -152,7 +152,10 @@ anatomy with research's craft filled in. Every round starts at step 1, including
      `proposed` 🔴 decision, candidate verbatim with both sides + reframe-test legs,
      `supersedes_if_taken:`, `blocks:`, receipts), `## Questions for you` (every research-exhausted
      L-entry's `ask:` + receipts), `## Proposed` (untriaged `build`-lean candidates as `### W<N>:`
-     entries with receipts + ASSUMPTION marks). Tier 2: `## Build now` (human-confirmed ONLY, from the
+     entries with receipts + ASSUMPTION marks). **Write Tier 1 prose in everyday language** (the
+     CONVENTIONS plain-language hard rule): what it means and what taking or rejecting it changes,
+     in words a client could read cold; the research vocabulary stays in the decision files and the
+     receipts. Tier 2: `## Build now` (human-confirmed ONLY, from the
      newest dispositions decision; each carries `ruled_by:` + `in_their_words:`), `## Backlog` (each
      with `unblocks:`), `## Don't build` (human-ruled plus `dont-build`-lean proposals, source-marked
      `decided-by-human` or `proposed-by-AI`). Tier 3: `## Implied but unruled`, `## Open unknowns

@@ -1,6 +1,7 @@
 import { parseMarkdownBody } from "./parse-markdown";
 import { joinSoftWraps } from "./soft-wrap";
 import { listProjectFiles, readProjectFile } from "./vault";
+import { docBodyCache, withWebSources, type DocBodies } from "./web-sources";
 import { extractReceipts } from "./wikilinks";
 import type {
   LedgerModel,
@@ -57,31 +58,35 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
     parked: [],
   };
 
+  // One doc-body cache per request: web-source resolution reads the cited docs.
+  const bodies = docBodyCache(slug);
+
   const sections = splitH2(file.body);
   for (const s of sections) {
     const fam = classifySection(s.title);
     if (fam === "blocking") {
-      model.blocking.push(...extractReceipts(s.lines.join("\n"), files));
+      const raw = s.lines.join("\n");
+      model.blocking.push(...(await withWebSources(extractReceipts(raw, files), raw, bodies)));
     } else if (fam === "questions") {
-      model.questions.push(...(await parseQuestions(s.lines, files)));
+      model.questions.push(...(await parseQuestions(s.lines, files, bodies)));
     } else if (fam === "parked") {
-      model.parked.push(...(await parseParked(s.lines, files)));
+      model.parked.push(...(await parseParked(s.lines, files, bodies)));
     } else if (fam === "buildV1") {
       // v1 degrade: a plain `## Build` splits by source.
-      for (const e of parseEntries(s.lines, files, "buildNow")) {
+      for (const e of await parseEntries(s.lines, files, "buildNow", bodies)) {
         if (e.source === "proposed") model.proposed.push({ ...e, disposition: null });
         else model.buildNow.push(e);
       }
     } else if (fam === "buildNow") {
-      model.buildNow.push(...parseEntries(s.lines, files, "buildNow"));
+      model.buildNow.push(...(await parseEntries(s.lines, files, "buildNow", bodies)));
     } else if (fam === "proposed") {
-      model.proposed.push(...parseEntries(s.lines, files, "proposed"));
+      model.proposed.push(...(await parseEntries(s.lines, files, "proposed", bodies)));
     } else if (fam === "backlog") {
-      model.backlog.push(...parseEntries(s.lines, files, "backlog"));
+      model.backlog.push(...(await parseEntries(s.lines, files, "backlog", bodies)));
     } else if (fam === "dontBuild") {
-      model.dontBuild.push(...parseEntries(s.lines, files, "dontBuild"));
+      model.dontBuild.push(...(await parseEntries(s.lines, files, "dontBuild", bodies)));
     } else if (fam === "unruled") {
-      model.unruled.push(...parseEntries(s.lines, files, "unruled"));
+      model.unruled.push(...(await parseEntries(s.lines, files, "unruled", bodies)));
     }
   }
 
@@ -262,7 +267,12 @@ function unquote(s: string): string {
  * becomes the human's words when no `in_their_words:` line is present. A section
  * with no H3 falls back to top-level `-` bullets as minimal entries.
  */
-function parseEntries(rawLines: string[], files: string[], family: string): WwbEntry[] {
+async function parseEntries(
+  rawLines: string[],
+  files: string[],
+  family: string,
+  bodies: DocBodies,
+): Promise<WwbEntry[]> {
   const defDisposition = FAMILY_DISPOSITION[family] ?? null;
   const defSource = FAMILY_SOURCE[family] ?? null;
 
@@ -287,7 +297,7 @@ function parseEntries(rawLines: string[], files: string[], family: string): WwbE
     return out;
   }
 
-  return groupByH3(lines).map((g) => {
+  return Promise.all(groupByH3(lines).map(async (g) => {
     const { id: hid, title } = parseHeadingId(g.heading.replace(SOURCE_RE, "").trim());
     const headingTitle = stripWiki(title.replace(/[\u2014\u2013-]\s*$/, "")).trim();
     const id = hid ?? `${family}-${slug(headingTitle)}`;
@@ -331,6 +341,11 @@ function parseEntries(rawLines: string[], files: string[], family: string): WwbE
 
     if (!inTheirWords && quoteLines.length) inTheirWords = quoteLines.join(" ");
 
+    // A receipted quote's web origin lives in the cited doc; link it out.
+    for (const r of reasons) {
+      r.receipts = await withWebSources(r.receipts, r.text, bodies);
+    }
+
     return {
       id,
       title: headingTitle,
@@ -342,7 +357,7 @@ function parseEntries(rawLines: string[], files: string[], family: string): WwbE
       ruledBy,
       evidenceMoved: false,
     };
-  });
+  }));
 }
 
 function blankEntry(
@@ -365,7 +380,11 @@ function normalizeDisposition(v: string): WwbDisposition | null {
 const QUESTION_LABELS = new Set(["ask", "receipts", "blocks", "kind"]);
 
 /** Parse the `## Questions for you` tier: L-id, ask, receipts, note blocks. */
-async function parseQuestions(rawLines: string[], files: string[]): Promise<WwbQuestion[]> {
+async function parseQuestions(
+  rawLines: string[],
+  files: string[],
+  bodies: DocBodies,
+): Promise<WwbQuestion[]> {
   const groups = groupByH3(joinSoftWraps(rawLines));
   return Promise.all(
     groups.map(async (g): Promise<WwbQuestion> => {
@@ -388,17 +407,26 @@ async function parseQuestions(rawLines: string[], files: string[]): Promise<WwbQ
         if (/^\s*>\s?/.test(line)) continue;
         prose.push(line);
       }
-      const receipts = dedupeReceipts(extractReceipts(g.lines.join("\n"), files));
-      const blocks = prose.length ? await parseMarkdownBody(prose.join("\n")) : [];
+      const raw = g.lines.join("\n");
+      const receipts = await withWebSources(
+        dedupeReceipts(extractReceipts(raw, files)),
+        raw,
+        bodies,
+      );
+      const blocks = prose.some((s) => s.trim()) ? await parseMarkdownBody(prose.join("\n")) : [];
       return { id, ask: ask ?? title, receipts, blocks };
     }),
   );
 }
 
-const PARKED_LABELS = new Set(["kind", "supersedes", "blocks", "receipts"]);
+const PARKED_LABELS = new Set(["kind", "supersedes", "supersedes_if_taken", "blocks", "receipts"]);
 
 /** Parse the `## Parked decisions` tier: the verbatim candidate + both-sides body. */
-async function parseParked(rawLines: string[], files: string[]): Promise<WwbParked[]> {
+async function parseParked(
+  rawLines: string[],
+  files: string[],
+  bodies: DocBodies,
+): Promise<WwbParked[]> {
   const groups = groupByH3(joinSoftWraps(rawLines));
   return Promise.all(
     groups.map(async (g): Promise<WwbParked> => {
@@ -413,7 +441,8 @@ async function parseParked(rawLines: string[], files: string[]): Promise<WwbPark
         const lab = labeledLine(line, PARKED_LABELS);
         if (lab) {
           if (lab.key === "kind") kind = normalizeParkedKind(lab.value);
-          else if (lab.key === "supersedes") supersedes = stripWiki(unquote(lab.value)) || null;
+          else if (lab.key === "supersedes" || lab.key === "supersedes_if_taken")
+            supersedes = stripWiki(unquote(lab.value)) || null;
           else if (lab.key === "blocks") blocks = lab.value || null;
           continue;
         }
@@ -425,8 +454,13 @@ async function parseParked(rawLines: string[], files: string[]): Promise<WwbPark
         // Blank lines included: they separate the body's paragraphs.
         body.push(line);
       }
-      const receipts = dedupeReceipts(extractReceipts(g.lines.join("\n"), files));
-      const bodyBlocks = body.length ? await parseMarkdownBody(body.join("\n")) : [];
+      const raw = g.lines.join("\n");
+      const receipts = await withWebSources(
+        dedupeReceipts(extractReceipts(raw, files)),
+        raw,
+        bodies,
+      );
+      const bodyBlocks = body.some((s) => s.trim()) ? await parseMarkdownBody(body.join("\n")) : [];
       return {
         id,
         kind,

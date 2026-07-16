@@ -13,11 +13,11 @@ import { ROOT_DOCS, STAGES } from "./schema";
  */
 
 export interface Receipt {
-  /** Display text (the `|alias`, else the target's last path segment). */
+  /** Display text (the `|alias`, else the target's last path segment; a web receipt shows its hostname). */
   label: string;
-  /** Resolved project-relative path (no .md), or the raw target if unresolved. */
+  /** Resolved project-relative path (no .md), the raw target if unresolved, or a full URL for `web`. */
   target: string;
-  kind: "doc" | "decision" | "other";
+  kind: "doc" | "decision" | "other" | "web";
   /**
    * A canvas focus key when the target maps to a doc the canvas surfaces (a
    * ROOT_DOCS file, a stage output, a 02 Research/ doc, or a Decisions/ entry).
@@ -118,10 +118,12 @@ export function resolveTarget(rawTarget: string, files: string[]): string | null
  * Extract every receipt from a raw string (a whole body, or a single labeled
  * line). Each `[[wikilink]]` becomes a Receipt resolved + classified against the
  * project's files; a target that resolves to a surfaced doc carries a docKey for
- * in-canvas focus.
+ * in-canvas focus. Web citations in the same text (markdown links, bare URLs,
+ * and the research docs' `[domain/path]` shorthand) become `web` receipts that
+ * link out to the source page.
  */
 export function extractReceipts(text: string, files: string[]): Receipt[] {
-  return parseWikilinks(text).map((p) => {
+  const docs = parseWikilinks(text).map((p) => {
     const rel = resolveTarget(p.target, files);
     const { kind, docKey } = classify(rel ?? p.target);
     return {
@@ -131,4 +133,45 @@ export function extractReceipts(text: string, files: string[]): Receipt[] {
       ...(docKey ? { docKey } : {}),
     };
   });
+  return [...docs, ...extractWebReceipts(text)];
+}
+
+/** Markdown link with an http(s) target: `[NN/g study](https://…)`. */
+const MD_LINK = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+/** A bare URL in running text. */
+const BARE_URL = /https?:\/\/[^\s\])"'>]+/g;
+/**
+ * The research docs' shorthand citation: `[nngroup.com/articles/x]`, one
+ * bracket around something domain-shaped. `[verified]` / `[L28]` carry no dot
+ * and never match; `[[wikilinks]]` are excluded by the lookarounds.
+ */
+const DOMAIN_CITE = /(?<!\[)\[((?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\]\s]*)?)\](?!\])/gi;
+
+/** Build a `web` receipt from a URL (protocol added when missing); the label defaults to the hostname. */
+export function webReceipt(url: string, label?: string): Receipt {
+  const full = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  let host = full;
+  try {
+    host = new URL(full).hostname.replace(/^www\./, "");
+  } catch {
+    // an unparseable URL still renders; the raw string is the label
+  }
+  return { label: label?.trim() || host, target: full, kind: "web" };
+}
+
+/** Pull the web citations out of a raw string, de-duplicated by URL. */
+export function extractWebReceipts(text: string): Receipt[] {
+  const out: Receipt[] = [];
+  const seen = new Set<string>();
+  const push = (r: Receipt) => {
+    // A doc sometimes abbreviates a long URL with an ellipsis; that citation
+    // names a source but cannot link to it, so it makes no chip.
+    if (r.target.includes("…") || seen.has(r.target)) return;
+    seen.add(r.target);
+    out.push(r);
+  };
+  for (const m of text.matchAll(MD_LINK)) push(webReceipt(m[2], m[1]));
+  for (const m of text.matchAll(BARE_URL)) push(webReceipt(m[0].replace(/[.,;:]+$/, "")));
+  for (const m of text.matchAll(DOMAIN_CITE)) push(webReceipt(m[1]));
+  return out;
 }
