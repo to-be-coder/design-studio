@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "canvas",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "web",
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "deck",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "../design-studio-presentation",
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}
