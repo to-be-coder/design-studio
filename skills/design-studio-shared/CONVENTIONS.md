@@ -15,6 +15,26 @@ a semicolon, "to" or "through" for ranges, or two sentences. ONE exception: a re
 span is verbatim source text and keeps exactly the punctuation the source has; never edit a quote
 to comply.
 
+## Write to be read (hard rule)
+
+Every document a skill writes is read by a busy human before it is read by another agent. So in
+ALL prose, in every artifact (ledger notes and asks, research docs and reports, What's Worth
+Building, dashboards, decision bodies, the register's found column):
+
+- Everyday words and short sentences: write it the way you would say it aloud to a client.
+- No system or research vocabulary in prose (refuted, presupposition, exhausted, supersedes,
+  evidence grade, reframe test). When a term of art is unavoidable, say what it means in the same
+  sentence.
+- Lead with what it means and what changes; the reasoning comes after.
+- Precision lives in the structure, not the prose: ids, labeled lines, states, frontmatter, and
+  receipts carry the exact claim; the prose around them carries the meaning. Never dilute a
+  labeled line, an id, or a receipt to sound friendlier; never let prose get technical because the
+  structure nearby is.
+- Verbatim quotes stay verbatim, always (same exception as the Output voice rule).
+
+The test: a reader who knows nothing about this pipeline can follow any document cold. A document
+a layperson cannot follow is a defect, with the same force as the Output voice rule.
+
 ---
 
 ## The pipeline's grammar — loops, stages, moves ([[0031 loops-are-law]])
