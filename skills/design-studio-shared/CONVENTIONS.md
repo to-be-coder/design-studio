@@ -798,7 +798,10 @@ three machine-parseable lists:
   `unblocks:` on a backlog ruling).
 - `<!-- rulings -->`: one line per 🔴 ruled, naming the target (framing / directions / route), the
   disposition, her words, and the supersede target.
-- `<!-- answers -->`: one line per answered question, `- L7: "..."`.
+- `<!-- answers -->`: one line per answered question, `- L7: "..."`. Once the recorder ingests a
+block it appends `<!-- review:B:done -->` right after the block's end marker; a block with no done
+marker (persisted while another run was live) is a queued batch, and the controller drains queued
+batches oldest-first before starting any research round.
 
 Each block also stamps the WWB `round` and the entry-set hash it reviewed (the stale-review guard).
 
@@ -811,9 +814,12 @@ block.
 **The recorder.** `design-studio-debrief`'s review-ingestion mode (its own numbered section in that
 skill), headless-runnable. The controller spawns it with the authorized batch id `B` and the block's
 content hash passed **out of band** (process args, never via the vault). It:
-1. Reads block `B`. **Stale-review guard first:** if the block's stamped WWB round or entry-set hash no
-   longer matches the live WWB (the loop recompiled since she read it), it **rejects and re-surfaces**
-   the moved entries, never applies blind.
+1. Reads block `B`. **Stale-review guard first, judged PER ENTRY:** a stamped round or
+   entry-set hash that no longer matches the live WWB means the page moved and triggers a per-entry
+   check, never a batch rejection. An entry is stale only when its own content changed since the
+   stamp; exactly those entries are **rejected and re-surfaced**. An unchanged entry's click applies
+   even when the rest of the page advanced. The block is marked done either way (done means
+   processed; rejection is a processing outcome).
 2. Writes ONE **dispositions decision** for the batch (`status: decided`, `authored_by: user`,
    `review_batch: B`, citing the block, quoting her per entry under **In their words.**).
 3. Writes one **verdict decision** per 🔴 ruled (framing supersession, directions pick, route call),

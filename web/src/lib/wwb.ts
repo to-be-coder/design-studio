@@ -223,9 +223,14 @@ const ENTRY_LABELS = new Set([
 
 /** `### W1: title`, `### L3: ask`: pull a leading W/L id off a heading. */
 function parseHeadingId(heading: string): { id: string | null; title: string } {
-  const m = heading.match(/^\s*([WL]\d+)\b[\s:.)\u2014\u2013-]*(.*)$/i);
+  // A leading \ud83d\udd34 is the vault's red-moment marker, board grammar rather than
+  // display copy, so it never reaches a card title. Stripping it leaves the
+  // slug-derived fallback id unchanged: the emoji never contributed a
+  // character to the slug.
+  const h = heading.replace(/^[\s\ud83d\udd34]+/u, "");
+  const m = h.match(/^\s*([WL]\d+)\b[\s:.)\u2014\u2013-]*(.*)$/i);
   if (m) return { id: m[1].toUpperCase(), title: m[2].trim() };
-  return { id: null, title: heading.trim() };
+  return { id: null, title: h.trim() };
 }
 
 function slug(s: string): string {

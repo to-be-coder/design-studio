@@ -217,11 +217,16 @@ ruling absent from the block does not exist.**
 The controller passes the authorized batch id `B` and the block's content hash **out of band** (as
 process args, never via the vault). The procedure, in order:
 
-1. **Read block B and run the stale-review guard first.** The block stamps the WWB `round` and the
-   entry-set hash it reviewed. If either no longer matches the live What's Worth Building (the loop
-   recompiled since she read it), **reject and re-surface** the moved entries; never apply blind.
-2. **Verify the block.** Confirm the block `B` exists in the Review log region and its content hash
-   matches the one the controller passed (the tamper check). A mismatch quarantines, loudly.
+1. **Read block B and run the stale-review guard first, PER ENTRY.** The block stamps the WWB
+   `round` and the entry-set hash it reviewed; a mismatch means the page moved since she read it,
+   and it triggers a closer look, never a batch rejection. An entry is stale only when ITS OWN
+   content changed between the stamped round and now (the candidate's title, lean, reasons, or the
+   ask she answered): reject and re-surface exactly those entries. An unchanged entry's verdict,
+   ruling, or answer APPLIES even when the rest of the page advanced; a page re-render alone never
+   invalidates a click on an entry it did not touch.
+2. **Confirm block B exists** in the Review log region, verbatim and anchored. The content-hash
+   tamper check is the CONTROLLER's job, run as post-run validation with the hash it captured out
+   of band; the recorder does not perform it and never receives the hash.
 3. **Write ONE dispositions decision for the batch.** `Decisions/NNNN <slug>.md`: `status: decided`,
    `authored_by: user`, frontmatter `review_batch: B`, cite the block
    (`[[Knowns & Unknowns#review B]]`), list every W-id ruling (build-now / backlog with its `unblocks:`
@@ -243,7 +248,10 @@ process args, never via the vault). The procedure, in order:
    no separate answers batch is written.
 6. **Re-render** What's Worth Building (v2) and `Assumptions & Risks.md` wholesale from `Decisions/` +
    the ledger. Ruled candidates move into Build now / Backlog / Don't build; answered questions leave
-   Questions for you; ruled 🔴s leave Parked decisions; refresh the summary line.
+   Questions for you; ruled 🔴s leave Parked decisions; refresh the summary line. Then append
+   `<!-- review:B:done -->` on its own line immediately after the block's end marker: the controller
+   reads it to know the batch is processed (queued batches with no marker get picked up on the next
+   loop entry).
 7. **Write the status line LAST, as the fence.** Always `Current stage: debrief: ingested: batch B`,
    whatever the batch contained (a verdicts-only batch with no answers included). The recorder never
    decides whether research resumes: the controller always chains a fresh research invocation from a
