@@ -62,7 +62,52 @@ export async function getLedger(slug: string): Promise<LedgerModel | null> {
     (e) => e.state !== "research-exhausted" && e.state !== "retired",
   );
 
-  return { entries, open, escalated, retired, humanOpenCount: escalated.length };
+  return {
+    entries,
+    open,
+    escalated,
+    retired,
+    humanOpenCount: escalated.length,
+    recordedRulings: parseRecordedRulings(raw),
+    recordedAnswers: parseRecordedAnswers(raw),
+  };
+}
+
+/**
+ * Rulings already written into the ledger's Review log, id → disposition (a
+ * later block wins over an earlier one). The parked card in WWB reads as ruled
+ * from these until research re-scopes the file, so hitting refresh right after
+ * Record ruling still shows the ruling as recorded.
+ */
+function parseRecordedRulings(body: string): Record<string, "accept" | "reject" | "reshape"> {
+  const out: Record<string, "accept" | "reject" | "reshape"> = {};
+  for (const block of reviewBlocks(body)) {
+    for (const m of block.matchAll(/^\s*-\s+(\S+):\s+(accept|reject|reshape)\b/gim)) {
+      out[m[1]] = m[2].toLowerCase() as "accept" | "reject" | "reshape";
+    }
+  }
+  return out;
+}
+
+/**
+ * Answers already written into the Review log, id → answer text (a later block
+ * wins). Same purpose as the rulings: an answered question reads as answered
+ * across a page refresh, before research folds it back into the ledger. Only
+ * quoted `- L<id>: "text"` lines match; block metadata and verdict lines have
+ * no quote right after the colon.
+ */
+function parseRecordedAnswers(body: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const block of reviewBlocks(body)) {
+    for (const m of block.matchAll(/^\s*-\s+([A-Za-z]\w*):\s+"(.*)"\s*$/gm)) {
+      out[m[1]] = m[2];
+    }
+  }
+  return out;
+}
+
+function reviewBlocks(body: string): string[] {
+  return body.match(/<!-- review:[^:]+:begin -->[\s\S]*?<!-- review:[^:]+:end -->/g) ?? [];
 }
 
 const LABELS = new Set([

@@ -70,9 +70,14 @@ export function Sidebar({
   // The PROJECT group: the compiled root docs the canvas surfaces, walked from
   // model.rootDocs (never hardcoded), rendered ABOVE the pipeline phases. The
   // review-count pill rides the WWB row now (the review surface); reviewCount is
-  // the WWB's own proposed + questions + parked, else the status line's fallback.
+  // the WWB's own proposed + questions + still-unruled parked (a parked call
+  // whose ruling is already recorded no longer awaits you; mirrors
+  // lib/wwb.ts reviewCount, which this client file can't import), else the
+  // status line's fallback.
   const reviewItems = model.wwb
-    ? model.wwb.proposed.length + model.wwb.questions.length + model.wwb.parked.length
+    ? model.wwb.proposed.length +
+      model.wwb.questions.filter((q) => !q.answered).length +
+      model.wwb.parked.filter((p) => !p.recorded).length
     : model.header.loop?.reviewCount ?? 0;
   const terminal = model.header.loop?.terminal;
   const showReviewPill = reviewItems > 0 || terminal === "converged-humans-needed" || terminal === "parked";

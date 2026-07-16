@@ -845,6 +845,14 @@ authorized, the cited review block exists and is **unaltered** (its content hash
 controller captured at write time), and the decision's In-their-words span occurs **literally** inside
 that block. Everything else quarantines, loudly.
 
+**What counts as the human's span (a click is a verdict too).** When the human typed words, the
+recorder quotes them and those words are the span. When the human only clicked (a candidate verdict,
+or an accept/reject ruling on a fully-written parked call), the block's own line for that action IS
+the span: the app transcribed the click verbatim and timestamped it, so the recorder quotes that line
+and marks it honestly ("chosen by click; no words typed") under **In their words.** A `reshape` ruling
+changes content, so it always requires typed words that are not the candidate text; word-less
+reshapes are refused at the route, and the recorder never invents them.
+
 Both validators enforce this with ONE shared predicate, scoped to **frontmatter**: the runner's
 `quarantineHeadlessVerdicts` and `receipt-verify.mjs`. A decision "claims a human verdict" iff its
 frontmatter has `authored_by: user` or `status: decided` (a body mention of "decided" never trips it,

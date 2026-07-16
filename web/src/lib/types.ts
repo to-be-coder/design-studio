@@ -186,6 +186,14 @@ export interface LedgerModel {
   retired: LedgerEntry[];
   /** Questions awaiting a human = escalated.length (derived, not stored). */
   humanOpenCount: number;
+  /**
+   * Rulings already recorded in the ledger's Review log (last write wins per
+   * id). A parked card reads as ruled from these until research re-scopes the
+   * WWB file, so a recorded ruling survives a page refresh.
+   */
+  recordedRulings: Record<string, "accept" | "reject" | "reshape">;
+  /** Answers already recorded in the Review log, id → answer text (same idea). */
+  recordedAnswers: Record<string, string>;
 }
 
 /** One capability line in What's Worth Building, with its receipted reasons. */
@@ -227,6 +235,12 @@ export interface WwbQuestion {
   receipts: Receipt[];
   /** Note / prose under the question (from the ledger entry when derived). */
   blocks: RenderableBlock[];
+  /**
+   * The answer already recorded for this question in the ledger's Review log,
+   * or null while it still awaits the human. Answered questions render as done
+   * and drop out of the needs-you count.
+   */
+  answered: string | null;
 }
 
 /** The kind of red-moment a parked decision is (rendered as a word, never a colour). */
@@ -252,6 +266,12 @@ export interface WwbParked {
   receipts: Receipt[];
   /** The both-sides body text under the candidate. */
   bodyBlocks: RenderableBlock[];
+  /**
+   * The disposition already recorded for this parked call in the ledger's
+   * Review log, or null while it still awaits the human. Recorded entries
+   * render as done and drop out of the needs-you count.
+   */
+  recorded: "accept" | "reject" | "reshape" | null;
 }
 
 export interface WwbModel {

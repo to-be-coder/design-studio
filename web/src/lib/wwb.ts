@@ -94,6 +94,9 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
   // dropped a grade wants re-ruling.
   if (ledger) {
     for (const e of [...model.buildNow, ...model.backlog]) e.evidenceMoved = evidenceMoved(e, ledger);
+    // A ruling already in the ledger's Review log marks its parked card as
+    // recorded until research re-scopes this file (survives a page refresh).
+    for (const p of model.parked) p.recorded = ledger.recordedRulings[p.id] ?? null;
   }
 
   // Questions fall back to the ledger's escalated entries when the WWB has none.
@@ -103,7 +106,14 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
       ask: e.ask ?? e.title,
       receipts: e.receipts,
       blocks: e.blocks,
+      answered: null,
     }));
+  }
+
+  // An answer already in the ledger's Review log marks its question answered
+  // until research folds it in (survives a page refresh, same as rulings).
+  if (ledger) {
+    for (const q of model.questions) q.answered = ledger.recordedAnswers[q.id] ?? null;
   }
 
   const round = numFrom(file.data.round);
@@ -115,9 +125,11 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
   return model;
 }
 
-/** reviewCount(model) = proposed + questions + parked, the items awaiting you. */
+/** reviewCount(model) = proposed + unanswered questions + unruled parked, the items awaiting you. */
 export function reviewCount(model: WwbModel): number {
-  return model.proposed.length + model.questions.length + model.parked.length;
+  const unruledParked = model.parked.filter((p) => !p.recorded).length;
+  const unanswered = model.questions.filter((q) => !q.answered).length;
+  return model.proposed.length + unanswered + unruledParked;
 }
 
 function str(v: unknown): string | null {
@@ -414,7 +426,7 @@ async function parseQuestions(
         bodies,
       );
       const blocks = prose.some((s) => s.trim()) ? await parseMarkdownBody(prose.join("\n")) : [];
-      return { id, ask: ask ?? title, receipts, blocks };
+      return { id, ask: ask ?? title, receipts, blocks, answered: null };
     }),
   );
 }
@@ -470,6 +482,7 @@ async function parseParked(
         blocks,
         receipts,
         bodyBlocks,
+        recorded: null,
       };
     }),
   );

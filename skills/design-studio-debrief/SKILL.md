@@ -225,12 +225,17 @@ process args, never via the vault). The procedure, in order:
 3. **Write ONE dispositions decision for the batch.** `Decisions/NNNN <slug>.md`: `status: decided`,
    `authored_by: user`, frontmatter `review_batch: B`, cite the block
    (`[[Knowns & Unknowns#review B]]`), list every W-id ruling (build-now / backlog with its `unblocks:`
-   / dont-build), and quote her per entry under **In their words.** Those verbatim words must occur
-   literally inside block B (the amended headless-verdict law).
+   / dont-build), and quote her per entry under **In their words.** When she typed words, quote them;
+   when she only clicked, quote the block's own disposition line for that entry and mark it honestly
+   ("chosen by click; no words typed"). Either way the quoted span must occur literally inside block B
+   (the amended headless-verdict law: a click is a verdict too; the app transcribed it).
 4. **Write one verdict decision per 🔴 ruled.** A framing supersession (fills `supersedes: [[0001 ...]]`),
    a directions pick, or a route call, each `status: decided`, `authored_by: user`, `review_batch: B`,
-   citing block B, with her verbatim words. Only the 🔴s she actually ruled in the block; the rest stay
-   parked (`proposed`).
+   citing block B. Quote her typed words when present; an accept or reject with no words quotes the
+   block's own ruling line, marked "chosen by click; no words typed" (the candidate was fully written
+   and both sides were in front of her; the click is the verdict). A `reshape` always requires her
+   typed words; a word-less reshape is refused, never invented. Only the 🔴s she actually ruled in the
+   block; the rest stay parked (`proposed`).
 5. **Fold the answers into the ledger.** For each `- L<N>: "..."` in the block's `<!-- answers -->`
    list, run the existing answer ingestion (step 14): resolve the unknown to `answered`, quote her
    words, set `answered_by: review B`, mint the Knowns the answer establishes with a receipt to the

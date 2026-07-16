@@ -129,11 +129,11 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // Default landing: the tabs open on Parked (ruling-first, since a 🔴 is parked).
+    // Default landing: the tabs open on Needs you (ruling-first, since a 🔴 is parked).
     const wwb = page.getByTestId("wwb-pane");
     await expect(wwb).toBeVisible();
     await expect(page.getByTestId("wwb-review")).toBeVisible();
-    await expect(page.getByTestId("wwb-tab-parked")).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-ruling")).toBeVisible();
 
     // Proposed tab: the entries, the mechanical ASSUMPTION mark on the unevidenced
@@ -304,7 +304,7 @@ test.describe("WWB review band", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("triage (runs on): selecting a verdict updates the summary; submit posts the exact batch", async ({
+  test("triage (runs on): Record verdict on the card posts one verdict immediately", async ({
     page,
   }) => {
     const errors = trackConsoleErrors(page);
@@ -327,24 +327,22 @@ test.describe("WWB review band", () => {
     await build.click();
     await expect(build).toHaveAttribute("aria-pressed", "true");
 
-    // The destination-split summary reflects the pending verdict live.
-    await expect(page.getByTestId("review-summary")).toContainText(/1 build now/i);
+    // Selecting reveals the note + the card's own Record button; no bottom bar.
+    await page.getByTestId("verdict-note").first().fill("Ship the checkpoint.");
+    await expect(page.getByTestId("submit-review")).toHaveCount(0);
+    await page.getByTestId("verdict-record").first().click();
 
-    // Two-step submit posts the exact batch.
-    await page.getByTestId("submit-review").click();
-    await page.getByTestId("submit-review").click();
-    await expect(page.getByTestId("review-submitted")).toBeVisible();
-    // The done copy always says research is resuming: under decision 0036 even a
-    // verdicts-only batch re-runs research (every submission is another brief).
-    await expect(page.getByTestId("review-submitted")).toContainText(/research is resuming/i);
+    // The card confirms in place; the posted payload is exactly one verdict.
+    await expect(page.getByTestId("verdict-recorded")).toContainText(/recorded as build now/i);
     expect(captured.verdicts).toHaveLength(1);
     expect(captured.verdicts[0].verdict).toBe("build-now");
+    expect(captured.verdicts[0].note).toBe("Ship the checkpoint.");
     expect(captured.answers).toEqual([]);
     expect(captured.ruling ?? null).toBeNull();
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("ruling-first (runs on): verdict buttons hidden; the two-step ruling + an answer post confirmed", async ({
+  test("ruling-first (runs on): verdict buttons hidden; Record ruling and Record answer each post immediately", async ({
     page,
   }) => {
     const errors = trackConsoleErrors(page);
@@ -359,36 +357,36 @@ test.describe("WWB review band", () => {
     });
     await page.goto("/canvas/fixture-project?runs=1");
 
-    // Ruling-first: the tabs open on Parked; proposed entries stay read-only (no
-    // verdict buttons anywhere), and the Proposed tab carries the re-scope note.
-    await expect(page.getByTestId("wwb-tab-parked")).toHaveAttribute("aria-selected", "true");
+    // Ruling-first: the tabs open on Needs you; proposed entries stay read-only
+    // (no verdict buttons anywhere), and the Proposed tab carries the re-scope note.
+    await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-ruling")).toBeVisible();
     await expect(page.getByTestId("verdict-build-now")).toHaveCount(0);
     await page.getByTestId("wwb-tab-proposed").click();
     await expect(page.getByTestId("proposed-rescope-note")).toBeVisible();
 
-    // Back on Parked, the ruling two-step: Confirm appears only after a disposition + own words.
-    await page.getByTestId("wwb-tab-parked").click();
-    await expect(page.getByTestId("ruling-confirm")).toHaveCount(0);
+    // Back on Needs you: accept or reject only, no words box, no reshape, no
+    // confirm step. Record ruling posts the ruling by itself, immediately.
+    await page.getByTestId("wwb-tab-needs-you").click();
+    await expect(page.getByTestId("ruling-reshape")).toHaveCount(0);
+    await expect(page.getByTestId("ruling-words")).toHaveCount(0);
     await page.getByTestId("ruling-accept").click();
-    await page.getByTestId("ruling-words").fill("Yes, rule the framing first before we scope anything.");
     await page.getByTestId("ruling-record").click();
-    await expect(page.getByTestId("ruling-confirm")).toBeVisible();
-    await page.getByTestId("ruling-confirm").click();
-
-    // Switch to the Questions tab and answer one; the ruling draft persists across the switch.
-    await page.getByTestId("wwb-tab-questions").click();
-    await page.getByTestId("answer-L1").fill("I act on the restated problem.");
-
-    // The sticky submit bar rides the review tabs; two-step submit posts the batch.
-    await page.getByTestId("submit-review").click();
-    await page.getByTestId("submit-review").click();
-    await expect(page.getByTestId("review-submitted")).toBeVisible();
+    await expect(page.getByTestId("ruling-recorded")).toBeVisible();
     expect(captured.ruling).not.toBeNull();
     expect(captured.ruling.id).toBe("W7");
     expect(captured.ruling.disposition).toBe("accept");
     expect(captured.ruling.confirmed).toBe(true);
+    expect(captured.verdicts).toEqual([]);
+
+    // An answer records itself the moment its button is hit, same as a ruling,
+    // and it lives on the SAME tab now; the batched review below carries
+    // candidate verdicts only.
+    await page.getByTestId("answer-L1").fill("I act on the restated problem.");
+    await page.getByTestId("answer-record-L1").click();
+    await expect(page.getByTestId("answer-recorded-L1")).toBeVisible();
     expect(captured.answers).toEqual([{ id: "L1", text: "I act on the restated problem." }]);
+    expect(captured.ruling ?? null).toBeNull();
     expect(errors, errors.join("\n")).toEqual([]);
   });
 });
@@ -402,20 +400,20 @@ test.describe("WWB tabs", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // Counts on the tabs match the model: 1 parked, 2 questions, 2 proposed.
-    await expect(page.getByTestId("wwb-tab-parked")).toContainText("(1)");
-    await expect(page.getByTestId("wwb-tab-questions")).toContainText("(2)");
+    // Counts on the tabs match the model: 1 parked + 2 questions share the
+    // Needs-you badge, 2 proposed.
+    await expect(page.getByTestId("wwb-tab-needs-you")).toContainText("(3)");
     await expect(page.getByTestId("wwb-tab-proposed")).toContainText("(2)");
 
-    // Default tab: fixture-project has a parked 🔴, so it lands on Parked.
-    await expect(page.getByTestId("wwb-tab-parked")).toHaveAttribute("aria-selected", "true");
+    // Default tab: fixture-project has a parked 🔴, so it lands on Needs you.
+    await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-ruling")).toBeVisible();
 
-    // Proposed is reachable by a click, and Parked yields the selection.
+    // Proposed is reachable by a click, and Needs you yields the selection.
     await page.getByTestId("wwb-tab-proposed").click();
     await expect(page.getByTestId("wwb-tab-proposed")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-proposed")).toBeVisible();
-    await expect(page.getByTestId("wwb-tab-parked")).toHaveAttribute("aria-selected", "false");
+    await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "false");
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
@@ -445,21 +443,17 @@ test.describe("WWB tabs", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project?runs=1");
 
-    // Draft a ruling on Parked.
+    // Pick a disposition and type an answer, both on the one Needs-you tab
+    // (nothing posts until a record button is hit).
     await page.getByTestId("ruling-accept").click();
-    await page.getByTestId("ruling-words").fill("Rule the framing first.");
-
-    // Type an answer on Questions.
-    await page.getByTestId("wwb-tab-questions").click();
     await page.getByTestId("answer-L1").fill("I act on the restated problem.");
 
-    // Back on Parked, the ruling disposition + words survive the round-trip.
-    await page.getByTestId("wwb-tab-parked").click();
-    await expect(page.getByTestId("ruling-accept")).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByTestId("ruling-words")).toHaveValue("Rule the framing first.");
+    // Switch away to Build candidates and back.
+    await page.getByTestId("wwb-tab-proposed").click();
+    await page.getByTestId("wwb-tab-needs-you").click();
 
-    // And the typed answer survives too.
-    await page.getByTestId("wwb-tab-questions").click();
+    // Both drafts survive the round-trip.
+    await expect(page.getByTestId("ruling-accept")).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("answer-L1")).toHaveValue("I act on the restated problem.");
 
     expect(errors, errors.join("\n")).toEqual([]);

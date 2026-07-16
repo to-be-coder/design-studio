@@ -96,8 +96,10 @@ export async function POST(req: Request) {
         .filter((a) => a.id && a.text)
     : [];
 
-  // ruling: only with confirmed === true + non-empty words that are not the
-  // candidate text verbatim (an unedited candidate is not a ruling).
+  // ruling: only with confirmed === true. Accepting or rejecting the candidate
+  // as written is a complete ruling with no words needed; a reshape requires
+  // words that are not the candidate text verbatim (an unedited candidate is
+  // not a reshape).
   let ruling: Ruling | null = null;
   if (body.ruling && typeof body.ruling === "object") {
     const r = body.ruling as {
@@ -112,14 +114,16 @@ export async function POST(req: Request) {
     const disposition = typeof r.disposition === "string" ? r.disposition.trim() : "";
     const words = typeof r.words === "string" ? r.words.trim() : "";
     const candidate = typeof r.candidate === "string" ? r.candidate : "";
-    if (
-      r.confirmed === true &&
-      id &&
-      DISPOSITIONS.has(disposition) &&
-      words &&
-      norm(words) !== norm(candidate)
-    ) {
-      ruling = { id, kind: typeof r.kind === "string" ? r.kind.trim() : undefined, disposition, words };
+    const wordsOk =
+      disposition === "reshape" ? Boolean(words) && norm(words) !== norm(candidate) : true;
+    if (r.confirmed === true && id && DISPOSITIONS.has(disposition) && wordsOk) {
+      ruling = {
+        id,
+        kind: typeof r.kind === "string" ? r.kind.trim() : undefined,
+        disposition,
+        // The UI shows no words field on accept/reject; drop anything stale.
+        words: disposition === "reshape" ? words : "",
+      };
     }
   }
 
@@ -236,7 +240,10 @@ function buildBlock(args: {
   }
   if (ruling) {
     lines.push(`- rulings:`);
-    lines.push(`  - ${ruling.id}: ${ruling.disposition}${ruling.kind ? ` (${ruling.kind})` : ""}, "${ruling.words}"`);
+    // A wordless accept/reject records the disposition alone; no empty quote.
+    lines.push(
+      `  - ${ruling.id}: ${ruling.disposition}${ruling.kind ? ` (${ruling.kind})` : ""}${ruling.words ? `, "${ruling.words}"` : ""}`,
+    );
   }
   if (answers.length) {
     lines.push(`- answers:`);
