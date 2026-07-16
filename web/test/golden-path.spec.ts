@@ -25,7 +25,7 @@ function trackConsoleErrors(page: Page): string[] {
 test.describe("golden path (/canvas/fixture-project)", () => {
   test.use({ viewport: { width: 1600, height: 1000 } });
 
-  test("read the flow by keyboard, expand the DS board, annotate + export", async ({
+  test("read the flow via the sidebar, expand the DS board, annotate + export", async ({
     page,
     context,
   }) => {
@@ -33,63 +33,55 @@ test.describe("golden path (/canvas/fixture-project)", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Fixture Project", exact: true }),
-    ).toBeVisible();
+    // The default board is Debrief (a document); the sidebar names the project.
+    // The full h1 project header appears on the canvas boards below.
+    await expect(page.getByTestId("sidebar")).toContainText("Fixture Project");
 
-    // ── Reading half: keyboard sidebar index only (arrows + Enter to fly) ─────
+    // ── Reading half: the sidebar index (stages + folded-in documents) ────────
     const sidebar = page.getByTestId("sidebar");
     await expect(sidebar).toBeVisible();
-    const options = sidebar.getByRole("option");
-    // Order (5-stage schema, post-0021/0023/0024/0027/0028 — directions became a
-    // research move, converge dissolved, structure was added, validate dissolved
-    // into research's evaluate/reconcile moves, and compile-spec became an
-    // on-demand render utility off the spine): Debrief, Research, Structure,
-    // Design system, Build, then the standalone Decision stream.
-    await options.first().focus();
-    await expect(options.nth(0)).toBeFocused();
+    const pane = page.getByTestId("doc-view");
 
-    // 0 · Debrief → the framing pane: brief beside restated problem.
-    await page.keyboard.press("Enter");
-    await expect(page.getByTestId("framing-transform")).toBeVisible();
-    const original = page.getByTestId("facet-original");
-    const restated = page.getByTestId("facet-restated");
-    await expect(original).toBeVisible();
-    await expect(restated).toBeVisible();
-    const ob = await original.boundingBox();
-    const rb = await restated.boundingBox();
-    expect(ob && rb && rb.x > ob.x + ob.width / 2).toBeTruthy(); // genuinely side by side
+    // Keyboard reachability: the index is arrow-navigable (first item focusable).
+    await sidebar.getByRole("option").first().focus();
+    await expect(sidebar.getByRole("option").first()).toBeFocused();
 
-    // 1 · Research → the synthesis reads as a page, and — since verify folded
-    // into research (decision 0018) — the assumption register sits right here.
-    await page.keyboard.press("ArrowDown");
-    await expect(options.nth(1)).toBeFocused(); // focus visibly moved
-    await page.keyboard.press("Enter");
+    // 0 · Debrief → the document reader (off the canvas). Its documents are folded
+    // into the sidebar as an accordion (no middle contents column). Selecting the
+    // reframe swaps the pane; the guiding principle reads large.
+    await expect(pane).toBeVisible();
+    await expect(page.getByTestId("doc-contents")).toHaveCount(0);
+    await expect(page.getByTestId("framing-transform")).toHaveCount(0);
+    await sidebar.getByRole("option", { name: "Problem statement" }).click();
+    await expect(pane).toContainText(/trustworthy evidence/i);
+    await sidebar.getByRole("option", { name: "Guiding principle" }).click();
+    await expect(pane).toContainText("Assert what users see.");
+
+    // 1 · Research → also a reader: each artifact is its own document, and — since
+    // verify folded into research (decision 0018) — the assumption register is a
+    // document too. Selecting the synthesis, then the register, swaps the pane.
+    await sidebar.getByRole("option", { name: "Research", exact: true }).click();
+    await expect(pane).toBeVisible();
+    await sidebar.getByRole("option", { name: "Synthesis" }).click();
     await expect(
       page.getByText("the artifact and the decision that shaped it live", { exact: false }),
     ).toBeVisible();
+    await sidebar.getByRole("option", { name: "Assumptions & risks" }).click();
     await expect(page.locator("#assumption-A1")).toBeVisible();
 
     // 2 · Structure → the screen inventory reads as a page (flows + IA).
-    await page.keyboard.press("ArrowDown");
-    await expect(options.nth(2)).toBeFocused();
-    await page.keyboard.press("Enter");
+    await sidebar.getByRole("option", { name: "Structure", exact: true }).click();
     await expect(page.getByText(/screen inventory/i).first()).toBeVisible();
 
-    // 3 · Design system → expand its living-specimen board.
-    await page.keyboard.press("ArrowDown");
-    await expect(options.nth(3)).toBeFocused();
-    await page.keyboard.press("Enter");
+    // 3 · Design system → its living-specimen board.
+    await sidebar.getByRole("option", { name: "Design system", exact: true }).click();
     const dsBoard = page.getByTestId("design-system-board");
     await expect(dsBoard).toBeVisible();
     await expect(dsBoard.locator('[data-component-base="button"]')).toBeVisible();
     await expect(page.getByTestId("contrast-ratio").first()).toBeVisible();
 
     // 5 · Decision stream → the supersede chain is drawn, not just linked.
-    await page.keyboard.press("ArrowDown"); // Build
-    await page.keyboard.press("ArrowDown"); // Decision stream
-    await expect(options.nth(5)).toBeFocused();
-    await page.keyboard.press("Enter");
+    await sidebar.getByRole("option", { name: "Decision stream", exact: true }).click();
     const superseded = page.locator("#d-0008");
     await expect(superseded).toBeVisible();
     await expect(superseded).toHaveAttribute("data-superseded", "true");

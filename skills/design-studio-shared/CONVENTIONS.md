@@ -323,19 +323,23 @@ across parallel build agents.
   vault — canonical while no repo exists. `build` **moves** it to the prototype repo root as its
   first committed act and leaves a link note in the vault. There is never a second copy to sync.
 - **Token discipline.** Prototype UI takes every color / type / spacing / radius value from a token,
-  directly or via the owned export (`web/scripts/design-export.mjs` → CSS custom properties;
-  `npm run design:export -- <path>` from `web/`). A hardcoded value that bypasses the tokens is a
-  defect, not a shortcut.
-- **Lint gate — owned, runnable everywhere.** The zero-dependency `web/scripts/design-lint.mjs`
-  (`npm run design:lint -- <path>` from `web/`, or `node web/scripts/design-lint.mjs <path>`) must
+  directly or via the owned export
+  (`node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs <path>` → CSS custom
+  properties, in any repo; or `npm run design:export -- <path>` from this repo's `web/`). A hardcoded
+  value that bypasses the tokens is a defect, not a shortcut.
+- **Lint gate — owned, runnable everywhere.** The zero-dependency `design-lint.mjs`
+  (`node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs <path>` in any repo, or
+  `npm run design:lint -- <path>` from this repo's `web/`) must
   pass before `build` consumes the file: structure (required sections in order, no duplicate
   heading), reference resolution, motion/floor syntax, and WCAG contrast against the declared floors.
   It replaces the old `npx @google/design.md lint`, which was blocked in every live run.
 - **Export and drift diff — owned too.** The two other touchpoints run on the same zero-dependency
-  toolchain, sharing the lint's parser (`web/scripts/design-md.mjs`). `build`'s token export is
-  `web/scripts/design-export.mjs` (`npm run design:export`): `DESIGN.md` → CSS custom properties,
-  references resolved, state variants and motion included. `build`'s round-closing drift diff is
-  `web/scripts/design-diff.mjs` (`npm run design:diff`): it compares two versions' **resolved**
+  toolchain, living in `design-studio-shared/scripts/` (installed to
+  `~/.claude/skills/design-studio-shared/scripts/`) and sharing the lint's parser (`design-md.mjs`).
+  `build`'s token export is `design-export.mjs` (`npm run design:export` from `web/`): `DESIGN.md` →
+  CSS custom properties, references resolved, state variants and motion included. `build`'s
+  round-closing drift diff is `design-diff.mjs` (`npm run design:diff` from `web/`): it compares two
+  versions' **resolved**
   tokens — the repo's live file vs a git ref (the signed-off / build-start version) — and reports
   added / removed / changed; drift without a matching decision is a finding, run each round where
   drift actually happens ([[0027 validate-dissolves-6-stages]]). Together with the lint these retire the

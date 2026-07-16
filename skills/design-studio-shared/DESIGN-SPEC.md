@@ -256,9 +256,9 @@ Unknown sections (e.g. `## Iconography`) are preserved, not errored, and may tra
 
 ## The owned lint
 
-`web/scripts/design-lint.mjs` (run: `npm run design:lint <path>` from `web/`, or
-`node web/scripts/design-lint.mjs <path>`) is the zero-dependency gate that enforces this spec. It
-checks:
+`design-lint.mjs` (run: `node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs <path>`
+in any repo, or `npm run design:lint <path>` from this repo's `web/`) is the zero-dependency gate
+that enforces this spec. It checks:
 
 - **Structure** — required sections present appear in the fixed order; no duplicate section
   heading; the front matter parses.
@@ -281,12 +281,13 @@ color the lint cannot parse degrades honestly (reported, never a fabricated rati
 
 ## The owned export and diff
 
-Two more scripts share the lint's parser and reference resolution (`web/scripts/design-md.mjs`), so
+Two more scripts share the lint's parser and reference resolution (`design-md.mjs`), so
 the whole toolchain reads a DESIGN.md the same way — and, like the lint, they run on plain `node`
 with no install, replacing the upstream `@google/design.md export` / `diff` subcommands.
 
-- **Export** — `web/scripts/design-export.mjs <path>` (`npm run design:export -- <path>` from
-  `web/`) emits **CSS custom properties** on stdout. Every leaf token becomes a `--group-key`
+- **Export** — `node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs <path>` (or
+  `npm run design:export -- <path>` from this repo's `web/`) emits **CSS custom properties** on
+  stdout. Every leaf token becomes a `--group-key`
   variable (nested paths hyphen-joined: `colors.paperRaised` → `--colors-paper-raised`,
   `motion.transition.hover` → `--motion-transition-hover`); references are **resolved** to their
   effective value; a component sub-token that references a whole typography level expands into that
@@ -294,8 +295,9 @@ with no install, replacing the upstream `@google/design.md export` / `diff` subc
   (`name`/`description`/`version`) and the a11y `contrast` floors are config, not renderable values,
   so they are omitted. An unresolved `{ref}` is left verbatim (defect stays visible) and warned on
   stderr. This is `build`'s "wire in the visual contract" step.
-- **Diff** — `web/scripts/design-diff.mjs <old> <new>` (`npm run design:diff -- <old> <new>` from
-  `web/`) compares two versions' **resolved** tokens and reports added / removed / changed. Either
+- **Diff** — `node ~/.claude/skills/design-studio-shared/scripts/design-diff.mjs <old> <new>` (or
+  `npm run design:diff -- <old> <new>` from this repo's `web/`) compares two versions' **resolved**
+  tokens and reports added / removed / changed. Either
   side is a filesystem path, a `<ref>:<path>` read via `git show`, or a bare `<ref>` reusing the
   other side's path — so `build`'s round-closing drift check can diff the build-start (signed-off)
   version in git history against the current file. Comparing resolved values means a pairing that resolves the same is not spurious
@@ -326,9 +328,10 @@ with no install, replacing the upstream `@google/design.md export` / `diff` subc
 - **Studio field aliases** in `typography` (`size`/`weight`/`leading`/`tracking` alongside the
   upstream `fontSize`/`fontWeight`/`lineHeight`/`letterSpacing`) are accepted, matching existing
   studio DESIGN.md files.
-- The **tooling is owned and runnable everywhere** — a zero-dependency Node toolchain sharing one
-  parser (`web/scripts/design-md.mjs`): the lint (`web/scripts/design-lint.mjs`), the token export
-  (`web/scripts/design-export.mjs`, `DESIGN.md` → CSS custom properties), and the drift diff
-  (`web/scripts/design-diff.mjs`, a resolved-token comparison across versions). Together they replace
-  the upstream `@google/design.md` CLI (`lint` / `export` / `diff`) entirely — no runtime fetch of
-  alpha software anywhere in the pipeline.
+- The **tooling is owned and runnable everywhere** — a zero-dependency Node toolchain living in
+  `design-studio-shared/scripts/` (installed to `~/.claude/skills/design-studio-shared/scripts/`, so
+  it runs from any repo) and sharing one parser (`design-md.mjs`): the lint (`design-lint.mjs`), the
+  token export (`design-export.mjs`, `DESIGN.md` → CSS custom properties), and the drift diff
+  (`design-diff.mjs`, a resolved-token comparison across versions). Together they replace the upstream
+  `@google/design.md` CLI (`lint` / `export` / `diff`) entirely — no runtime fetch of alpha software
+  anywhere in the pipeline.

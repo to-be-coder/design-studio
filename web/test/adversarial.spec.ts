@@ -211,8 +211,18 @@ test.describe("localStorage resilience", () => {
       localStorage.setItem("canvas-overrides:fixture-project", "also not json");
     });
     await page.goto("/canvas/fixture-project");
-    await expect(page.getByRole("heading", { level: 1, name: "Fixture Project" })).toBeVisible();
-    await expect(page.getByTestId("canvas-world")).toBeVisible();
+    // The default board reads as a document; a canvas board exercises the view
+    // transform that must ignore the corrupt record.
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
+    const world = page.getByTestId("canvas-world");
+    await expect(world).toBeVisible();
+    // The corrupt record was ignored — a valid transform, no white-screen — and
+    // the HUD resets cleanly to 100%.
+    const style = (await world.getAttribute("style")) ?? "";
+    expect(style).toMatch(/scale\(/);
+    expect(style).not.toContain("undefined");
+    expect(style).not.toContain("NaN");
+    await page.getByTestId("zoom-pct").click();
     await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
     expect(errors, errors.join("\n")).toEqual([]);
   });
@@ -228,10 +238,14 @@ test.describe("localStorage resilience", () => {
       localStorage.setItem("canvas-overrides:fixture-project", JSON.stringify(["array", "not", "object"]));
     });
     await page.goto("/canvas/fixture-project");
-    await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
-    const style = (await page.getByTestId("canvas-world").getAttribute("style")) ?? "";
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
+    const world = page.getByTestId("canvas-world");
+    await expect(world).toBeVisible();
+    const style = (await world.getAttribute("style")) ?? "";
     expect(style).not.toContain("undefined");
     expect(style).not.toContain("NaN");
+    await page.getByTestId("zoom-pct").click();
+    await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
     expect(errors, errors.join("\n")).toEqual([]);
   });
 });
@@ -250,6 +264,7 @@ test.describe("live board — SSE under rapid writes", () => {
     let last = "";
     try {
       await page.goto("/canvas/fixture-project");
+      await page.getByRole("option", { name: "Structure", exact: true }).click();
       const card = page.locator("#card-structure-0");
       await expect(card).toBeVisible();
       await page.waitForTimeout(600); // let the EventSource connect
@@ -280,6 +295,7 @@ test.describe("vault edge data (fixture-project)", () => {
   }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
+    await page.getByRole("option", { name: "Decision stream", exact: true }).click();
 
     // The dangling decision is rendered honestly, in place.
     const dangling = page.locator("#d-0012");
@@ -300,9 +316,11 @@ test.describe("vault edge data (fixture-project)", () => {
   }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
-    // The research region still renders its real artifacts; the empty stub did
-    // not take the board (or its region) down.
-    await expect(page.locator("#region-research")).toBeVisible();
+    // Research reads as documents; the empty stub artifact must not take the
+    // board down — the real synthesis still renders.
+    await page.getByRole("option", { name: "Research", exact: true }).click();
+    await expect(page.getByTestId("doc-view")).toBeVisible();
+    await page.getByTestId("sidebar").getByRole("option", { name: "Synthesis" }).click();
     await expect(
       page.getByText("the artifact and the decision that shaped it live", { exact: false }),
     ).toBeVisible();

@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getBoard } from "@/lib/board";
 import { VaultNotConfiguredError } from "@/lib/vault";
+import { HIDDEN_SLUGS } from "@/lib/hidden-projects";
+import { autorunEnabled } from "@/lib/debrief-runner";
 import { VaultError } from "@/components/vault-error";
 import { Canvas } from "@/components/canvas/canvas";
 import type { BoardModel } from "@/lib/types";
@@ -18,6 +20,9 @@ export default async function CanvasPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  // The studio's own dogfooding projects are hidden from the web UI — not just
+  // dropped from the index, but unreachable by direct URL too.
+  if (HIDDEN_SLUGS.has(slug)) notFound();
   let board: BoardModel | null;
   try {
     board = await getBoard(slug);
@@ -27,5 +32,6 @@ export default async function CanvasPage({
   }
   if (!board) notFound();
 
-  return <Canvas model={board} />;
+  // Whether the canvas may spawn headless skill runs (the Research "Run" control).
+  return <Canvas model={board} runsEnabled={autorunEnabled()} />;
 }

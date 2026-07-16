@@ -55,7 +55,9 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
    self-contained HTML page *from its tokens*: the type scale set in the product's real vocabulary
    (from `02 Research/`), the palette in use (text on backgrounds, the primary button, borders),
    motion on an interactive element where it matters, and a sample card / form / table row for
-   spacing and radius feel. Same content on every board — only the language varies. Save to
+   spacing and radius feel. Same content on every board — only the language varies. Render each
+   candidate across light, dark, and the key states (empty, loading, error), and critique it in every
+   mode before the language is committed, not just the default view. Save to
    `_assets/boards/`, review side by side with the user; they pick or mix ("palette from A, type
    from B" is a valid answer). Rejected boards stay in `_assets/boards/` as the record for the
    decision entry.
@@ -72,8 +74,8 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
    `02 Research/Landscape.md`), the accepted recommendation's known risks.
 8. **Write `<project>/DESIGN.md`** — canonical here until `build` moves it into the prototype repo.
 9. **Lint gate** (🟢): run the owned lint until clean —
-   `node <design-studio repo>/web/scripts/design-lint.mjs <project>/DESIGN.md` (or, from the repo's
-   `web/`, `npm run design:lint -- <path>`). It validates structure (required sections in the fixed
+   `node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs <project>/DESIGN.md` (or, from
+   the design-studio repo's `web/`, `npm run design:lint -- <path>`). It validates structure (required sections in the fixed
    order, no duplicate heading), that every `{token}` reference resolves, motion and floor syntax,
    and WCAG contrast against the **declared floors** — a declared pair below its `min` is a design
    problem to solve, not a warning to mute. No repo checkout handy? Author against DESIGN-SPEC.md's

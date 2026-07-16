@@ -36,29 +36,46 @@ test.describe("second fixture — mid-pipeline / empty states", () => {
     const res = await page.goto("/canvas/fixture-minimal");
     expect(res?.ok()).toBeTruthy();
 
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Fixture Minimal", exact: true }),
-    ).toBeVisible();
+    // The sidebar index still lists every stage (un-run ones are not hidden).
+    // Build is the pipeline's last stage now (compile-spec became an on-demand
+    // render utility off the spine — decision 0028), still un-run here since this
+    // project is only in research. Run-state isn't spelled out in the index.
+    const sidebar = page.getByTestId("sidebar");
+    await expect(sidebar.getByRole("option", { name: "Research", exact: true })).toBeVisible();
+    await expect(sidebar.getByRole("option", { name: "Build", exact: true })).toBeVisible();
 
-    // The spine still shows every stage; the un-run ones read as Pending, not
-    // hidden. Build is the pipeline's last stage now (compile-spec became an
-    // on-demand render utility off the spine — decision 0028), and it's still
-    // pending here since this project is only in research.
-    await expect(page.locator("#region-research").getByText("Current", { exact: false }).first()).toBeVisible();
-    await expect(page.locator("#region-build").getByText("Pending", { exact: false }).first()).toBeVisible();
-
-    // Zero decisions: no decision entries leak in, and the stream renders its
-    // empty state rather than a broken card.
-    await expect(page.locator("#d-0008")).toHaveCount(0);
-
-    // No prototype configured → the designed empty state, not a dead frame.
+    // Build board: no prototype configured → the designed empty state, not a dead frame.
+    await sidebar.getByRole("option", { name: "Build", exact: true }).click();
     await expect(page.getByTestId("prototype-empty")).toBeVisible();
     await expect(page.getByTestId("prototype-empty")).toContainText(/design-studio-build/i);
+
+    // Decision stream: zero decisions leak in; it renders its empty state rather
+    // than a broken card.
+    await sidebar.getByRole("option", { name: "Decision stream", exact: true }).click();
+    await expect(page.locator("#d-0008")).toHaveCount(0);
 
     // No DESIGN.md tokens → comment/tokens chrome is absent (degrades honestly).
     await expect(page.getByTestId("comment-toolbar")).toHaveCount(0);
 
     expect(errors, `console/page errors on minimal canvas:\n${errors.join("\n")}`).toEqual([]);
+  });
+
+  test("a table-format register renders its entries (not just H3 sections)", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-minimal");
+
+    // The minimal fixture's register is a markdown TABLE, not H3 sections. It
+    // must still parse into entries rather than reading "No register yet."
+    await page.getByRole("option", { name: "Research", exact: true }).click();
+    await page.getByTestId("sidebar").getByRole("option", { name: "Assumptions & risks" }).click();
+
+    const r1 = page.locator("#assumption-R1");
+    await expect(r1).toBeVisible();
+    await expect(r1).toContainText(/mid-pipeline checkpoint/i); // the claim (col 2)
+    await expect(r1).toContainText(/riskiest|load-bearing/i); // Load-bearing? = Yes → riskiest
+    await expect(page.locator("#assumption-R2")).toBeVisible();
+
+    expect(errors, errors.join("\n")).toEqual([]);
   });
 });
 
@@ -102,7 +119,9 @@ test.describe("theme contrast (light + dark)", () => {
   test("dark (default) keeps body + muted text readable", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
-    await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+    // The default board (Debrief) reads as a document; the sidebar names the
+    // project — enough to confirm the canvas page rendered.
+    await expect(page.getByTestId("sidebar")).toContainText("Fixture Project");
     // Default theme is dark (layout.tsx).
     await expect(page.locator("html")).toHaveClass(/dark/);
     const { ink, muted } = await inkOnPaper(page);
@@ -138,7 +157,9 @@ for (const vp of [
       await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
 
       await page.goto("/canvas/fixture-project");
-      await expect(page.getByRole("heading", { level: 1, name: "Fixture Project" })).toBeVisible();
+      // A canvas board (Structure) exercises the pannable viewport + zoom HUD;
+      // the default Debrief reads as a document with neither.
+      await page.getByRole("option", { name: "Structure", exact: true }).click();
       await expect(page.getByTestId("zoom-hud")).toBeVisible();
       await expect(page.getByTestId("sidebar")).toBeVisible();
 
@@ -163,11 +184,12 @@ test.describe("prefers-reduced-motion", () => {
     await page.goto("/canvas/fixture-project");
     const world = page.getByTestId("canvas-world");
 
+    // Fly to a canvas board from the keyboard (focus the option, activate with
+    // Enter) — a build-phase stage so there's a world to fly.
     const sidebar = page.getByTestId("sidebar");
-    await sidebar.getByRole("option").first().focus();
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
+    await sidebar.getByRole("option", { name: "Structure", exact: true }).focus();
     await page.keyboard.press("Enter");
+    await expect(world).toBeVisible();
 
     // Under reduced motion, applyView writes transition:none even for a fly, so
     // the transform must never carry the 380ms cubic-bezier animation.
@@ -278,36 +300,86 @@ test.describe("api routes", () => {
 // ── Focus mode: one board per sidebar item ───────────────────────────────────
 
 test.describe("focus mode — one board per sidebar item", () => {
-  test("selecting a stage isolates its board; All stages restores the whole flow", async ({
+  test("the canvas opens on Debrief; each sidebar item isolates its board", async ({
     page,
   }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // Default is "All stages": the whole flow is present at once.
-    await expect(page.getByTestId("focus-all")).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByTestId("framing-transform")).toBeVisible();
-    await expect(page.locator("#region-decision-stream")).toBeVisible();
+    // Default is the first stage (Debrief): a prose stage that reads off the
+    // canvas as a document. Its document list is folded into the sidebar as an
+    // accordion (no separate contents column), and the pane shows the first
+    // document (Original brief). No framing pane, no decision stream, no zoom.
+    await expect(page.getByTestId("doc-view")).toBeVisible();
+    await expect(page.getByTestId("doc-contents")).toHaveCount(0);
+    await expect(
+      page.getByTestId("sidebar").getByRole("option", { name: "Original brief" }),
+    ).toBeVisible();
+    await expect(page.getByTestId("doc-view")).toContainText(/look modern/i); // the original brief
+    await expect(page.getByTestId("framing-transform")).toHaveCount(0);
+    await expect(page.locator("#region-decision-stream")).toHaveCount(0);
 
-    // Click Research → only Research's board; Debrief's framing pane and the
-    // decision stream are gone (not scrolled past — genuinely not rendered).
+    // Click Research → the other prose stage reads off the canvas as a document,
+    // and there is nothing to zoom, so the zoom HUD is hidden.
     await page.getByRole("option", { name: "Research", exact: true }).click();
     await expect(page.getByRole("option", { name: "Research", exact: true })).toHaveAttribute(
       "aria-selected",
       "true",
     );
+    await expect(page.getByTestId("doc-view")).toBeVisible();
     await expect(page.getByTestId("framing-transform")).toHaveCount(0);
     await expect(page.locator("#region-decision-stream")).toHaveCount(0);
+    await expect(page.getByTestId("zoom-hud")).toHaveCount(0);
 
-    // Click Debrief → its framing pane is back, alone.
-    await page.getByRole("option", { name: "Debrief", exact: true }).click();
-    await expect(page.getByTestId("framing-transform")).toBeVisible();
-    await expect(page.locator("#region-decision-stream")).toHaveCount(0);
+    // A build-phase stage isolates on the canvas (not a document): the zoom HUD
+    // returns and the reading view is gone.
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
+    await expect(page.getByTestId("doc-view")).toHaveCount(0);
+    await expect(page.getByTestId("zoom-hud")).toBeVisible();
 
-    // All stages → the continuous flow returns.
-    await page.getByTestId("focus-all").click();
-    await expect(page.getByTestId("framing-transform")).toBeVisible();
+    // The decision stream is reachable as its own isolated board.
+    await page.getByRole("option", { name: "Decision stream", exact: true }).click();
     await expect(page.locator("#region-decision-stream")).toBeVisible();
+    await expect(page.getByTestId("doc-view")).toHaveCount(0);
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+
+  test("the research reader: the sidebar accordion shows one document at a time", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // Research opens the reader; its documents fold into the sidebar, and the
+    // pane shows the FIRST document by default.
+    await page.getByRole("option", { name: "Research", exact: true }).click();
+    const pane = page.getByTestId("doc-view");
+    const sidebar = page.getByTestId("sidebar");
+    await expect(pane).toBeVisible();
+    await expect(page.getByTestId("doc-contents")).toHaveCount(0);
+    // First research artifact (alphabetical) is "Company & product".
+    await expect(pane).toContainText(/twelve-person design team/i);
+    // Only one document is mounted — the register isn't stacked below it.
+    await expect(page.locator("#assumption-A1")).toHaveCount(0);
+
+    // Selecting the register sub-row REPLACES the pane: the register appears, and
+    // the previously shown document is gone (not scrolled past — unmounted).
+    await sidebar.getByRole("option", { name: "Assumptions & risks" }).click();
+    await expect(page.locator("#assumption-A1")).toBeVisible();
+    await expect(pane).not.toContainText(/twelve-person design team/i);
+    await expect(sidebar.getByRole("option", { name: "Assumptions & risks" })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+
+    // Debrief's reader works the same: its first document is the Original brief;
+    // selecting "Problem statement" swaps the pane to the reframe.
+    await page.getByRole("option", { name: "Debrief", exact: true }).click();
+    await expect(pane).toContainText(/look modern/i); // original brief, shown first
+    await sidebar.getByRole("option", { name: "Problem statement" }).click();
+    await expect(pane).toContainText(/trustworthy evidence/i);
+    await expect(pane).not.toContainText(/look modern/i); // the brief is gone
 
     expect(errors, errors.join("\n")).toEqual([]);
   });

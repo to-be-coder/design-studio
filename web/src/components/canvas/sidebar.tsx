@@ -2,43 +2,88 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import type { BoardModel, Phase, StageMarkerState } from "@/lib/types";
-import { markerLabel, stageName } from "./util";
+import type { BoardModel, Phase } from "@/lib/types";
+import { shortProjectName } from "@/lib/project-name";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { buildSections } from "./doc-sections";
+import { navRowActiveStyle, navRowClass, stageName } from "./util";
 
-interface IndexEntry {
-  /** The focus key: a stage token, or "decision-stream". */
-  focusKey: string;
-  label: string;
-  /** A pipeline phase, or the standalone "Decisions" group for the stream. */
-  group: Phase | "Decisions";
-  state?: StageMarkerState;
-}
+type Group = Phase | "Decisions";
+
+/** A stage row, or a document sub-row folded in under a doc-mode stage. */
+type Entry =
+  | {
+      kind: "stage";
+      focusKey: string;
+      label: string;
+      group: Group;
+      /** Doc-mode stages (debrief/research) carry a document list. */
+      expandable: boolean;
+    }
+  | { kind: "doc"; docKey: string; label: string; group: Group; parent: string };
 
 /**
  * The sidebar is the board's persistent overview AND its switcher (§ focus
  * mode): every stage listed with its run-state, keyboard-navigable (arrow +
- * Enter), and selecting one shows just that board — one board per item, not one
- * long scrolling flow. "All stages" restores the continuous comb.
+ * Enter), and selecting one shows just that board. Doc-mode stages (debrief,
+ * research) fold their document list in as an accordion — the parent expands to
+ * reveal its documents, and picking one shows it in the reading pane; the middle
+ * contents column is gone.
  */
 export function Sidebar({
   model,
   focused,
+  selectedDoc,
+  generatingStage,
   onFocus,
+  onSelectDoc,
   onCollapse,
 }: {
   model: BoardModel;
   focused: string;
+  /** Which document the focused doc-stage is showing; null → its first. */
+  selectedDoc: string | null;
+  /** Stage a headless AI draft is generating right now — pulses a dot on its row. */
+  generatingStage: string | null;
   onFocus: (focusKey: string) => void;
+  onSelectDoc: (docKey: string) => void;
   onCollapse: () => void;
 }) {
-  const entries: IndexEntry[] = [];
+  // Which expandable stages the user has manually retracted. A doc-stage is open
+  // when it's focused and not retracted; opening one is the accordion default.
+  const [retracted, setRetracted] = useState<Set<string>>(new Set());
+
+  const groups: Group[] = [...model.phases, "Decisions"];
+
+  // The focused doc-stage's documents drive both the accordion sub-rows and the
+  // "which sub-row is active" highlight (selectedDoc, or the first by default).
+  const focusedSections = buildSections(model, focused);
+  const effectiveDoc = selectedDoc ?? focusedSections[0]?.key ?? null;
+
+  const entries: Entry[] = [];
   for (const s of model.stages) {
-    entries.push({ focusKey: s.stage, label: stageName(s.stage), group: s.phase, state: s.markerState });
+    const expandable = buildSections(model, s.stage).length > 0;
+    entries.push({
+      kind: "stage",
+      focusKey: s.stage,
+      label: stageName(s.stage),
+      group: s.phase,
+      expandable,
+    });
+    const open = expandable && focused === s.stage && !retracted.has(s.stage);
+    if (open) {
+      for (const sec of focusedSections) {
+        entries.push({ kind: "doc", docKey: sec.key, label: sec.label, group: s.phase, parent: s.stage });
+      }
+    }
   }
-  // The Decision stream is its own group now — converge/explore-directions
-  // dissolved (decisions 0021/0023), so it no longer hangs off a decide stage.
-  entries.push({ focusKey: "decision-stream", label: "Decision stream", group: "Decisions" });
-  const groups: (Phase | "Decisions")[] = [...model.phases, "Decisions"];
+  entries.push({
+    kind: "stage",
+    focusKey: "decision-stream",
+    label: "Decision stream",
+    group: "Decisions",
+    expandable: false,
+  });
 
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [cursor, setCursor] = useState(0);
@@ -47,6 +92,27 @@ export function Sidebar({
     const next = Math.max(0, Math.min(entries.length - 1, cursor + delta));
     setCursor(next);
     btnRefs.current[next]?.focus();
+  };
+
+  const onStageClick = (focusKey: string, expandable: boolean) => {
+    if (expandable && focused === focusKey) {
+      // Already open — the parent toggles its own accordion (expand / retract).
+      setRetracted((prev) => {
+        const n = new Set(prev);
+        if (n.has(focusKey)) n.delete(focusKey);
+        else n.add(focusKey);
+        return n;
+      });
+      return;
+    }
+    // Focusing a stage opens it (clears any prior retraction).
+    setRetracted((prev) => {
+      if (!prev.has(focusKey)) return prev;
+      const n = new Set(prev);
+      n.delete(focusKey);
+      return n;
+    });
+    onFocus(focusKey);
   };
 
   return (
@@ -72,29 +138,14 @@ export function Sidebar({
             <PanelCloseIcon />
           </button>
         </div>
-        <p className="eyebrow mt-2">{model.project.name}</p>
-      </div>
-
-      <div className="px-2 pt-2">
-        <button
-          type="button"
-          onClick={() => onFocus("all")}
-          aria-pressed={focused === "all"}
-          data-testid="focus-all"
-          className="w-full rounded-inset px-2 py-1.5 text-left text-[0.8125rem] font-medium transition-colors hover:bg-paper-raised"
-          style={
-            focused === "all"
-              ? { background: "var(--accent-wash)", color: "var(--accent)" }
-              : { color: "var(--ink-muted)" }
-          }
-        >
-          All stages
-          <span className="ml-1 text-ink-faint">— the whole flow</span>
-        </button>
+        <p className="eyebrow mt-2">{shortProjectName(model.project.name)}</p>
+        {model.header.statusLine ? (
+          <p className="mt-1 text-[0.75rem] leading-snug text-ink-faint">{model.header.statusLine}</p>
+        ) : null}
       </div>
 
       <div
-        className="flex-1 px-2 py-2"
+        className="flex-1 px-2 py-2 pt-4"
         role="listbox"
         aria-label="Board regions"
         onKeyDown={(e) => {
@@ -116,7 +167,34 @@ export function Sidebar({
               .map((e, i) => ({ e, i }))
               .filter(({ e }) => e.group === group)
               .map(({ e, i }) => {
+                if (e.kind === "doc") {
+                  const active = e.docKey === effectiveDoc;
+                  return (
+                    <button
+                      key={`${e.parent}:${e.docKey}`}
+                      ref={(el) => {
+                        btnRefs.current[i] = el;
+                      }}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      aria-current={active ? "true" : undefined}
+                      tabIndex={cursor === i ? 0 : -1}
+                      onFocus={() => setCursor(i)}
+                      onClick={() => onSelectDoc(e.docKey)}
+                      className={`flex w-full items-center gap-2 py-1.5 pl-8 pr-2 text-left text-[0.8125rem] ${navRowClass(active)}`}
+                      style={active ? navRowActiveStyle : undefined}
+                    >
+                      <span className="min-w-0 truncate">{e.label}</span>
+                    </button>
+                  );
+                }
                 const active = focused === e.focusKey;
+                const open = e.expandable && active && !retracted.has(e.focusKey);
+                // When the stage is open, its highlighted child carries the
+                // active treatment — the parent row yields it (no double
+                // highlight), while keeping its aria state for the a11y tree.
+                const showActive = active && !open;
                 return (
                   <button
                     key={e.focusKey}
@@ -126,26 +204,19 @@ export function Sidebar({
                     type="button"
                     role="option"
                     aria-selected={active}
-                    aria-current={active ? "true" : undefined}
+                    aria-current={showActive ? "true" : undefined}
+                    aria-expanded={e.expandable ? open : undefined}
                     tabIndex={cursor === i ? 0 : -1}
                     onFocus={() => setCursor(i)}
-                    onClick={() => onFocus(e.focusKey)}
-                    className="flex w-full items-center justify-between gap-2 rounded-inset px-2 py-1.5 text-left text-[0.875rem] transition-colors hover:bg-paper-raised focus-visible:bg-paper-raised"
-                    style={
-                      active
-                        ? { background: "var(--accent-wash)", color: "var(--accent)", fontWeight: 600 }
-                        : { color: "var(--ink-muted)" }
-                    }
+                    onClick={() => onStageClick(e.focusKey, e.expandable)}
+                    className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-[0.875rem] ${navRowClass(showActive)}`}
+                    style={showActive ? navRowActiveStyle : undefined}
                   >
-                    <span className="min-w-0 truncate">{e.label}</span>
-                    {e.state ? (
-                      // Decorative: keep the option's accessible name the stage
-                      // label alone (name-by-content would otherwise become
-                      // "Build Ran" and break name-based selection).
-                      <span aria-hidden className="shrink-0 text-[0.6875rem] text-ink-faint">
-                        {markerLabel(e.state)}
-                      </span>
-                    ) : null}
+                    <span aria-hidden className="w-3 shrink-0 text-ink-faint">
+                      {e.expandable ? <Chevron open={open} /> : null}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{e.label}</span>
+                    {generatingStage === e.focusKey ? <GeneratingDot /> : null}
                   </button>
                 );
               })}
@@ -153,16 +224,49 @@ export function Sidebar({
         ))}
       </div>
 
-      <div className="border-t border-rule px-4 py-3 text-[0.75rem] leading-relaxed text-ink-faint">
-        <p className="eyebrow mb-1.5 text-ink-muted">Canvas</p>
-        <dl className="space-y-0.5">
-          <Cheat k="Scroll" v="pan" />
-          <Cheat k="⌘/Ctrl + scroll" v="zoom" />
-          <Cheat k="Shift + scroll" v="pan sideways" />
-          <Cheat k="Space + drag" v="pan" />
-        </dl>
+      <div className="mt-auto flex justify-end px-3 py-3">
+        <ThemeToggle iconOnly />
       </div>
     </nav>
+  );
+}
+
+/** A live "generating" pulse — a solid accent dot under an expanding ring. */
+function GeneratingDot() {
+  return (
+    <span
+      aria-hidden
+      className="relative ml-1.5 inline-flex h-2 w-2 shrink-0 items-center justify-center"
+    >
+      <span
+        className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60"
+        style={{ background: "var(--accent)" }}
+      />
+      <span
+        className="relative inline-flex h-1.5 w-1.5 rounded-full"
+        style={{ background: "var(--accent)" }}
+      />
+    </span>
+  );
+}
+
+/** Accordion disclosure caret — points right when closed, down when open. */
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`transition-transform ${open ? "rotate-90" : ""}`}
+      aria-hidden="true"
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
   );
 }
 
@@ -184,14 +288,5 @@ function PanelCloseIcon() {
       <path d="M9 3v18" />
       <path d="m16 15-3-3 3-3" />
     </svg>
-  );
-}
-
-function Cheat({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex justify-between gap-3">
-      <dt className="font-mono text-ink-muted">{k}</dt>
-      <dd>{v}</dd>
-    </div>
   );
 }

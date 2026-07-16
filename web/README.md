@@ -6,10 +6,9 @@ rendered as one readable board instead of a stack of separate pages.
 
 - **Projects index** (`/`) — every project as a card: name, client, route, current stage, and its
   restated problem line.
-- **Canvas** (`/canvas/<slug>`) — the whole board, laid out along a spine of two phases —
-  **Understand** and **Build** — each stage's artifacts rendered as cards. A **focus
-  mode** isolates any single board (click a sidebar item; "all" shows the continuous comb, and the
-  choice persists). The **Decision Stream** is its own standalone section (converge/explore-directions
+- **Canvas** (`/canvas/<slug>`) — each project's design journey as a **focus mode**: one board at a
+  time (click a sidebar item to isolate it; the choice persists), opening on the first stage
+  (Debrief, which reads as a document). The **Decision Stream** is its own standalone section (converge/explore-directions
   dissolved, so there's no "Decide" phase) that renders the entire decision log as one page, supersede
   chains drawn, with **In their words.** pull-quotes for 🔴 calls a human actually made. The
   **assumption graph** draws each assumption's blast radius — the decisions whose `rests_on` cites

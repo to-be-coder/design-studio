@@ -127,6 +127,10 @@ export interface FramingModel {
   routeDecision: RenderableBlock[] | null;
   /** Any other H2 sections, rendered in order. */
   extras: { title: string; blocks: RenderableBlock[] }[];
+  /** The clarification agenda (Clarifications.md) — the questions for the client. */
+  clarifications: RenderableBlock[] | null;
+  /** The living ledger (Agreements.md) — agreed / against / deferred / full vision. */
+  agreements: RenderableBlock[] | null;
 }
 
 export type AssumptionState = "verified" | "partial" | "unverified" | "accepted";
@@ -189,6 +193,9 @@ export interface BoardHeader {
   currentStage: Stage | null;
   nextStep: string | null;
   overrides: string[];
+  /** Round-aware status from the dashboard's "Current stage" line, e.g.
+   * "debrief — round 1, awaiting review". */
+  statusLine: string | null;
 }
 
 /** Client-safe descriptor of a project's prototype (server config never leaks). */

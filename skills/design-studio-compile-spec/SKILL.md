@@ -44,8 +44,9 @@ Render for engineering: the accepted recommendation and chosen directions, accep
 states/edge/a11y notes from build, the flows/IA and data model from `03 Structure.md` (and any
 directions-move data-model sketch in the research report), copy, the migration plan, and the visual
 contract — link the prototype repo's `DESIGN.md` and attach a token export produced by the studio's
-owned script (`node web/scripts/design-export.mjs DESIGN.md`, or `npm run design:export` from
-`web/`), which emits CSS custom properties from the resolved tokens. The `DESIGN.md` travels
+owned script (`node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs DESIGN.md`, or
+`npm run design:export` from the design-studio repo's `web/`), which emits CSS custom properties from
+the resolved tokens. The `DESIGN.md` travels
 alongside as the portable source, so a team on another stack can regenerate their own format from
 the same tokens. This is the *what/how*, complementing the stakeholder spec's *why*.
 

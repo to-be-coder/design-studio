@@ -44,6 +44,11 @@ export async function getAssumptions(slug: string): Promise<AssumptionNode[]> {
     if (current) current.blocks.push(b);
   }
 
+  // Fallback: some registers are written as a markdown TABLE (# | Assumption |
+  // Load-bearing? | Status | notes) rather than H3 sections. Parse the raw body
+  // for it when no H3 entries were found, so a table register still renders.
+  if (nodes.length === 0) return parseTableRegister(file.body);
+
   // Resolve state + riskiest from each entry's body text.
   for (const n of nodes) {
     const text = n.blocks.map(blockText).join(" ");
@@ -53,6 +58,64 @@ export async function getAssumptions(slug: string): Promise<AssumptionNode[]> {
     n.riskiest = /riskiest|load-bearing/i.test(text);
   }
 
+  return nodes;
+}
+
+/** "| a | b | c |" → ["a", "b", "c"]. */
+function tableCells(line: string): string[] {
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+}
+
+function columnIndex(header: string[], ...patterns: RegExp[]): number | null {
+  const i = header.findIndex((h) => patterns.some((p) => p.test(h)));
+  return i >= 0 ? i : null;
+}
+
+/**
+ * Parse a register written as a markdown table. Maps `#`→id, `Assumption`→claim,
+ * `Load-bearing?`→riskiest, `Status`→state; the remaining "how we'd test / found"
+ * column becomes the entry body.
+ */
+async function parseTableRegister(body: string): Promise<AssumptionNode[]> {
+  const lines = body.split(/\r?\n/);
+  const isRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const isSep = (l: string) => /^\s*\|[\s:|-]+\|\s*$/.test(l);
+
+  // A header row (naming an Assumption column) directly above a |---| separator.
+  let headerIdx = -1;
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (isRow(lines[i]) && isSep(lines[i + 1]) && /assumption|claim/i.test(lines[i])) {
+      headerIdx = i;
+      break;
+    }
+  }
+  if (headerIdx < 0) return [];
+
+  const header = tableCells(lines[headerIdx]);
+  const idIdx = columnIndex(header, /^#$/, /\bid\b/) ?? 0;
+  const claimIdx = columnIndex(header, /assumption|claim/i) ?? 1;
+  const loadIdx = columnIndex(header, /load.?bearing/i);
+  const stateIdx = columnIndex(header, /status|state/i);
+  const notesIdx = columnIndex(header, /how|found|test|note|evidence/i) ?? header.length - 1;
+
+  const nodes: AssumptionNode[] = [];
+  for (let i = headerIdx + 2; i < lines.length && isRow(lines[i]); i++) {
+    const cells = tableCells(lines[i]);
+    const id = (cells[idIdx] ?? "").trim();
+    const title = (cells[claimIdx] ?? "").trim();
+    if (!id || !title) continue;
+    const state = (stateIdx != null && detectState(cells[stateIdx] ?? "")) || "unverified";
+    const notes = notesIdx != null ? (cells[notesIdx] ?? "").trim() : "";
+    nodes.push({
+      id,
+      title,
+      state,
+      riskiest: loadIdx != null && /\byes\b/i.test(cells[loadIdx] ?? ""),
+      accepted: state === "accepted",
+      blocks: notes ? await parseMarkdownBody(notes) : [],
+      dependents: [],
+    });
+  }
   return nodes;
 }
 

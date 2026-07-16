@@ -6,6 +6,58 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **A prototype-review gate in `build`** (vault decision 0033). Build's round close gains a fifth
+  round-closing gate that drives the *running* prototype in the Canvas instead of only reading the
+  code: capture every screen across its states (empty, loading, error) and both themes (light and
+  dark) and read them against `DESIGN.md` as the written register (approve on "it belongs," not on
+  "it renders"), then verify real affordance (every interactive element reachable and clickable, not
+  clipped, not zero height, not covered) and no console or runtime errors, because screens can lie
+  about interactivity. Scoped deliberately to prototype quality, not production hardening: no soak
+  tests, no load tests, no formal proofs; concurrency, a real backend, and scale stay the engineer's
+  after handoff. `design-system`'s specimen review picks up the same state-matrix discipline,
+  rendering each candidate language across light, dark, and the key states and critiquing before the
+  language is committed, not just the default view.
+- **Create a project from the dashboard.** A "+" in the Projects header opens a modal to seed a
+  project from its first brief (name, optional client, the brief text). Saving `POST`s to a new
+  `/api/projects` route that scaffolds the vault folder — `00 Dashboard.md` (the design-project
+  record) and `01 Brief & Problem.md`. By default the modal then hands off explicitly — "Run
+  `/design-studio-debrief` to frame this" — with an Open-project shortcut. **Opt-in auto-run:** set
+  `DESIGN_STUDIO_AUTORUN_DEBRIEF=1` and Create additionally fires `design-studio-debrief` **round 1**
+  as a headless background pass (`claude --print`, gated behind the flag so it never fires in tests):
+  it enriches the seeded folder in place with the restated problem (kept `proposed`), the rubric,
+  provisional success criteria, the seeded risk register, and the clarification agenda — round 1 is
+  autonomous, so the *client* loop (rounds 2+) still happens interactively. Runnable stages also get
+  an on-demand **"Run <stage>"** control on their board (same opt-in flag) — currently `research` and
+  `structure` — that fires that stage's skill headless via `/api/projects/run`. While any run is in
+  flight, the canvas sidebar **pulses a dot** on the running stage's row (polled via
+  `/api/projects/status`), independent of which board is focused, and the board refreshes once it
+  lands so the new docs appear. Output logs to `<project>/.<stage>-run.log`. This is the web app's
+  first vault *write*; the rest stays the skills' job.
+- **The Canvas is focus-only, and the studio no longer lists itself.** The dashboard hides the
+  studio's own dogfooding projects (`design-studio` — the meta-project — and `design-studio-web` —
+  the Canvas dashboard it was built through) from the web UI: dropped from the projects index and
+  their canvas routes 404. The hidden set lives in one place (`lib/hidden-projects.ts`); the vault
+  reader stays faithful and still lists them, so this is a presentation decision. Every project now
+  displays by its **short name** — the part before the " — " subtitle in its dashboard H1
+  ("Thunderbolt — Agent Access & Workspace Rethink" → "Thunderbolt") — across the index, canvas
+  header, and sidebar; the full name stays intact in the vault and in exports. The projects index is
+  now a compact list — name + stage + client · route · status per row, with each project's
+  description paragraph dropped. The doc reader's separate contents column is folded into the sidebar:
+  a doc-mode stage (debrief/research) is an **accordion** whose documents nest under it, and picking
+  one shows it in the reading pane, which now fills the freed width. The Canvas
+  also loses the "All stages" comb overview and its sidebar button — it now shows one board at a time,
+  opening on the first stage (Debrief, which reads as a document). Chrome tidy-up: the **Tokens**
+  live-editor button rides only on the Build board (its overrides restyle the prototype frames, which
+  only exist there), and the light/dark toggle moved from the top-right into the sidebar footer. Web/UI
+  only — no skill, schema, or pipeline change; the pipeline stays five stages.
+- **New `design-studio-design-md` utility skill; the DESIGN.md toolchain is now portable** (vault
+  decision 0032). A standalone skill to safely amend or validate a DESIGN.md in *any* repo (not just
+  this one): read the vendored spec, edit the one canonical file, classify additive-growth vs a
+  reshape (drift, wants sign-off), lint, re-export tokens so code can't drift, diff, note it. The
+  four zero-dependency scripts moved `web/scripts/` → `skills/design-studio-shared/scripts/` so they
+  install beside the skills and run in a client's prototype repo; every skill reference and
+  `web/package.json` repointed. Utilities go from four to five (setup, harvest, wiki-lint,
+  compile-spec, design-md); the pipeline stays five stages.
 - **The pipeline's grammar is now law in CONVENTIONS** (vault decision 0031 — rethink close-out).
   Named once, up front, as a prominent early section: every skill is exactly one of three shapes. A
   **loop** is work that converges with a human in the middle (the Understand loop `debrief` ⇄
@@ -183,8 +235,8 @@ All notable, user-visible changes to the design-studio skills are documented her
   edits the prototype's DESIGN.md values live across every frame. The board updates in place via
   SSE when a skill writes the vault. Fresh editorial visual language in `web/DESIGN.md` (the
   traffic-light dots are retired); the pipeline still renders from the single schema module; the
-  vault stays read-only. Built to `canvas-rebuild-prompt.md` in eight verified slices plus an
-  adversarial QA pass; 43 E2E tests, visibility-asserted, green twice consecutively.
+  vault stays read-only. Built in eight verified slices (from a one-shot build spec, since
+  removed) plus an adversarial QA pass; 43 E2E tests, visibility-asserted, green twice consecutively.
 
 - **Decision provenance for 🔴 stages.** Decisions carry `authored_by: user | skill`; a 🔴 decision
   is only `authored_by: user` when it quotes the user's verbatim words under **In their words.**

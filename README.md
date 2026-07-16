@@ -18,10 +18,12 @@ The skills are meant to be run roughly in order, though several can be used on d
 | 4 | `design-studio-design-system` | Codify the visual language into a linted `DESIGN.md` — tokens + rationale — derived from the client's brand or chosen from rendered specimen boards. |
 | 5 | `design-studio-build` | Build the clickable prototype spec-first against `DESIGN.md` and the structure's flows/IA, in rounds — with round-closing gates for states, edge cases, and a11y; real content; DESIGN.md consistency plus the owned `design:diff` drift check against the signed-off ref; and the pipeline's only register gate. The pipeline ends here. |
 
-Four utility skills sit outside the numbered pipeline: `design-studio-setup` (first-run onboarding),
+Five utility skills sit outside the numbered pipeline: `design-studio-setup` (first-run onboarding),
 `design-studio-compile-spec` (render the decision log into an audience-shaped spec — align /
 stakeholder / engineering; the pre-build PRD is this, invoked after design-system — on demand, at any
-point), and `design-studio-harvest` / `design-studio-wiki-lint` (see *Studio memory* below).
+point), `design-studio-design-md` (safely amend or validate a `DESIGN.md` in any project — the
+amend ritual: lint, token export, drift diff, and the additive-vs-reshape discipline), and
+`design-studio-harvest` / `design-studio-wiki-lint` (see *Studio memory* below).
 
 `design-studio-shared/CONVENTIONS.md` is shared reference material every skill reads first. It is not
 a skill itself — leave it in place alongside the others.
@@ -120,9 +122,10 @@ Then:
   Dataview community plugin makes the portfolio dashboards live. Everything is plain markdown, so
   a bare folder works too — `/design-studio-setup` handles either.
 - Node.js — the studio's owned, zero-dependency `DESIGN.md` tooling runs on plain Node: the lint
-  (`npm run design:lint` / `node web/scripts/design-lint.mjs`, structure + WCAG contrast against the
-  declared floors), the token export (`design:export`, `DESIGN.md` → CSS custom properties), and the
-  drift diff (`design:diff`, a resolved-token comparison across versions). Recommended; the skills
+  (`node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs` in any repo, or
+  `npm run design:lint` from this repo's `web/`; structure + WCAG contrast against the declared
+  floors), the token export (`design-export.mjs`, `DESIGN.md` → CSS custom properties), and the
+  drift diff (`design-diff.mjs`, a resolved-token comparison across versions). Recommended; the skills
   degrade gracefully without it.
 
 ## Updating

@@ -59,6 +59,10 @@ export default defineConfig({
       // The prod-mode test server runs the process-spawning Render API, so the
       // dev-only guard needs its explicit opt-in (mirrors a self-hosted box).
       DESIGN_STUDIO_ALLOW_RUN: "1",
+      // Never auto-spawn the headless debrief agent during tests, even if the
+      // developer has it enabled in their shell — the create test would fire a
+      // real Claude run against the fixture vault.
+      DESIGN_STUDIO_AUTORUN_DEBRIEF: "",
     },
   },
 });

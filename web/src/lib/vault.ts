@@ -29,7 +29,7 @@ import type {
  * request is a fresh-but-deduped view of disk.
  */
 
-const DESIGN_DIR = "Design Studio";
+export const DESIGN_DIR = "Design Studio";
 const DASHBOARD = "00 Dashboard.md";
 const ACTIVE_POINTER = ".design-studio-active";
 
@@ -605,7 +605,7 @@ export const getGraph = cache(async (): Promise<VaultGraph> => {
     while ((m = WIKILINK.exec(r.raw)) !== null) {
       const target = resolve(m[1], r.rel);
       if (!target || target === r.rel) continue;
-      const key = r.rel + " " + target;
+      const key = r.rel + "\x00" + target;
       if (seen.has(key)) continue;
       seen.add(key);
       links.push({ source: r.rel, target });

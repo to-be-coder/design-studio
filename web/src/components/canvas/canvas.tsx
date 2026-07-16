@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AssumptionState, BoardModel, Phase, RenderableBlock } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import type { AssumptionState, BoardModel, RenderableBlock } from "@/lib/types";
 import { BoardView } from "./board-view";
+import { DocView } from "./doc-view";
 import { Sidebar } from "./sidebar";
 import { ZoomHud } from "./hud";
 import { FramesProvider } from "./frames-context";
@@ -11,10 +13,13 @@ import { CommentController } from "./comment-controller";
 import { CommentToolbar } from "./comment-toolbar";
 import { TokensPanel } from "./tokens-panel";
 import { useSession } from "./session-context";
+import { stageName } from "./util";
 import { componentBaseNames } from "@/lib/tokens";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export type StreamFilter = "all" | "live" | "scaffold";
+
+/** Stages with an on-demand "Run" control on their board (must match the runner). */
+const RUNNABLE_STAGES = new Set(["research", "structure"]);
 
 export interface RestsOnState {
   assumptionId: string;
@@ -39,10 +44,10 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
  * transform on that single container (never a re-layout or re-render of cards):
  * BoardView is memoised and the transform is applied imperatively in a ref, so
  * wheel pan/zoom never triggers a React render — the 60fps performance law.
- * View state (pan/zoom, sidebar, hidden stages, expanded cards) persists per
+ * View state (pan/zoom, sidebar, focused board, expanded cards) persists per
  * project in localStorage.
  */
-export function Canvas({ model }: { model: BoardModel }) {
+export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled: boolean }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const view = useRef<View>({ x: 24, y: 24, scale: 1 });
@@ -54,17 +59,84 @@ export function Canvas({ model }: { model: BoardModel }) {
 
   const [pct, setPct] = useState(100);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [hiddenStages, setHiddenStages] = useState<Set<string>>(new Set());
-  const [hiddenPhases, setHiddenPhases] = useState<Set<Phase>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   // ── Assumption blast radius (slice 3) ───────────────────────────────────────
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState<StreamFilter>("all");
   // Focus mode: which single board is shown. Clicking any sidebar item isolates
-  // it ("one board per item"); "all" is the continuous comb. Default is "all"
-  // for a first-look overview, then a click narrows — and the choice persists.
-  const [focused, setFocused] = useState<string>("all");
+  // it ("one board per item"). Default is the first stage (Debrief, which reads
+  // as a document); a click narrows to any other board — and the choice persists.
+  const [focused, setFocused] = useState<string>(() => model.stages[0]?.stage ?? "debrief");
+  // Which document a doc-mode stage (debrief/research) is showing — picked from
+  // the sidebar accordion; null means the stage's first document.
+  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  // The stage a headless AI draft is currently generating (the sidebar pulses a
+  // dot on it). Today only the debrief autorun feeds this; null when idle.
+  const [generatingStage, setGeneratingStage] = useState<string | null>(null);
+  // Bump to (re)start the status poll — e.g. right after triggering a run.
+  const [pollNonce, setPollNonce] = useState(0);
+  const [runError, setRunError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Poll the skill-run status while a headless generation is in flight — pulse
+  // the sidebar dot on its stage, and refresh the board once it lands so the
+  // freshly-written docs show. Idle projects poll once and stop.
+  useEffect(() => {
+    const slug = model.project.slug;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let sawDrafting = false;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/projects/status?slug=${encodeURIComponent(slug)}`);
+        const data = (await res.json()) as { stage?: string | null; state?: string | null };
+        if (stopped) return;
+        if (data.state === "drafting") {
+          sawDrafting = true;
+          setGeneratingStage(data.stage ?? null);
+          timer = setTimeout(poll, 2000);
+        } else {
+          setGeneratingStage(null);
+          if (sawDrafting && data.state === "done") router.refresh();
+        }
+      } catch {
+        if (!stopped) setGeneratingStage(null);
+      }
+    };
+    poll();
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [model.project.slug, router, pollNonce]);
+
+  // Kick off a headless run of a stage's skill, then start polling so the sidebar
+  // dot pulses on that stage's row.
+  const runStage = useCallback(
+    async (stage: string) => {
+      setRunError(null);
+      setGeneratingStage(stage); // optimistic — the poll confirms/clears it
+      try {
+        const res = await fetch("/api/projects/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: model.project.slug, stage }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          setGeneratingStage(null);
+          setRunError(data.error ?? "Couldn't start the run.");
+          return;
+        }
+        setPollNonce((n) => n + 1);
+      } catch {
+        setGeneratingStage(null);
+        setRunError("Couldn't reach the server.");
+      }
+    },
+    [model.project.slug],
+  );
   const highlighted = useMemo(() => {
     if (!selected) return null;
     const a = model.assumptions.find((x) => x.id === selected);
@@ -163,8 +235,6 @@ export function Canvas({ model }: { model: BoardModel }) {
           JSON.stringify({
             view: view.current,
             sidebarOpen,
-            hiddenStages: [...hiddenStages],
-            hiddenPhases: [...hiddenPhases],
             expanded: [...expanded],
             focused,
           }),
@@ -173,7 +243,7 @@ export function Canvas({ model }: { model: BoardModel }) {
         /* storage unavailable — non-fatal */
       }
     }, 350);
-  }, [storageKey, sidebarOpen, hiddenStages, hiddenPhases, expanded, focused]);
+  }, [storageKey, sidebarOpen, expanded, focused]);
 
   // Load persisted state once.
   useEffect(() => {
@@ -189,10 +259,15 @@ export function Canvas({ model }: { model: BoardModel }) {
           view.current = { x: s.view.x, y: s.view.y, scale: clamp(s.view.scale, MIN_SCALE, MAX_SCALE) };
         }
         if (typeof s.sidebarOpen === "boolean") setSidebarOpen(s.sidebarOpen);
-        if (Array.isArray(s.hiddenStages)) setHiddenStages(new Set(s.hiddenStages));
-        if (Array.isArray(s.hiddenPhases)) setHiddenPhases(new Set(s.hiddenPhases));
         if (Array.isArray(s.expanded)) setExpanded(new Set(s.expanded));
-        if (typeof s.focused === "string") setFocused(s.focused);
+        // Ignore a stale "all" (the removed comb overview) so it can't try to
+        // render a board that no longer exists — fall back to the default stage.
+        // Restoring a board must NOT re-fit (that would clobber the persisted
+        // pan/zoom we just loaded); the fit effect honors this flag.
+        if (typeof s.focused === "string" && s.focused !== "all") {
+          restoredFocus.current = true;
+          setFocused(s.focused);
+        }
       }
     } catch {
       /* ignore */
@@ -211,7 +286,7 @@ export function Canvas({ model }: { model: BoardModel }) {
   // Persist when durable state changes.
   useEffect(() => {
     persist();
-  }, [sidebarOpen, hiddenStages, hiddenPhases, expanded, persist]);
+  }, [sidebarOpen, expanded, persist]);
 
   // ── Wheel: pan / zoom-to-cursor / horizontal, with velocity ramp ─────────────
   useEffect(() => {
@@ -352,9 +427,16 @@ export function Canvas({ model }: { model: BoardModel }) {
   // handler would catch the previous board). Skip the first run so a reload
   // keeps the persisted view instead of snapping to fit.
   const fitMounted = useRef(false);
+  const restoredFocus = useRef(false);
   useEffect(() => {
     if (!fitMounted.current) {
       fitMounted.current = true;
+      return;
+    }
+    // The board restored from localStorage keeps its persisted view — only a
+    // live (user-driven) focus change fits to the new board.
+    if (restoredFocus.current) {
+      restoredFocus.current = false;
       return;
     }
     const id = requestAnimationFrame(() => fitToContent());
@@ -394,10 +476,16 @@ export function Canvas({ model }: { model: BoardModel }) {
 
   // Stable callbacks so a HUD-only re-render (pct) never re-renders the
   // memoised board — the perf law that keeps card content rendered once.
-  // Select a single board (or "all"). The actual fit happens in an effect keyed
+  // Select a single board. The actual fit happens in an effect keyed
   // on `focused` (below) — measuring here would catch the OLD board before React
   // swaps in the isolated one, fitting to the wrong (huge) height.
-  const focusItem = useCallback((key: string) => setFocused(key), []);
+  // Focusing a board resets the doc selection so a doc-stage opens on its first
+  // document; the sidebar accordion drives it from there.
+  const focusItem = useCallback((key: string) => {
+    setFocused(key);
+    setSelectedDoc(null);
+  }, []);
+  const selectDoc = useCallback((docKey: string) => setSelectedDoc(docKey), []);
   const toggleExpand = useCallback(
     (id: string) =>
       setExpanded((prev) => {
@@ -411,12 +499,26 @@ export function Canvas({ model }: { model: BoardModel }) {
 
   const componentNames = useMemo(() => componentBaseNames(model.tokens), [model.tokens]);
 
+  // Debrief and research are prose stages — they read as a document, not a
+  // spatial board. In doc mode we replace the pannable viewport (and hide the
+  // zoom HUD, since there's nothing to zoom) with the reading view. The sidebar
+  // still drives `focused`, so navigating in or out is one click away.
+  const docMode = focused === "debrief" || focused === "research";
+
   return (
     <FramesProvider>
     <SessionProvider slug={model.project.slug} componentNames={componentNames}>
     <div className="flex h-screen w-screen overflow-hidden bg-desk">
       {sidebarOpen ? (
-        <Sidebar model={model} focused={focused} onFocus={focusItem} onCollapse={toggleSidebar} />
+        <Sidebar
+          model={model}
+          focused={focused}
+          selectedDoc={selectedDoc}
+          generatingStage={generatingStage}
+          onFocus={focusItem}
+          onSelectDoc={selectDoc}
+          onCollapse={toggleSidebar}
+        />
       ) : null}
 
       <div className="relative min-w-0 flex-1">
@@ -439,52 +541,84 @@ export function Canvas({ model }: { model: BoardModel }) {
         {/* z-40: the mode toolbar must stay clickable above the tokens panel
             (z-30) — otherwise opening Tokens makes its own toggle unreachable. */}
         <div className="absolute right-4 top-4 z-40 flex items-center gap-2">
-          {model.prototype.interactive && model.prototype.hasTokens ? (
-            <CommentToolbar project={model.project.name} />
+          {/* A runnable stage's on-demand run control (opt-in) — spawns that
+              stage's skill headless; the sidebar dot pulses on it while it works. */}
+          {RUNNABLE_STAGES.has(focused) && runsEnabled ? (
+            <>
+              {runError ? (
+                <span className="text-[0.75rem] text-unverified">{runError}</span>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => runStage(focused)}
+                disabled={generatingStage === focused}
+                className="rounded-pill border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {generatingStage === focused
+                  ? `Running ${stageName(focused).toLowerCase()}…`
+                  : `Run ${stageName(focused).toLowerCase()}`}
+              </button>
+            </>
           ) : null}
-          <ThemeToggle />
+          {/* Comment has an always-on home on the Build board (even before a
+              prototype is built); elsewhere the toolbar rides on a live prototype
+              (e.g. the design-system board's token proposals). Tokens editing
+              only shows when there are tokens to edit. */}
+          {focused === "build" || (model.prototype.interactive && model.prototype.hasTokens) ? (
+            <CommentToolbar
+              project={model.project.name}
+              showTokens={focused === "build" && model.prototype.hasTokens}
+            />
+          ) : null}
         </div>
 
-        {/* The pannable viewport. */}
-        <div
-          ref={viewportRef}
-          className="h-full w-full touch-none overflow-hidden"
-          data-canvas-bg
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          data-testid="canvas-viewport"
-        >
-          <BoardView
-            model={model}
-            worldRef={worldRef}
-            selectedAssumption={selected}
-            onSelectAssumption={setSelected}
-            highlightedDecisions={highlighted}
-            restsOnState={restsOnState}
-            filter={filter}
-            onFilter={setFilter}
-            hiddenStages={hiddenStages}
-            hiddenPhases={hiddenPhases}
-            expanded={expanded}
-            onToggleExpand={toggleExpand}
-            liveCards={liveCards}
-            onFly={flyTo}
-            focused={focused}
-          />
-        </div>
+        {docMode ? (
+          // Off the canvas entirely: the debrief/research reading view fills the
+          // flex-1 area in place of the pannable viewport.
+          <DocView model={model} focused={focused} selectedDoc={selectedDoc} />
+        ) : (
+          /* The pannable viewport. */
+          <div
+            ref={viewportRef}
+            className="h-full w-full touch-none overflow-hidden"
+            data-canvas-bg
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            data-testid="canvas-viewport"
+          >
+            <BoardView
+              model={model}
+              worldRef={worldRef}
+              selectedAssumption={selected}
+              onSelectAssumption={setSelected}
+              highlightedDecisions={highlighted}
+              restsOnState={restsOnState}
+              filter={filter}
+              onFilter={setFilter}
+              expanded={expanded}
+              onToggleExpand={toggleExpand}
+              liveCards={liveCards}
+              onFly={flyTo}
+              focused={focused}
+            />
+          </div>
+        )}
 
-        {model.prototype.interactive && model.prototype.hasTokens ? (
+        {focused === "build" && model.prototype.interactive && model.prototype.hasTokens ? (
           <TokensDrawer tokens={model.tokens} />
         ) : null}
 
-        <ZoomHud
-          pct={pct}
-          onZoomOut={() => zoomAroundCenter(0.8)}
-          onZoomIn={() => zoomAroundCenter(1.25)}
-          onReset={resetView}
-          onFit={fitToContent}
-        />
+        {/* Nothing to zoom in doc mode — the reading view scrolls natively. */}
+        {docMode ? null : (
+          <ZoomHud
+            pct={pct}
+            onZoomOut={() => zoomAroundCenter(0.8)}
+            onZoomIn={() => zoomAroundCenter(1.25)}
+            onReset={resetView}
+            onFit={fitToContent}
+          />
+        )}
 
         <CommentController tokens={model.tokens} />
       </div>

@@ -179,5 +179,18 @@ function buildHeader(
     nextStep = first ? blockText(first).trim() || null : null;
   }
 
-  return { currentStage: project.stage, nextStep, overrides };
+  // Round-aware status: the lead sentence of the "Current stage" prose
+  // (e.g. "debrief — round 1, awaiting review").
+  const stageSection = findSection(sections, "current stage", "current");
+  let statusLine: string | null = null;
+  if (stageSection) {
+    const para = stageSection.blocks.find((b) => b.kind === "paragraph");
+    const text = para ? blockText(para).trim() : "";
+    if (text) {
+      const lead = text.split(/\.\s/)[0].replace(/\.$/, "").trim();
+      statusLine = lead.length > 90 ? `${lead.slice(0, 89)}…` : lead || null;
+    }
+  }
+
+  return { currentStage: project.stage, nextStep, overrides, statusLine };
 }

@@ -1,7 +1,12 @@
 # design-studio
 
 Installable Claude Code skills: a 5-stage product-design pipeline plus a compounding Studio
-Wiki. Two reasons someone opens this repo — figure out which applies and act accordingly.
+Wiki. Two reasons someone opens this repo; figure out which applies and act accordingly.
+
+**Output voice, hard rule: never use em dashes.** No em dashes (the "—" character) anywhere this
+project or its agents generate: docs, skill files, decision entries, code comments, commit
+messages, chat. Use a comma, a colon, parentheses, a semicolon, "to" or "through" for ranges, or
+two sentences instead. Do not substitute an en dash ("–") either.
 
 ## Using this product (most visitors)
 
@@ -27,7 +32,7 @@ right order.
 - Consistency rules to preserve when editing:
   - Stage ordinals ("First… Fifth stage of the design-studio pipeline") appear exactly once
     each across skill descriptions; the pipeline stays **5 stages** (debrief, research, structure,
-    design-system, build) — setup, harvest, wiki-lint, and compile-spec are utility
+    design-system, build) — setup, harvest, wiki-lint, compile-spec, and design-md are utility
     skills, not stages.
   - `install.sh` installs by the `design-studio-*` glob — new skill folders need no installer
     change; shared material lives inside `design-studio-shared/`.

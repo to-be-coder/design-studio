@@ -23,11 +23,14 @@ glob, so a new skill folder needs no installer change. Skills load at session st
 installing requires a **restart of Claude Code**.
 
 `skills/design-studio-shared/` rides along in that same glob but is **not a skill** — it has no
-`SKILL.md`, so Claude Code never loads it. It holds `CONVENTIONS.md` and the `starter-wiki/`, and
-every skill reaches it by the relative path `../design-studio-shared/CONVENTIONS.md`. That relative
-path is why the folders must stay siblings. Copy the whole set or none of it.
+`SKILL.md`, so Claude Code never loads it. It holds `CONVENTIONS.md`, the `DESIGN-SPEC.md` format
+definition, the `starter-wiki/`, and the owned zero-dependency `DESIGN.md` toolchain in `scripts/`
+(lint / export / diff — installed to `~/.claude/skills/design-studio-shared/scripts/`, so the skills
+run it from any repo, not just this one). Every skill reaches it by the relative path
+`../design-studio-shared/CONVENTIONS.md`. That relative path is why the folders must stay siblings.
+Copy the whole set or none of it.
 
-So: 10 folders, 9 skills, 5 pipeline stages, 4 utility skills.
+So: 11 folders, 10 skills, 5 pipeline stages, 5 utility skills.
 
 ---
 

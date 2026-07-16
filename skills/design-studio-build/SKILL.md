@@ -1,6 +1,6 @@
 ---
 name: design-studio-build
-description: Build the clickable prototype spec-first, in rounds — per-feature specs against the flows/IA in 03 Structure.md → parallel agents build in Claude Code (every prompt opens "read DESIGN.md first") → run the prototype for review in the Canvas (comment/tweak) → the four round-closing gates: empty/error/loading states, edge cases, and accessibility; real content; token-level consistency against DESIGN.md plus the owned design:diff drift check against the signed-off ref; and the register receipt at the door. The exported Canvas feedback becomes the next round's specs, and rounds repeat until the user calls enough. Gates on the upstream understanding existing — warns and asks before building without it, and holds the pipeline's only register gate (an unverified load-bearing assumption is a receipt, not a block). Fifth stage of the design-studio pipeline.
+description: Build the clickable prototype spec-first, in rounds — per-feature specs against the flows/IA in 03 Structure.md → parallel agents build in Claude Code (every prompt opens "read DESIGN.md first") → run the prototype for review in the Canvas (comment/tweak) → the five round-closing gates: empty/error/loading states, edge cases, and accessibility; real content; token-level consistency against DESIGN.md plus the owned design:diff drift check against the signed-off ref; a prototype-review pass that drives the running prototype (every screen captured across states and both themes, read against DESIGN.md, real affordance verified, no console errors); and the register receipt at the door. The exported Canvas feedback becomes the next round's specs, and rounds repeat until the user calls enough. Gates on the upstream understanding existing — warns and asks before building without it, and holds the pipeline's only register gate (an unverified load-bearing assumption is a receipt, not a block). Fifth stage of the design-studio pipeline.
 ---
 
 # design-studio-build
@@ -11,7 +11,7 @@ clickable prototype** in a separate repo, not in the vault.
 
 **Build runs in rounds** ([[0026 build-is-a-loop]]): per-feature specs → parallel agents build (every
 prompt opens "read `DESIGN.md` first") → the prototype runs live in the Canvas for review
-(comment/tweak) → the four gates close the round → the exported Canvas feedback becomes the next
+(comment/tweak) → the five gates close the round → the exported Canvas feedback becomes the next
 round's specs. Rounds repeat until the user calls enough — the same sufficiency rule as `research`,
 the human is the risk-acceptor. Nothing here "locks": "done" is the user moving attention on — to
 `compile-spec`, or an **evaluate round** back in `research` to test the prototype against the success
@@ -48,7 +48,7 @@ Never block on this; the receipt is the point.
 
 **The round, in one line:** specs (round 1: the flows/IA + per-feature specs; later rounds: the
 previous round's exported Canvas feedback) → parallel agents build, `DESIGN.md` first → run the
-prototype live in the Canvas for review (comment/tweak) → the four round-closing gates → another
+prototype live in the Canvas for review (comment/tweak) → the five round-closing gates → another
 round on the exported feedback, or close. Every round runs the gates; the **first** round also does
 the one-time craft-divergence and the `DESIGN.md` move (steps 2–3).
 
@@ -68,8 +68,9 @@ the one-time craft-divergence and the `DESIGN.md` move (steps 2–3).
 3. **Wire in the visual contract** (first round — the single-copy move). Move the vault `DESIGN.md`
    into the repo root as the first committed act, leaving a link note in its place in the vault — the
    repo file is the only copy from here on (CONVENTIONS). Export the tokens with the studio's owned,
-   zero-dependency script and consume them from code — `node web/scripts/design-export.mjs DESIGN.md >
-   tokens.css` (or `npm run design:export -- DESIGN.md` from `web/`): every leaf token becomes a
+   zero-dependency script and consume them from code —
+   `node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs DESIGN.md > tokens.css` (or
+   `npm run design:export -- DESIGN.md` from the design-studio repo's `web/`): every leaf token becomes a
    `--group-key` CSS custom property, references resolved, state variants and motion included. **No
    node to run it?** Hand-derive the variables from the front matter (each `group.key` → `--group-key:
    <resolved value>`) and note on the dashboard that the export was done by hand — exactly the fallback
@@ -84,9 +85,9 @@ the one-time craft-divergence and the `DESIGN.md` move (steps 2–3).
    for the next round**: it carries the smallest-reusable-unit routing protocol (token → component →
    instance) and each annotation as a finding. Export that document and hand it to step 1 of the next
    round — that file, not loose memory, is what the next round's specs are written from.
-6. **The four gates — the round's checklist, run each round, not once at the end** ([[0026
+6. **The five gates — the round's checklist, run each round, not once at the end** ([[0026
    build-is-a-loop]]). The **register receipt** is the door-check that opens the round (Preconditions);
-   the other three close it. Together they are what "done for this round" means:
+   the other four close it. Together they are what "done for this round" means:
    - **States / edge / a11y** (gap #5): pass over empty, loading, error, and edge-case states, plus
      accessibility (focus, contrast, labels, keyboard). AI-built UI defaults to the happy path — this
      gate exists to break that default.
@@ -100,12 +101,25 @@ the one-time craft-divergence and the `DESIGN.md` move (steps 2–3).
      components and patterns: `DESIGN.md` codifies that system; don't invent divergent ones. **Then
      run the owned drift check** — compare the repo's live `DESIGN.md` against the **signed-off ref**
      (the design-system-signed-off version as moved in at build start, from git history):
-     `node web/scripts/design-diff.mjs <signed-off-ref> DESIGN.md` (or `npm run design:diff --
-     <signed-off-ref> DESIGN.md` from `web/`). It compares the two versions' **resolved** tokens and
+     `node ~/.claude/skills/design-studio-shared/scripts/design-diff.mjs <signed-off-ref> DESIGN.md`
+     (or `npm run design:diff -- <signed-off-ref> DESIGN.md` from the design-studio repo's `web/`). It
+     compares the two versions' **resolved** tokens and
      reports what was added, removed, or changed (a lowered contrast floor or a value swap included).
      Drift with no matching decision entry is a finding like any other — the drift check moved here,
      to the round where drift actually happens ([[0027 validate-dissolves-6-stages]]). No node to run
      it? Eyeball the two front matters instead, and say so on the dashboard.
+   - **Prototype-review** (drive it, don't just read it, per [[0033 prototype-review-gate-in-build]]):
+     the code gates check that the code looks right; this one drives the *running* prototype in the
+     Canvas to confirm it is coherent and actually works. Two checks. **Coherence**: capture every
+     screen across its states (empty, loading, error) and both themes (light and dark), and read them
+     against `DESIGN.md` as the written register. The bar is "it looks like it was always part of this
+     product"; approve on "it belongs," not on "it renders." **Affordance and runtime**: confirm every
+     interactive element is actually reachable and clickable (not clipped, not zero height, not
+     covered), and the prototype runs with no console or runtime errors. Screens can lie about
+     interactivity: a button can render perfectly and still be unclickable. **Scope, held
+     deliberately**: this raises prototype quality, not production quality. No soak tests, no load
+     tests, no formal proofs; production hardening (concurrency, real backend, scale) stays the
+     engineer's after handoff, per [[0023 nothing-locks-before-production]].
    - **Register receipt at the door**: the Preconditions register gate, re-run at the start of each
      round — a newly load-bearing `unverified` assumption gets pressure-tested first or a
      conscious-acceptance receipt on the dashboard. Warn, never block; the receipt is the point.
