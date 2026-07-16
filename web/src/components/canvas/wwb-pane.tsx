@@ -14,15 +14,16 @@ import { ReceiptLinks } from "./receipts";
 
 /**
  * What's Worth Building v2, the single human review surface, organised as an
- * accessible tab bar rather than one long scroll. Tabs, in order: Parked (the 🔴
- * ruling cards), Questions (the agenda answer boxes), Proposed (the triage entries
- * with verdict buttons), Rulings (Build now + Backlog + Don't build), and Context
- * (Implied but unruled + the blocking band). The review batch state (selected
- * verdicts, typed answers, ruling draft) lives on the tab controller, so it
- * survives every tab switch, and the sticky submit bar stays on the three review
- * tabs. A parked 🔴 lands the reader on Parked (ruling-first). Every visual value
- * reuses the existing accent / state idioms; verdict identity is carried by the
- * word, never a semantic colour.
+ * accessible tab bar rather than one long scroll. Tabs, in order: Needs you
+ * (parked ruling cards + open questions, everything awaiting the human), Build
+ * candidates (the triage entries with Accept / Backlog / Don't build), Already
+ * decided (Will be built + Backlog + Don't build + freshly recorded rulings and
+ * answers), and Background (Implied but unruled + the blocking band). Every
+ * record button posts immediately by itself; draft state lives on the tab
+ * controller so it survives tab switches. A parked call lands the reader on
+ * Needs you (ruling-first). Every visual value reuses the existing accent /
+ * state idioms; verdict identity is carried by the word, never a semantic
+ * colour.
  */
 export function WwbPane({
   wwb,
@@ -68,7 +69,7 @@ const TABS: { key: TabKey; label: string; showCount: boolean }[] = [
   // questions. Different inputs, same job (your attention), so one tab.
   { key: "needs-you", label: "Needs you", showCount: true },
   { key: "proposed", label: "Build candidates", showCount: true },
-  { key: "rulings", label: "Already decided", showCount: false },
+  { key: "rulings", label: "Decided", showCount: false },
   { key: "context", label: "Background", showCount: false },
 ];
 
@@ -388,7 +389,7 @@ function WwbTabs({
 
       <TabPanel tabKey="rulings" active={active}>
         {counts.rulings === 0 && parkedFiled.length === 0 && questionsFiled.length === 0 ? (
-          <EmptyTab>Nothing decided yet. What you rule lands here: build now, backlog, or don&rsquo;t build.</EmptyTab>
+          <EmptyTab>Nothing decided yet. What you rule lands here: Will be built, Backlog, or Don&rsquo;t build.</EmptyTab>
         ) : (
           <>
             {/* Freshly recorded rulings and answers file here the moment they
@@ -603,12 +604,8 @@ function RulingCard({
     <article
       data-testid="wwb-ruling"
       data-parked={parked.id}
-      className="mb-5 rounded-inset border bg-paper px-5 py-4"
-      style={{ borderColor: "var(--accent-edge)" }}
+      className="mb-5 rounded-inset border border-rule bg-paper px-5 py-4"
     >
-      <p className="eyebrow mb-1" style={{ color: "var(--accent)" }}>
-        A decision only you can make
-      </p>
       <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <h4 className="font-sans text-[1rem] font-semibold text-ink">{parked.title}</h4>
         <span className="eyebrow">{parked.kind.replace(/-/g, " ")}</span>
@@ -692,8 +689,10 @@ function RulingCard({
 
 // ── A proposed entry: verdict buttons (triage) or read-only ───────────────────
 
+// UI words only: the vault grammar underneath stays `build-now` (the tier the
+// build stage consumes), so accepting a card is what moves it to Will be built.
 const VERDICT_WORDS: Record<WwbDisposition, string> = {
-  "build-now": "build now",
+  "build-now": "accepted",
   backlog: "backlog",
   "dont-build": "don't build",
 };
@@ -757,12 +756,14 @@ function ProposedEntry({
 
       {recorded ? (
         <p className="mt-3 text-[0.8125rem] text-ink-muted" data-testid="verdict-recorded">
-          Recorded as {VERDICT_WORDS[recorded]}. Research folds it in on the next pass.
+          {recorded === "build-now"
+            ? "Accepted, moved to Will be built. Research folds it in on the next pass."
+            : `Recorded as ${VERDICT_WORDS[recorded]}. Research folds it in on the next pass.`}
         </p>
       ) : triage ? (
         <div className="mt-3">
           <div className="flex flex-wrap gap-2" role="group" aria-label={`Verdict for ${entry.title}`}>
-            <VerdictButton label="Build now" verdict="build-now" testid="verdict-build-now" state={state} onVerdict={onVerdict} />
+            <VerdictButton label="Accept" verdict="build-now" testid="verdict-build-now" state={state} onVerdict={onVerdict} />
             <VerdictButton label="Backlog" verdict="backlog" testid="verdict-backlog" state={state} onVerdict={onVerdict} />
             <VerdictButton label="Don't build" verdict="dont-build" testid="verdict-dont-build" state={state} onVerdict={onVerdict} />
           </div>
@@ -929,7 +930,9 @@ function BuildNow({
   if (entries.length === 0) return null;
   return (
     <section className="mb-8" data-testid="wwb-build-now">
-      <h3 className="mb-3 font-serif text-[1.25rem] font-semibold text-ink">Build now</h3>
+      {/* The pile the build stage takes its input from: the accepted cards.
+          (Vault tier name stays `Build now`; this is the reader's word.) */}
+      <h3 className="mb-3 font-serif text-[1.25rem] font-semibold text-ink">Will be built</h3>
       <ul className="space-y-5">
         {entries.map((e) => (
           <li key={e.id} data-testid="wwb-entry" data-entry={e.id} className="rounded-inset border border-rule px-4 py-3">

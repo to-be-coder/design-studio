@@ -333,7 +333,7 @@ test.describe("WWB review band", () => {
     await page.getByTestId("verdict-record").first().click();
 
     // The card confirms in place; the posted payload is exactly one verdict.
-    await expect(page.getByTestId("verdict-recorded")).toContainText(/recorded as build now/i);
+    await expect(page.getByTestId("verdict-recorded")).toContainText(/accepted, moved to will be built/i);
     expect(captured.verdicts).toHaveLength(1);
     expect(captured.verdicts[0].verdict).toBe("build-now");
     expect(captured.verdicts[0].note).toBe("Ship the checkpoint.");

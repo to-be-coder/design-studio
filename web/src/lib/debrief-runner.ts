@@ -209,6 +209,43 @@ export function startResearchLoop(ctx: LoopCtx, opts?: ResearchOpts): void {
  * `.loop.lock` yet. We still honour a real on-disk lock (the paranoid case) so a
  * racing manual run can't double-spawn.
  */
+/**
+ * Review blocks persisted in the ledger that no recorder has ingested yet,
+ * oldest first. Processed means either the recorder's `<!-- review:B:done -->`
+ * marker follows the block, or a decision already carries `review_batch: B`
+ * (covers blocks ingested before the marker existed). The hash pins the block's
+ * current content for the tamper check, captured here, out of band of the spawn.
+ */
+async function pendingReviewBatches(projectDir: string): Promise<ReviewIngest[]> {
+  let ledger: string;
+  try {
+    ledger = await fsp.readFile(path.join(projectDir, LEDGER), "utf8");
+  } catch {
+    return [];
+  }
+  let decisions = "";
+  try {
+    const dir = path.join(projectDir, "Decisions");
+    for (const f of await fsp.readdir(dir)) {
+      if (f.endsWith(".md")) decisions += (await fsp.readFile(path.join(dir, f), "utf8")) + "\n";
+    }
+  } catch {
+    /* no decisions folder yet */
+  }
+  const out: ReviewIngest[] = [];
+  const re = /<!--\s*review:([A-Za-z0-9_-]+):begin\s*-->([\s\S]*?)<!--\s*review:\1:end\s*-->/g;
+  for (const m of ledger.matchAll(re)) {
+    const batchId = m[1];
+    const after = ledger.slice((m.index ?? 0) + m[0].length);
+    const hasMarker = new RegExp(`^\\s*<!--\\s*review:${batchId}:done\\s*-->`).test(after);
+    const hasDecision = new RegExp(`^review_batch:\\s*${batchId}\\s*$`, "m").test(decisions);
+    if (hasMarker || hasDecision) continue;
+    const blockHash = createHash("sha256").update(m[2].trim()).digest("hex");
+    out.push({ batchId, blockHash });
+  }
+  return out;
+}
+
 function chainResearchLoop(ctx: LoopCtx): void {
   void runLoop(ctx, undefined, true).catch(() => {
     /* best-effort: errors are captured in the registry + the round log */
@@ -226,6 +263,15 @@ async function runLoop(ctx: LoopCtx, opts?: ResearchOpts, chained = false): Prom
   // existing sidebar dot + status poll work unchanged.
   if (opts?.review) {
     await runReview(ctx, opts.review);
+    return;
+  }
+
+  // Queue pickup: a review block persisted while another run was live has no
+  // recorder yet. Drain the oldest first; runReview's tail re-enters this loop,
+  // so the whole queue empties before any research round runs.
+  const pending = await pendingReviewBatches(projectDir);
+  if (pending.length > 0) {
+    await runReview(ctx, pending[0]);
     return;
   }
 
@@ -666,7 +712,7 @@ function reviewIngestPrompt({
   batchId: string;
 }): string {
   return [
-    `Run the design-studio-debrief skill in its HEADLESS review-ingestion mode for review batch ${batchId}, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation.`,
+    `Run the design-studio-debrief skill in its HEADLESS review-ingestion mode for review batch ${batchId}, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation. After ingesting, append the line <!-- review:${batchId}:done --> on its own line immediately after the block's end marker (the controller uses it to know the batch is processed), then write the status-line fence last.`,
     "",
     `Vault: ${vaultRoot}`,
     `Project slug: ${slug} (folder: Design Studio/${slug}/)`,
