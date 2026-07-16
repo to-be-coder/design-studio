@@ -64,9 +64,9 @@ export function WwbPane({
 type TabKey = "parked" | "questions" | "proposed" | "rulings" | "context";
 
 const TABS: { key: TabKey; label: string; showCount: boolean }[] = [
-  { key: "parked", label: "Decisions for you", showCount: true },
+  { key: "parked", label: "Your call", showCount: true },
   { key: "questions", label: "Questions for you", showCount: true },
-  { key: "proposed", label: "Ideas to sort", showCount: true },
+  { key: "proposed", label: "Build candidates", showCount: true },
   { key: "rulings", label: "Already decided", showCount: false },
   { key: "context", label: "Background", showCount: false },
 ];
@@ -597,7 +597,7 @@ function RulingCard({
 
       {interactive ? (
         <>
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-3 grid grid-cols-3 gap-2">
             {(["accept", "reshape", "reject"] as const).map((d) => (
               <button
                 key={d}
@@ -608,7 +608,7 @@ function RulingCard({
                   setConfirming(false);
                   onPick(d);
                 }}
-                className="rounded-pill border px-3 py-1 text-[0.8125rem] font-semibold capitalize transition-colors"
+                className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors"
                 style={
                   active?.disposition === d
                     ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
