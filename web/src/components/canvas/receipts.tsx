@@ -46,6 +46,23 @@ function ReceiptChip({
     </>
   );
 
+  // A web receipt links out to the source page the evidence came from.
+  if (receipt.kind === "web") {
+    return (
+      <a
+        href={receipt.target}
+        target="_blank"
+        rel="noreferrer"
+        data-testid="receipt-link"
+        data-receipt-kind="web"
+        className={chipClass}
+      >
+        <ExternalGlyph />
+        <span className="truncate">{receipt.label}</span>
+      </a>
+    );
+  }
+
   if (receipt.docKey && onFocus) {
     return (
       <button
@@ -70,6 +87,15 @@ function ReceiptChip({
     >
       {label}
     </a>
+  );
+}
+
+function ExternalGlyph() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0">
+      <path d="M7 17L17 7" />
+      <path d="M8 7h9v9" />
+    </svg>
   );
 }
 

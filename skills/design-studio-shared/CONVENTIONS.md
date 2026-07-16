@@ -749,6 +749,15 @@ is an H3 `### L<N>: <ask>` under Questions for you. A parked decision is an H3 n
 under Parked decisions. W-ids are the sticky identity from the recommendation's Candidates table
 (decision-log section above).
 
+**Plain language in Tier 1 (hard rule).** Everything under Parked decisions, Questions for you, and
+Proposed is written so a client could read it cold: everyday words, short sentences, what it means
+and what happens if you take or reject it. No research vocabulary in the prose (refuted,
+presupposition, reframe test, grades); that precision lives in the decision files, the ledger, and
+the receipts, one click away. The labeled lines and receipt formats above stay exactly as specified
+(they are parse targets, and the canvas renders them as friendly text); the rule governs the prose
+between them. A Tier 1 entry a layperson cannot follow is a defect of the render, not a style
+preference.
+
 **Disposition resolution.** The newest review-batch recorder decision naming a W-id wins. An untriaged
 candidate renders by its `lean` (a `build`-lean candidate under Proposed, a `dont-build`-lean one under
 Don't build, source-marked `proposed-by-AI`); nothing silently promotes to Build now. A ruled entry

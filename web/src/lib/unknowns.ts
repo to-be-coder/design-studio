@@ -1,6 +1,7 @@
 import { parseMarkdownBody } from "./parse-markdown";
 import { joinSoftWraps } from "./soft-wrap";
 import { listProjectFiles, readProjectFile } from "./vault";
+import { docBodyCache, withWebSources, type DocBodies } from "./web-sources";
 import { extractReceipts } from "./wikilinks";
 import type { LedgerEntry, LedgerModel, LedgerState } from "./types";
 
@@ -49,8 +50,10 @@ export async function getLedger(slug: string): Promise<LedgerModel | null> {
     if (cur) cur.lines.push(line);
   }
 
+  // One doc-body cache per request: web-source resolution reads the cited docs.
+  const bodies = docBodyCache(slug);
   const entries: LedgerEntry[] = await Promise.all(
-    raws.map((r) => buildEntry(r.id, r.title, r.lines, files)),
+    raws.map((r) => buildEntry(r.id, r.title, r.lines, files, bodies)),
   );
 
   const escalated = entries.filter((e) => e.state === "research-exhausted");
@@ -83,6 +86,7 @@ async function buildEntry(
   title: string,
   lines: string[],
   files: string[],
+  bodies: DocBodies,
 ): Promise<LedgerEntry> {
   const labels = new Map<string, string>();
   const prose: string[] = [];
@@ -118,8 +122,9 @@ async function buildEntry(
   const ask = labels.get("ask") || null;
 
   // Receipts can sit on the `receipts:` line or inline in the prose; extract
-  // from the whole entry so none are missed, then de-dupe by target+label.
-  const receipts = dedupe(extractReceipts(wholeText, files));
+  // from the whole entry so none are missed, then de-dupe by target+label. A
+  // receipted quote's web origin lives in the cited doc; link it out.
+  const receipts = await withWebSources(dedupe(extractReceipts(wholeText, files)), wholeText, bodies);
 
   // Note lines + unlabeled prose render as the entry body. Blank prose lines
   // stay in (paragraph breaks); only the absent note label is dropped.
