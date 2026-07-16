@@ -7,10 +7,12 @@ import { buildPrototypeExport, copyText } from "./export-feedback";
 /**
  * The comment-mode toolbar + hotkey (§10/§12). C toggles comment mode; the
  * granularity toggle switches Element/Page; the count reflects the session's
- * ephemeral annotations; Export copies the validate loop-back block (preamble +
- * routing protocol + entries + closing line) to the clipboard with feedback.
+ * ephemeral annotations; Export copies the round-neutral prototype-feedback
+ * block (preamble + routing protocol + entries + closing line) to the clipboard
+ * with feedback — the named input to build's next round, or, after build, the
+ * input to research's evaluate/reconcile moves.
  */
-export function CommentToolbar({ project }: { project: string }) {
+export function CommentToolbar({ project, showTokens }: { project: string; showTokens: boolean }) {
   const { mode, setMode, granularity, setGranularity, annotations, clearAnnotations } = useSession();
   const [copied, setCopied] = useState<null | "ok" | "fail">(null);
 
@@ -63,22 +65,27 @@ export function CommentToolbar({ project }: { project: string }) {
         Comment <span className="ml-1 font-mono text-[0.6875rem] opacity-70">C</span>
       </button>
 
-      <button
-        type="button"
-        onClick={() => setMode(mode === "tokens" ? "read" : "tokens")}
-        aria-pressed={mode === "tokens"}
-        data-testid="mode-tokens"
-        className="rounded-pill border px-3 py-1.5 text-[0.8125rem] transition-colors"
-        style={{
-          borderColor: mode === "tokens" ? "var(--accent)" : "var(--rule)",
-          background: mode === "tokens" ? "var(--accent-wash)" : "var(--paper)",
-          color: mode === "tokens" ? "var(--accent)" : "var(--ink-muted)",
-          fontWeight: mode === "tokens" ? 600 : 400,
-        }}
-        title="Tokens mode — live DESIGN.md overrides"
-      >
-        Tokens
-      </button>
+      {/* Tokens editing is a Build-board concern — the live overrides restyle the
+          prototype frames, which only exist there — so the button rides only on
+          the Build page. */}
+      {showTokens ? (
+        <button
+          type="button"
+          onClick={() => setMode(mode === "tokens" ? "read" : "tokens")}
+          aria-pressed={mode === "tokens"}
+          data-testid="mode-tokens"
+          className="rounded-pill border px-3 py-1.5 text-[0.8125rem] transition-colors"
+          style={{
+            borderColor: mode === "tokens" ? "var(--accent)" : "var(--rule)",
+            background: mode === "tokens" ? "var(--accent-wash)" : "var(--paper)",
+            color: mode === "tokens" ? "var(--accent)" : "var(--ink-muted)",
+            fontWeight: mode === "tokens" ? 600 : 400,
+          }}
+          title="Tokens mode — live DESIGN.md overrides"
+        >
+          Tokens
+        </button>
+      ) : null}
 
       {mode === "comment" ? (
         <>

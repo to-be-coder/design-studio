@@ -54,14 +54,6 @@ export async function getFraming(slug: string): Promise<FramingModel | null> {
   };
 }
 
-/** One-line problem statement for the projects index (restated problem). */
-export async function getProblemLine(slug: string): Promise<string | null> {
-  const framing = await getFraming(slug);
-  if (!framing) return null;
-  const source = framing.restatedProblem ?? framing.originalBrief;
-  return source ? firstParagraph(source) : null;
-}
-
 function firstParagraph(blocks: RenderableBlock[]): string | null {
   for (const b of blocks) {
     if (b.kind === "paragraph") {

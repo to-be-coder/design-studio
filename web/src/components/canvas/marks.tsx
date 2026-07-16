@@ -1,5 +1,13 @@
-import type { AssumptionState } from "@/lib/types";
-import { assumptionColorVar, assumptionFill, assumptionLabel, type Fill } from "./util";
+import type { AssumptionState, LedgerState } from "@/lib/types";
+import {
+  assumptionColorVar,
+  assumptionFill,
+  assumptionLabel,
+  ledgerColorVar,
+  ledgerFill,
+  ledgerLabel,
+  type Fill,
+} from "./util";
 
 /** A small state swatch — filled / half / outline — carrying a colour var. */
 export function Swatch({ fill, color, size = 10 }: { fill: Fill; color: string; size?: number }) {
@@ -30,6 +38,16 @@ export function StateChip({ state }: { state: AssumptionState }) {
     <span className="inline-flex items-center gap-1.5 eyebrow" style={{ letterSpacing: "0.08em" }}>
       <Swatch fill={assumptionFill(state)} color={assumptionColorVar(state)} />
       <span style={{ color: assumptionColorVar(state) }}>{assumptionLabel(state)}</span>
+    </span>
+  );
+}
+
+/** A ledger entry's state (unknown lifecycle OR known grade) as mark + word. */
+export function LedgerChip({ state }: { state: LedgerState }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 eyebrow" style={{ letterSpacing: "0.08em" }}>
+      <Swatch fill={ledgerFill(state)} color={ledgerColorVar(state)} />
+      <span style={{ color: ledgerColorVar(state) }}>{ledgerLabel(state)}</span>
     </span>
   );
 }

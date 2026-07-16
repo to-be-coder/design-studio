@@ -17,15 +17,9 @@ import path from "node:path";
 const STAGE_LABELS = [
   "Debrief",
   "Research",
-  "Verify",
-  "Reframe",
-  "Scope",
-  "Directions",
-  "Converge",
+  "Structure",
   "Design system",
   "Build",
-  "Validate",
-  "Spec",
 ];
 
 function trackConsoleErrors(page: Page): string[] {
@@ -40,7 +34,7 @@ function trackConsoleErrors(page: Page): string[] {
 // ── Slice 1: substrate ──────────────────────────────────────────────────────
 
 test.describe("projects index (/)", () => {
-  test("lists the fixture project with client and problem line", async ({ page }) => {
+  test("lists the fixture project with its client", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const response = await page.goto("/");
     expect(response?.ok()).toBeTruthy();
@@ -50,65 +44,108 @@ test.describe("projects index (/)", () => {
     const card = page.getByRole("link", { name: /Fixture Project/i });
     await expect(card).toBeVisible();
     await expect(card.getByText("Acme Fixtures Co.")).toBeVisible();
-    await expect(card.getByText(/trustworthy evidence/i)).toBeVisible();
 
     expect(errors, `console/page errors on /:\n${errors.join("\n")}`).toEqual([]);
+  });
+});
+
+// ── Create a project: the dashboard's one write action ───────────────────────
+
+test.describe("new project (/)", () => {
+  const SLUG = "modal-test-project";
+  const DIR = path.resolve(__dirname, "fixtures/vault/Design Studio", SLUG);
+
+  test("the + modal seeds a project and hands off to the debrief skill", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    try {
+      await page.goto("/");
+      await page.getByTestId("new-project").click();
+      await expect(page.getByTestId("new-project-modal")).toBeVisible();
+
+      await page.getByTestId("new-project-name").fill("Modal Test Project");
+      await page
+        .getByTestId("new-project-brief")
+        .fill("Make the thing quicker to use for busy people.");
+      await page.getByTestId("new-project-submit").click();
+
+      // Success is a handoff, not a navigation: the modal names the next step
+      // (run the debrief skill) and stays on the dashboard.
+      const created = page.getByTestId("new-project-created");
+      await expect(created).toBeVisible();
+      await expect(created).toContainText("/design-studio-debrief");
+      await expect(page).toHaveURL(/\/$/);
+
+      // The project is really in the vault — Open project resolves its canvas,
+      // and the sidebar names it.
+      await page.getByTestId("new-project-open").click();
+      await expect(page).toHaveURL(new RegExp(`/canvas/${SLUG}$`));
+      await expect(page.getByTestId("sidebar")).toContainText("Modal Test Project");
+    } finally {
+      await fs.rm(DIR, { recursive: true, force: true });
+    }
+    expect(errors, errors.join("\n")).toEqual([]);
   });
 });
 
 // ── Slice 2: the readable board ──────────────────────────────────────────────
 
 test.describe("canvas board (/canvas/fixture-project)", () => {
-  test("the spine shows all 11 stages, including the skipped one", async ({ page }) => {
+  test("the sidebar index lists all 5 stages, build current", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const response = await page.goto("/canvas/fixture-project");
     expect(response?.ok()).toBeTruthy();
 
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Fixture Project", exact: true }),
-    ).toBeVisible();
-
-    // Every stage appears on the spine, in the §1 idiom (weight/label, no dots).
+    // The sidebar index is the whole-flow overview now (the comb is gone): every
+    // stage listed, in the §1 idiom (weight/label, no dots, no status words).
+    const sidebar = page.getByTestId("sidebar");
     for (const label of STAGE_LABELS) {
-      await expect(page.locator("p", { hasText: new RegExp(`^${label}$`) }).first()).toBeVisible();
+      await expect(sidebar.getByRole("option", { name: label, exact: true })).toBeVisible();
     }
 
-    // The skipped stage (reframe) reads honestly as "not run".
-    const reframe = page.locator("#region-reframe");
-    await expect(reframe).toBeVisible();
-    await expect(reframe.getByText("Not run", { exact: false }).first()).toBeVisible();
+    // The PROJECT group sits above the phases: the compiled root docs. The canvas
+    // lands on What's Worth Building (the hero verdict) by default.
+    await expect(sidebar.getByRole("option", { name: "What's worth building" })).toBeVisible();
+    await expect(sidebar.getByRole("option", { name: "Knowns & unknowns", exact: true })).toBeVisible();
+    await expect(page.getByTestId("wwb-pane")).toBeVisible();
 
-    // The current stage is marked as such.
-    await expect(page.locator("#region-validate").getByText("Current", { exact: false }).first()).toBeVisible();
+    // compile-spec is an on-demand render utility now (decision 0028), off the
+    // spine — no spec stage appears in the index.
+    await expect(sidebar.getByRole("option", { name: /spec/i })).toHaveCount(0);
 
-    // The override receipts are shown, not hidden.
+    // Open Build → its board renders (the region exists) and the override
+    // receipts show. (The board no longer repeats run-state / autonomy / the
+    // stage blurb + gate — those were removed from the stage meta.)
+    await sidebar.getByRole("option", { name: "Build", exact: true }).click();
+    await expect(page.locator("#region-build")).toBeVisible();
     await expect(page.getByTestId("overrides")).toBeVisible();
     await expect(page.getByTestId("overrides").getByText(/skipped reframe/i)).toBeVisible();
 
     expect(errors, `console/page errors on canvas board:\n${errors.join("\n")}`).toEqual([]);
   });
 
-  test("the framing pane shows brief and restated problem side by side", async ({ page }) => {
+  test("debrief reads as a document: brief, restated problem, guiding principle", async ({
+    page,
+  }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    const transform = page.getByTestId("framing-transform");
-    await expect(transform).toBeVisible();
+    // The default landing is now What's Worth Building; Debrief reads off the
+    // canvas as a document once selected. Its document list is folded into the
+    // sidebar as an accordion (no separate contents column): the brief, the
+    // restated problem, and the guiding principle are each their own sub-row that
+    // swaps the reading pane.
+    const sidebar = page.getByTestId("sidebar");
+    const pane = page.getByTestId("doc-view");
+    await expect(pane).toBeVisible();
+    await expect(page.getByTestId("doc-contents")).toHaveCount(0);
 
-    const original = page.getByTestId("facet-original");
-    const restated = page.getByTestId("facet-restated");
-    await expect(original).toBeVisible();
-    await expect(restated).toBeVisible();
-    await expect(original.getByText(/look modern/i)).toBeVisible();
-    await expect(restated.getByText(/trustworthy evidence/i)).toBeVisible();
-
-    // Genuinely side by side: the restated facet sits to the right of the brief.
-    const a = await original.boundingBox();
-    const b = await restated.boundingBox();
-    expect(a && b && b.x > a.x + a.width / 2).toBeTruthy();
-
-    // The guiding principle is set large.
-    await expect(page.getByText("Assert what users see.", { exact: false }).first()).toBeVisible();
+    await sidebar.getByRole("option", { name: "Debrief", exact: true }).click();
+    await sidebar.getByRole("option", { name: "Original brief" }).click();
+    await expect(pane.getByText(/look modern/i)).toBeVisible();
+    await sidebar.getByRole("option", { name: "Problem statement" }).click();
+    await expect(pane.getByText(/trustworthy evidence/i)).toBeVisible();
+    await sidebar.getByRole("option", { name: "Guiding principle" }).click();
+    await expect(pane.getByText("Assert what users see.", { exact: false })).toBeVisible();
 
     expect(errors, `console/page errors on framing:\n${errors.join("\n")}`).toEqual([]);
   });
@@ -117,14 +154,20 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // The research synthesis card is a readable page, not a thumbnail.
+    // The structure stage's screen inventory is a readable card on its board.
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
+    await expect(page.locator("#card-structure-0")).toBeVisible();
+    await expect(page.getByText(/screen inventory/i).first()).toBeVisible();
+
+    // Research reads as documents: the synthesis is a readable page, not a thumbnail.
+    await page.getByRole("option", { name: "Research", exact: true }).click();
+    await page.getByTestId("sidebar").getByRole("option", { name: "Synthesis" }).click();
     await expect(
       page.getByText("the artifact and the decision that shaped it live", { exact: false }),
     ).toBeVisible();
-    // The scope cut list is readable.
-    await expect(page.getByText(/Cross-project knowledge graph/i)).toBeVisible();
 
-    // The malformed decision never surfaces.
+    // The malformed decision never surfaces on the decision stream.
+    await page.getByRole("option", { name: "Decision stream", exact: true }).click();
     await expect(page.getByText("malformed frontmatter fixture")).toHaveCount(0);
 
     expect(errors, `console/page errors on artifact cards:\n${errors.join("\n")}`).toEqual([]);
@@ -134,11 +177,13 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
 // ── Slice 3: decision stream + assumption graph ──────────────────────────────
 
 test.describe("decision stream + assumption graph (/canvas/fixture-project)", () => {
-  test("supersede chain and rests_on edges are drawn, not just linked", async ({ page }) => {
+  test("supersede chain is linked in the reading pane, retired entry in place", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
+    await page.getByRole("option", { name: "Decision stream", exact: true }).click();
 
-    // The consolidated stream is one page; the retired entry stays in place.
+    // The stream reads as a scrollable document now (no drawn canvas edges); the
+    // consolidated page still keeps the retired entry in place, visibly superseded.
     const superseded = page.locator("#d-0008");
     const superseding = page.locator("#d-0009");
     await expect(superseded).toBeVisible();
@@ -146,19 +191,16 @@ test.describe("decision stream + assumption graph (/canvas/fixture-project)", ()
     await expect(superseded).toHaveAttribute("data-superseded", "true");
     await expect(superseded.getByText("superseded", { exact: true })).toBeVisible();
 
-    // The supersede connector is DRAWN between them.
-    await expect(page.locator('[data-edge="d-0008->d-0009"]')).toBeVisible();
+    // The supersede is an in-page anchor to the superseding entry (the doc idiom).
+    await expect(superseded.getByRole("link", { name: /superseded by 0009/i })).toBeVisible();
 
-    // The rests_on edges are drawn from the assumption to each dependent decision.
-    await expect(page.locator('[data-edge="assumption-A1->d-0009"]')).toBeVisible();
-    await expect(page.locator('[data-edge="assumption-A1->d-0011"]')).toBeVisible();
-
-    expect(errors, `console/page errors on connectors:\n${errors.join("\n")}`).toEqual([]);
+    expect(errors, `console/page errors on the stream:\n${errors.join("\n")}`).toEqual([]);
   });
 
   test("an In-their-words quote gets pull-quote treatment", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
+    await page.getByRole("option", { name: "Decision stream", exact: true }).click();
 
     const quote = page.locator("#d-0009").getByTestId("in-their-words");
     await expect(quote).toBeVisible();
@@ -168,15 +210,18 @@ test.describe("decision stream + assumption graph (/canvas/fixture-project)", ()
     expect(errors, `console/page errors on pull-quote:\n${errors.join("\n")}`).toEqual([]);
   });
 
-  test("selecting an assumption lights its blast radius; unverified reads at-risk", async ({ page }) => {
+  test("lighting an assumption's blast radius; unverified reads at-risk", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
+    await page.getByRole("option", { name: "Decision stream", exact: true }).click();
 
     // A1 is unverified, so decisions resting on it read at-risk up front.
     await expect(page.locator("#d-0009").getByTestId("at-risk")).toBeVisible();
 
-    // Selecting A1 in the register lights every decision standing on it.
-    await page.locator("#assumption-A1 button").first().click();
+    // Clicking the rests-on reference (A1) inside a decision lights every
+    // decision standing on it (the register lives on the research board now, so
+    // the blast radius is triggered from the stream's own rests_on link).
+    await page.locator("#d-0009").getByRole("button", { name: "A1", exact: true }).click();
     await expect(page.locator("#d-0009")).toHaveAttribute("data-highlighted", "true");
     await expect(page.locator("#d-0011")).toHaveAttribute("data-highlighted", "true");
     // A decision that does NOT rest on A1 stays un-highlighted.
@@ -198,6 +243,8 @@ test.describe("pan & zoom (/canvas/fixture-project)", () => {
   test("zoom is a CSS transform on one world container; the HUD drives it", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
+    // Land on a canvas board (the default Debrief reads as a document — no zoom).
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
 
     const world = page.getByTestId("canvas-world");
     // Zoom is a transform on the single world container (perf law), set on load.
@@ -205,6 +252,8 @@ test.describe("pan & zoom (/canvas/fixture-project)", () => {
 
     const hud = page.getByTestId("zoom-hud");
     await expect(hud).toBeVisible();
+    // Focusing a board fits it to the viewport; click-to-reset returns to 100%.
+    await page.getByTestId("zoom-pct").click();
     await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
 
     await page.getByRole("button", { name: "Zoom in" }).click();
@@ -220,6 +269,11 @@ test.describe("pan & zoom (/canvas/fixture-project)", () => {
 
   test("view state persists per project across reloads", async ({ page }) => {
     await page.goto("/canvas/fixture-project");
+    // A canvas board (not the default document view) so there's a zoom to persist;
+    // the focused board persists across the reload too.
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
+    // Focusing fits the board; reset to a known 100% baseline before zooming.
+    await page.getByTestId("zoom-pct").click();
     await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
     await page.getByRole("button", { name: "Zoom in" }).click();
     await page.getByRole("button", { name: "Zoom in" }).click();
@@ -242,14 +296,15 @@ test.describe("pan & zoom (/canvas/fixture-project)", () => {
     const sidebar = page.getByTestId("sidebar");
     await expect(sidebar).toBeVisible();
 
+    // Land on a canvas board (Structure) so there is a world to fly.
+    await sidebar.getByRole("option", { name: "Structure", exact: true }).click();
     const world = page.getByTestId("canvas-world");
+    await expect(world).toBeVisible();
     const before = await world.getAttribute("style");
 
-    // Arrow through the index and fly with Enter — reachable without a drag.
-    const firstOption = sidebar.getByRole("option").first();
-    await firstOption.focus();
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
+    // Arrow to another stage and fly with Enter — reachable without a drag.
+    await sidebar.getByRole("option", { name: "Structure", exact: true }).focus();
+    await page.keyboard.press("ArrowDown"); // Design system
     await page.keyboard.press("Enter");
     await page.waitForTimeout(500);
     const after = await world.getAttribute("style");
@@ -272,6 +327,7 @@ test.describe("design-system board (/canvas/fixture-project)", () => {
   test("renders living specimens with visible contrast ratios and flags the failing pair", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
+    await page.getByRole("option", { name: "Design system", exact: true }).click();
 
     const board = page.getByTestId("design-system-board");
     await expect(board).toBeVisible();
@@ -393,33 +449,34 @@ test.describe("prototype frames (/canvas/fixture-project)", () => {
 });
 
 test.describe("live board — vault SSE (/canvas/fixture-project)", () => {
-  const SCOPE = path.resolve(
+  const STRUCTURE = path.resolve(
     __dirname,
-    "fixtures/vault/Design Studio/fixture-project/03 Scope.md",
+    "fixtures/vault/Design Studio/fixture-project/03 Structure.md",
   );
 
   test("a changed vault file updates the affected card in place, no reload", async ({ page }) => {
-    const original = await fs.readFile(SCOPE, "utf8");
+    const original = await fs.readFile(STRUCTURE, "utf8");
     const marker = `LIVE-SSE-${Date.now()}`;
     try {
       await page.goto("/canvas/fixture-project");
-      const card = page.locator("#card-scope-0");
+      await page.getByRole("option", { name: "Structure", exact: true }).click();
+      const card = page.locator("#card-structure-0");
       await expect(card).toBeVisible();
       // Give the EventSource a moment to connect before we touch the file.
       await page.waitForTimeout(600);
 
       // Touch the vault file (the app never writes the vault; the test does).
       const changed = original.replace(
-        /# Scope & sequence/,
-        `# Scope & sequence\n\n${marker}`,
+        /# Structure/,
+        `# Structure\n\n${marker}`,
       );
-      await fs.writeFile(SCOPE, changed, "utf8");
+      await fs.writeFile(STRUCTURE, changed, "utf8");
 
       // The card refetches and swaps its blocks in place — no navigation.
       await expect(card).toHaveAttribute("data-live-updated", "true", { timeout: 8000 });
       await expect(card.getByText(marker)).toBeVisible();
     } finally {
-      await fs.writeFile(SCOPE, original, "utf8");
+      await fs.writeFile(STRUCTURE, original, "utf8");
     }
   });
 });
@@ -479,7 +536,10 @@ test.describe("comment + tweak + export (/canvas/fixture-project)", () => {
     expect(clip).toContain("Routing protocol");
     expect(clip).toMatch(/smallest unit that is reusable/i);
     expect(clip).toMatch(/Scope:/);
-    expect(clip).toContain("design-studio-validate");
+    // The close names both consumers: build's next round, or — after build —
+    // research's evaluate/reconcile moves (validate dissolved, decision 0027).
+    expect(clip).toContain("design-studio-build");
+    expect(clip).toContain("design-studio-research");
 
     expect(errors, `console/page errors on comment/tweak/export:\n${errors.join("\n")}`).toEqual([]);
   });

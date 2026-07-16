@@ -1,12 +1,16 @@
 import type { Annotation } from "./session-context";
 
 /**
- * "Copy feedback" export (§12), shaped as a design-studio-validate loop-back.
+ * "Copy feedback" export (§12): the round-neutral Canvas feedback document. It
+ * is the named input to build's next round (per design-studio-build 0026), and
+ * after build it feeds research's evaluate and reconcile moves (per
+ * design-studio-research 0027 — validate dissolved into those moves).
  * The preamble is addressed to a coding agent and carries, non-optional, the
  * ROUTING PROTOCOL verbatim in spirit: fix the smallest reusable unit that owns
  * the change (token → component → instance), and treat the reviewer's scope as a
- * starting claim the agent verifies, not a verdict. The close situates it in the
- * pipeline so findings that invalidate a decision become superseding entries.
+ * starting claim the agent verifies, not a verdict. The close names both
+ * consumers, so a post-build finding that invalidates a decision becomes a
+ * superseding entry.
  */
 
 const SCOPE_CLAIM: Record<Annotation["scope"], string> = {
@@ -17,7 +21,7 @@ const SCOPE_CLAIM: Record<Annotation["scope"], string> = {
 
 export function buildPrototypeExport(project: string, annotations: Annotation[]): string {
   const lines: string[] = [];
-  lines.push(`# Validation feedback — ${project}`);
+  lines.push(`# Prototype feedback — ${project}`);
   lines.push("");
   lines.push(
     "You are a coding agent applying reviewer feedback to the prototype repo. For each entry:",
@@ -85,7 +89,7 @@ export function buildPrototypeExport(project: string, annotations: Annotation[])
   lines.push("");
   lines.push("---");
   lines.push(
-    `These are validation findings for ${project}. Apply via the prototype repo; record findings that invalidate a decision as superseding entries per design-studio-validate.`,
+    `These are prototype feedback findings for ${project} — the named input to build's next round (per design-studio-build 0026) while build is still looping, or, after build, the input to research's evaluate and reconcile moves (per design-studio-research 0027), recording findings that invalidate a decision as superseding entries. Apply via the prototype repo.`,
   );
   return lines.join("\n");
 }

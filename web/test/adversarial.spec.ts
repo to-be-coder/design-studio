@@ -211,8 +211,18 @@ test.describe("localStorage resilience", () => {
       localStorage.setItem("canvas-overrides:fixture-project", "also not json");
     });
     await page.goto("/canvas/fixture-project");
-    await expect(page.getByRole("heading", { level: 1, name: "Fixture Project" })).toBeVisible();
-    await expect(page.getByTestId("canvas-world")).toBeVisible();
+    // The default board reads as a document; a canvas board exercises the view
+    // transform that must ignore the corrupt record.
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
+    const world = page.getByTestId("canvas-world");
+    await expect(world).toBeVisible();
+    // The corrupt record was ignored — a valid transform, no white-screen — and
+    // the HUD resets cleanly to 100%.
+    const style = (await world.getAttribute("style")) ?? "";
+    expect(style).toMatch(/scale\(/);
+    expect(style).not.toContain("undefined");
+    expect(style).not.toContain("NaN");
+    await page.getByTestId("zoom-pct").click();
     await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
     expect(errors, errors.join("\n")).toEqual([]);
   });
@@ -228,10 +238,14 @@ test.describe("localStorage resilience", () => {
       localStorage.setItem("canvas-overrides:fixture-project", JSON.stringify(["array", "not", "object"]));
     });
     await page.goto("/canvas/fixture-project");
-    await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
-    const style = (await page.getByTestId("canvas-world").getAttribute("style")) ?? "";
+    await page.getByRole("option", { name: "Structure", exact: true }).click();
+    const world = page.getByTestId("canvas-world");
+    await expect(world).toBeVisible();
+    const style = (await world.getAttribute("style")) ?? "";
     expect(style).not.toContain("undefined");
     expect(style).not.toContain("NaN");
+    await page.getByTestId("zoom-pct").click();
+    await expect(page.getByTestId("zoom-pct")).toHaveText("100%");
     expect(errors, errors.join("\n")).toEqual([]);
   });
 });
@@ -239,25 +253,26 @@ test.describe("localStorage resilience", () => {
 // ── SSE thrash: rapid successive writes settle to the final state ─────────────
 
 test.describe("live board — SSE under rapid writes", () => {
-  const SCOPE = path.resolve(
+  const STRUCTURE = path.resolve(
     __dirname,
-    "fixtures/vault/Design Studio/fixture-project/03 Scope.md",
+    "fixtures/vault/Design Studio/fixture-project/03 Structure.md",
   );
 
   test("five writes in ~1.5s: no thrash, the final marker wins", async ({ page }) => {
     const errors = trackConsoleErrors(page);
-    const original = await fs.readFile(SCOPE, "utf8");
+    const original = await fs.readFile(STRUCTURE, "utf8");
     let last = "";
     try {
       await page.goto("/canvas/fixture-project");
-      const card = page.locator("#card-scope-0");
+      await page.getByRole("option", { name: "Structure", exact: true }).click();
+      const card = page.locator("#card-structure-0");
       await expect(card).toBeVisible();
       await page.waitForTimeout(600); // let the EventSource connect
 
       for (let i = 0; i < 5; i++) {
         last = `SSE-THRASH-${i}-${Date.now()}`;
-        const changed = original.replace(/# Scope & sequence/, `# Scope & sequence\n\n${last}`);
-        await fs.writeFile(SCOPE, changed, "utf8");
+        const changed = original.replace(/# Structure/, `# Structure\n\n${last}`);
+        await fs.writeFile(STRUCTURE, changed, "utf8");
         await page.waitForTimeout(250);
       }
 
@@ -266,7 +281,7 @@ test.describe("live board — SSE under rapid writes", () => {
       await expect(card.getByText(last)).toBeVisible();
       await expect(card.getByText("SSE-THRASH-0-", { exact: false })).toHaveCount(0);
     } finally {
-      await fs.writeFile(SCOPE, original, "utf8");
+      await fs.writeFile(STRUCTURE, original, "utf8");
     }
     expect(errors, errors.join("\n")).toEqual([]);
   });
@@ -280,17 +295,19 @@ test.describe("vault edge data (fixture-project)", () => {
   }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
+    await page.getByRole("option", { name: "Decision stream", exact: true }).click();
 
     // The dangling decision is rendered honestly, in place.
     const dangling = page.locator("#d-0012");
     await expect(dangling).toBeVisible();
 
-    // Its supersede target does not exist → the connector is skipped, never
-    // half-drawn against a missing anchor.
+    // The reading pane draws no canvas edges at all, so a dangling supersede
+    // target can never leave a half-drawn edge behind.
     await expect(page.locator('[data-edge^="d-0012->"]')).toHaveCount(0);
 
-    // The known-good chain still draws, proving the skip was surgical.
-    await expect(page.locator('[data-edge="d-0008->d-0009"]')).toBeVisible();
+    // The known-good chain still renders its in-page supersede link, proving the
+    // entries render honestly.
+    await expect(page.locator("#d-0008").getByRole("link", { name: /superseded by 0009/i })).toBeVisible();
 
     expect(errors, `console/page errors on dangling refs:\n${errors.join("\n")}`).toEqual([]);
   });
@@ -300,9 +317,11 @@ test.describe("vault edge data (fixture-project)", () => {
   }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
-    // The research region still renders its real artifacts; the empty stub did
-    // not take the board (or its region) down.
-    await expect(page.locator("#region-research")).toBeVisible();
+    // Research reads as documents; the empty stub artifact must not take the
+    // board down — the real synthesis still renders.
+    await page.getByRole("option", { name: "Research", exact: true }).click();
+    await expect(page.getByTestId("doc-view")).toBeVisible();
+    await page.getByTestId("sidebar").getByRole("option", { name: "Synthesis" }).click();
     await expect(
       page.getByText("the artifact and the decision that shaped it live", { exact: false }),
     ).toBeVisible();

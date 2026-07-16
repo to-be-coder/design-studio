@@ -3,22 +3,20 @@
 export type ProjectStatus = "active" | "blocked" | "done" | "archived";
 export type Route = "full" | "lite";
 
-/** The 11 pipeline stages — the `stage` frontmatter enum (short tokens). */
+/** The 5 pipeline stages — the `stage` frontmatter enum (short tokens). */
 export type Stage =
   | "debrief"
   | "research"
-  | "verify"
-  | "reframe"
-  | "scope"
-  | "directions"
-  | "converge"
+  | "structure"
   | "design-system"
-  | "build"
-  | "validate"
-  | "spec";
+  | "build";
 
-/** Utility skills that are not pipeline stages. */
-export type Utility = "harvest" | "wiki-lint" | "setup";
+/**
+ * Utility skills that are not pipeline stages. `compile-spec` joined them when
+ * it was reclassified from terminal stage to on-demand render utility (decision
+ * 0028) — the pipeline now ends at `build`.
+ */
+export type Utility = "harvest" | "wiki-lint" | "setup" | "compile-spec";
 
 export type Autonomy = "execute" | "draft" | "scaffold";
 
@@ -47,6 +45,18 @@ export interface Project {
   prototypeRepo: string | null;
   /** File mtime of the dashboard, ISO date (yyyy-mm-dd). */
   mtime: string;
+  /**
+   * Home-index badges, read cheaply from the dashboard's Current stage line only
+   * (never the whole ledger). agendaCount = questions awaiting the human;
+   * loopTerminal = the loop's terminal state, or null while it runs / pre-loop;
+   * loopRound = the round while the loop is actively researching, else null (so
+   * a running card can badge "round N" without the terminal cards doing so).
+   */
+  agendaCount: number | null;
+  /** Items awaiting review (the status line's `review N`, agendaCount fallback). */
+  reviewCount: number | null;
+  loopTerminal: string | null;
+  loopRound: number | null;
 }
 
 /** One parsed bullet of a dashboard's `## Pipeline log` block. */
@@ -131,6 +141,175 @@ export interface FramingModel {
   extras: { title: string; blocks: RenderableBlock[] }[];
 }
 
+// ---- Understand-loop models (the knowns/unknowns ledger + What's Worth Building)
+
+import type { Receipt } from "./wikilinks";
+export type { Receipt };
+
+/** Unknown lifecycle, known grade: the two state families of a ledger entry. */
+export type UnknownState =
+  | "open"
+  | "researching"
+  | "research-exhausted"
+  | "answered"
+  | "retired";
+export type KnownState = "verified" | "partial" | "unverified" | "accepted";
+export type LedgerState = UnknownState | KnownState;
+
+/** One entry in Knowns & Unknowns.md: a monotonic `L<N>` in one id space. */
+export interface LedgerEntry {
+  /** e.g. "L7". */
+  id: string;
+  title: string;
+  kind: "unknown" | "known";
+  state: LedgerState;
+  loadBearing: boolean;
+  /** Load-bearing and not verified → carried as an assumption downstream. */
+  assumption: boolean;
+  /** Attempts against this entry (derived in the vault; read as-is here). */
+  attempts: number;
+  /** Combined spawned_by / answered_by phrasing, or null. */
+  lineage: string | null;
+  /** The human-facing ask, for an escalated (research-exhausted) entry. */
+  ask: string | null;
+  receipts: Receipt[];
+  /** Note / unlabeled prose under the entry. */
+  blocks: RenderableBlock[];
+}
+
+export interface LedgerModel {
+  entries: LedgerEntry[];
+  /** Live entries: open/researching/answered unknowns + all non-retired knowns. */
+  open: LedgerEntry[];
+  /** research-exhausted unknowns: the ones a human must settle. */
+  escalated: LedgerEntry[];
+  retired: LedgerEntry[];
+  /** Questions awaiting a human = escalated.length (derived, not stored). */
+  humanOpenCount: number;
+}
+
+/** One capability line in What's Worth Building, with its receipted reasons. */
+export interface WwbReason {
+  /** The reason prose, wikilinks stripped for reading. */
+  text: string;
+  receipts: Receipt[];
+  /** The clause rests on a non-verified load-bearing known → mechanical ASSUMPTION. */
+  assumption: boolean;
+}
+
+/** The human verdict a proposed candidate can be triaged into. */
+export type WwbDisposition = "build-now" | "backlog" | "dont-build";
+
+export interface WwbEntry {
+  /** Sticky `W<N>` id, else a deterministic section+slug fallback. */
+  id: string;
+  title: string;
+  reasons: WwbReason[];
+  /** Who supplied the verdict: a decided ADR / human answer, vs an AI proposal. */
+  source: "decided" | "proposed" | null;
+  /** The tier the entry renders in (its section, or an explicit `disposition:` line). */
+  disposition: WwbDisposition | null;
+  /** For a backlog entry: what answering would unblock. */
+  unblocks: string | null;
+  /** A confirmed entry's verbatim human words (pull-quote in the after-state). */
+  inTheirWords: string | null;
+  /** Who ruled it (a `ruled_by:` line), for a Build-now entry. */
+  ruledBy: string | null;
+  /** A cited L-id retired or dropped a grade since the ruling → re-rule. */
+  evidenceMoved: boolean;
+}
+
+/** An exhausted question surfaced for the human, rendered with an answer box. */
+export interface WwbQuestion {
+  /** The ledger `L<N>` it came from. */
+  id: string;
+  ask: string;
+  receipts: Receipt[];
+  /** Note / prose under the question (from the ledger entry when derived). */
+  blocks: RenderableBlock[];
+}
+
+/** The kind of red-moment a parked decision is (rendered as a word, never a colour). */
+export type ParkedKind =
+  | "framing-departure"
+  | "framing-lock"
+  | "directions-pick"
+  | "route-call"
+  | "other";
+
+/** A parked 🔴 call: a decision only the human can make, rendered verbatim. */
+export interface WwbParked {
+  /** Sticky `W<N>` id, else a deterministic fallback. */
+  id: string;
+  kind: ParkedKind;
+  title: string;
+  /** The candidate blockquote, verbatim: the pull-quote, never re-summarized. */
+  candidate: string;
+  /** The decision id a ruling would supersede, or null. */
+  supersedes: string | null;
+  /** What a ruling unblocks / re-scopes (e.g. "build now"), from a `blocks:` line. */
+  blocks: string | null;
+  receipts: Receipt[];
+  /** The both-sides body text under the candidate. */
+  bodyBlocks: RenderableBlock[];
+}
+
+export interface WwbModel {
+  /** The only tier downstream (structure/design-system/build) consumes. */
+  buildNow: WwbEntry[];
+  /** Untriaged build-lean candidates awaiting a human verdict. */
+  proposed: WwbEntry[];
+  /** Deferred but supersedable, with an `unblocks` note. */
+  backlog: WwbEntry[];
+  /** Human-ruled + research's dont-build-lean proposals (source-marked). */
+  dontBuild: WwbEntry[];
+  /** Implied but unruled: the full-vision confrontation, honestly undecided. */
+  unruled: WwbEntry[];
+  /** Open unknowns blocking a verdict; links into the ledger. */
+  blocking: Receipt[];
+  /** Exhausted questions for the human (from the WWB, else the ledger). */
+  questions: WwbQuestion[];
+  /** Parked 🔴 calls needing a ruling. */
+  parked: WwbParked[];
+  /** The WWB round this render was compiled at (stamped on a review batch). */
+  round?: number;
+  /** A hash of the entry set at render, for the stale-review guard. */
+  entriesHash?: string;
+  updated?: string;
+}
+
+/** The dashboard's closed colon status grammar `<phase>: <state>: <detail>`. */
+export interface LoopStatus {
+  phase: string | null;
+  state: string | null;
+  /** True while a round is in flight (state === "researching"). */
+  running: boolean;
+  round: number | null;
+  dryStreak: number | null;
+  agendaCount: number | null;
+  /** Items awaiting the human in the review surface (`review N` in the detail). */
+  reviewCount: number | null;
+  openCount: number | null;
+  /**
+   * In-flight parked 🔴 decisions this loop (the `parked K` field on a
+   * `researching:` line). A 🔴 is recorded as a proposed parked decision and the
+   * loop keeps running (decision 0036), so this counts up while research runs.
+   * Null when the line carries no `parked` field.
+   */
+  parkedCount: number | null;
+  /** Set only at a terminal state; drives the sidebar review pill + home badges. */
+  terminal:
+    | null
+    | "converged-complete"
+    | "converged-humans-needed"
+    | "capped"
+    | "parked";
+  /** What a parked-decision state is waiting on (framing-lock, directions-pick, …). */
+  parkedOn: string | null;
+  /** The raw status line, always preserved (a legacy line keeps everything else null). */
+  raw: string;
+}
+
 export type AssumptionState = "verified" | "partial" | "unverified" | "accepted";
 
 export interface AssumptionNode {
@@ -138,7 +317,7 @@ export interface AssumptionNode {
   id: string;
   title: string;
   state: AssumptionState;
-  /** verify's single riskiest load-bearing assumption. */
+  /** research's single riskiest load-bearing assumption (surfaced by its pressure-test move). */
   riskiest: boolean;
   /** An accepted-risk admission (e.g. "no primary user contact"). */
   accepted: boolean;
@@ -166,7 +345,11 @@ export interface DecisionStreamEntry {
   file: string;
 }
 
-export type Phase = "Understand" | "Decide" | "Build";
+// The Decide phase disappeared with converge/explore-directions (decisions
+// 0021/0023): the grouping is now Understand → Build. Decisions are made
+// throughout the loop and build, so the Decision Stream renders as its own
+// standalone section, not under a phase.
+export type Phase = "Understand" | "Build";
 
 export interface SpineStage {
   stage: Stage;
@@ -178,19 +361,31 @@ export interface SpineStage {
   /** Stable region id for fly-to, e.g. "region-research". */
   regionId: string;
   markerState: StageMarkerState;
-  /** reframe / converge — the column is a slice of the Decision Stream. */
-  isDecisionStage: boolean;
   cards: ArtifactCard[];
   /** Present only on the debrief stage. */
   framing: FramingModel | null;
-  /** Decision ids in this stage's slice (for reframe/converge columns). */
-  decisionSlice: string[];
 }
 
 export interface BoardHeader {
   currentStage: Stage | null;
   nextStep: string | null;
   overrides: string[];
+  /** Round-aware status from the dashboard's "Current stage" line, e.g.
+   * "debrief — round 1, awaiting review". */
+  statusLine: string | null;
+  /** The parsed Understand-loop status (closed colon grammar), or null. */
+  loop: LoopStatus | null;
+}
+
+/** Which candidate file a root doc resolved to (parsed presence for the sidebar). */
+export interface RootDocPresence {
+  key: import("./schema").RootDocKind;
+  label: string;
+  hero: boolean;
+  derived: boolean;
+  /** The matched vault-relative file, or null (absent, or a derived doc). */
+  file: string | null;
+  present: boolean;
 }
 
 /** Client-safe descriptor of a project's prototype (server config never leaks). */
@@ -236,6 +431,12 @@ export interface BoardModel {
   prototype: PrototypeInfo;
   /** The prototype's resolved DESIGN.md tokens — the ONLY tweakable values. */
   tokens: DesignTokens;
+  /** The project-level root docs (What's Worth Building / ledger) + presence. */
+  rootDocs: RootDocPresence[];
+  /** Parsed What's Worth Building, or null when the doc isn't present yet. */
+  wwb: WwbModel | null;
+  /** Parsed Knowns & Unknowns ledger, or null when the doc isn't present yet. */
+  ledger: LedgerModel | null;
 }
 
 // ---- Prototype DESIGN.md tokens (google-labs design.md format) ---------------

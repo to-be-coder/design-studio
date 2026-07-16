@@ -25,7 +25,7 @@ function trackConsoleErrors(page: Page): string[] {
 test.describe("golden path (/canvas/fixture-project)", () => {
   test.use({ viewport: { width: 1600, height: 1000 } });
 
-  test("read the flow by keyboard, expand the DS board, annotate + export", async ({
+  test("read the flow via the sidebar, expand the DS board, annotate + export", async ({
     page,
     context,
   }) => {
@@ -33,75 +33,64 @@ test.describe("golden path (/canvas/fixture-project)", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Fixture Project", exact: true }),
-    ).toBeVisible();
+    // The default board is Debrief (a document); the sidebar names the project.
+    // The full h1 project header appears on the canvas boards below.
+    await expect(page.getByTestId("sidebar")).toContainText("Fixture Project");
 
-    // ── Reading half: keyboard sidebar index only (arrows + Enter to fly) ─────
+    // ── Reading half: the sidebar index (stages + folded-in documents) ────────
     const sidebar = page.getByTestId("sidebar");
     await expect(sidebar).toBeVisible();
-    const options = sidebar.getByRole("option");
-    // Order (schema): Debrief, Research, Verify, Reframe, Scope, Directions,
-    // Converge, Decision stream, Design system, Build, Validate, Spec.
-    await options.first().focus();
-    await expect(options.nth(0)).toBeFocused();
+    const pane = page.getByTestId("doc-view");
 
-    // 0 · Debrief → the framing pane: brief beside restated problem.
-    await page.keyboard.press("Enter");
-    await expect(page.getByTestId("framing-transform")).toBeVisible();
-    const original = page.getByTestId("facet-original");
-    const restated = page.getByTestId("facet-restated");
-    await expect(original).toBeVisible();
-    await expect(restated).toBeVisible();
-    const ob = await original.boundingBox();
-    const rb = await restated.boundingBox();
-    expect(ob && rb && rb.x > ob.x + ob.width / 2).toBeTruthy(); // genuinely side by side
+    // Keyboard reachability: the index is arrow-navigable (first item focusable).
+    await sidebar.getByRole("option").first().focus();
+    await expect(sidebar.getByRole("option").first()).toBeFocused();
 
-    // 1 · Research → the synthesis reads as a page.
-    await page.keyboard.press("ArrowDown");
-    await expect(options.nth(1)).toBeFocused(); // focus visibly moved
-    await page.keyboard.press("Enter");
+    // The canvas lands on What's Worth Building (the compiled verdict).
+    await expect(page.getByTestId("wwb-pane")).toBeVisible();
+
+    // 0 · Debrief → the document reader (off the canvas). Its documents are folded
+    // into the sidebar as an accordion (no middle contents column). Selecting the
+    // reframe swaps the pane; the guiding principle reads large.
+    await sidebar.getByRole("option", { name: "Debrief", exact: true }).click();
+    await expect(pane).toBeVisible();
+    await expect(page.getByTestId("doc-contents")).toHaveCount(0);
+    await expect(page.getByTestId("framing-transform")).toHaveCount(0);
+    await sidebar.getByRole("option", { name: "Problem statement" }).click();
+    await expect(pane).toContainText(/trustworthy evidence/i);
+    await sidebar.getByRole("option", { name: "Guiding principle" }).click();
+    await expect(pane).toContainText("Assert what users see.");
+
+    // 1 · Research → also a reader: each artifact is its own document, and — since
+    // verify folded into research (decision 0018) — the assumption register is a
+    // document too. Selecting the synthesis, then the register, swaps the pane.
+    await sidebar.getByRole("option", { name: "Research", exact: true }).click();
+    await expect(pane).toBeVisible();
+    await sidebar.getByRole("option", { name: "Synthesis" }).click();
     await expect(
       page.getByText("the artifact and the decision that shaped it live", { exact: false }),
     ).toBeVisible();
-
-    // 2 · Verify → the assumption register.
-    await page.keyboard.press("ArrowDown");
-    await expect(options.nth(2)).toBeFocused();
-    await page.keyboard.press("Enter");
+    await sidebar.getByRole("option", { name: "Assumptions & risks" }).click();
     await expect(page.locator("#assumption-A1")).toBeVisible();
 
-    // 4 · Scope → the cut list called out.
-    await page.keyboard.press("ArrowDown"); // Reframe
-    await page.keyboard.press("ArrowDown"); // Scope
-    await expect(options.nth(4)).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(page.getByText(/Cross-project knowledge graph/i)).toBeVisible();
+    // 2 · Structure → the screen inventory reads as a page (flows + IA).
+    await sidebar.getByRole("option", { name: "Structure", exact: true }).click();
+    await expect(page.getByText(/screen inventory/i).first()).toBeVisible();
 
-    // 5 · Directions.
-    await page.keyboard.press("ArrowDown");
-    await expect(options.nth(5)).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect(page.getByText(/the spatial canvas/i).first()).toBeVisible();
-
-    // 7 · Decision stream → the supersede chain is drawn, not just linked.
-    await page.keyboard.press("ArrowDown"); // Converge
-    await page.keyboard.press("ArrowDown"); // Decision stream
-    await expect(options.nth(7)).toBeFocused();
-    await page.keyboard.press("Enter");
-    const superseded = page.locator("#d-0008");
-    await expect(superseded).toBeVisible();
-    await expect(superseded).toHaveAttribute("data-superseded", "true");
-    await expect(page.locator('[data-edge="d-0008->d-0009"]')).toBeVisible();
-
-    // 8 · Design system → expand its living-specimen board.
-    await page.keyboard.press("ArrowDown"); // Design system
-    await expect(options.nth(8)).toBeFocused();
-    await page.keyboard.press("Enter");
+    // 3 · Design system → its living-specimen board.
+    await sidebar.getByRole("option", { name: "Design system", exact: true }).click();
     const dsBoard = page.getByTestId("design-system-board");
     await expect(dsBoard).toBeVisible();
     await expect(dsBoard.locator('[data-component-base="button"]')).toBeVisible();
     await expect(page.getByTestId("contrast-ratio").first()).toBeVisible();
+
+    // 5 · Decision stream → reads as a scrollable document; the supersede chain is
+    // an in-page link, the retired entry stays in place.
+    await sidebar.getByRole("option", { name: "Decision stream", exact: true }).click();
+    const superseded = page.locator("#d-0008");
+    await expect(superseded).toBeVisible();
+    await expect(superseded).toHaveAttribute("data-superseded", "true");
+    await expect(superseded.getByRole("link", { name: /superseded by 0009/i })).toBeVisible();
 
     // ── Markup half: annotate a real component at component scope, then export ─
     await page.getByRole("option", { name: "Build", exact: true }).click();
@@ -138,7 +127,10 @@ test.describe("golden path (/canvas/fixture-project)", () => {
     expect(clip).toMatch(/Scope:/); // the scope
     expect(clip).toContain("Routing protocol"); // the routing protocol
     expect(clip).toMatch(/smallest unit that is reusable/i);
-    expect(clip).toContain("design-studio-validate");
+    // The close names both consumers: build's next round, or — after build —
+    // research's evaluate/reconcile moves (validate dissolved, decision 0027).
+    expect(clip).toContain("design-studio-build");
+    expect(clip).toContain("design-studio-research");
 
     expect(errors, `console/page errors on golden path:\n${errors.join("\n")}`).toEqual([]);
   });

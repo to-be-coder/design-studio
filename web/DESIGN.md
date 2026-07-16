@@ -33,12 +33,15 @@ colors:
   unverified:      "oklch(0.55 0.19 25)"      # unverified / at-risk — red ink
   accepted:        "oklch(0.50 0.02 275)"     # accepted risk — deliberate slate
   danger:          "oklch(0.55 0.19 25)"      # error states (= unverified hue)
+  # ── Overlay. Modal scrim — a dark wash in BOTH themes (it darkens the page
+  #    behind a dialog, so it must NOT follow ink, which flips light in dark).
+  scrim:           "oklch(0 0 0 / 0.45)"      # light 0.45 · dark 0.60
 
 typography:
-  fontFamilySerif: "Iowan Old Style, Georgia, Cambria, 'Times New Roman', serif"  # reading
+  fontFamilySerif: "Geist Sans, system-ui, sans-serif"                            # reading — unified onto the one sans face
   fontFamilySans:  "Geist Sans, system-ui, sans-serif"                            # chrome
   fontFamilyMono:  "Geist Mono, ui-monospace, monospace"                          # code, ids
-  # Reading scale (serif) — the artifact bodies. Generous leading.
+  # Reading scale — the artifact bodies (one sans face, no serif). Generous leading.
   body:     { family: "serif", size: "1.0625rem", weight: 400, leading: "1.72" }  # 17px reading text
   artifactH1: { family: "serif", size: "1.6rem",  weight: 600, leading: "1.25", tracking: "-0.015em" }
   artifactH2: { family: "serif", size: "1.25rem", weight: 600, leading: "1.3" }
@@ -114,9 +117,17 @@ components:
     textColor:       "{colors.ink}"
     rounded:         "{rounded.pill}"
     typography:      "{typography.small}"
-  sidebarRowActive:                       # keyboard index — focused row
-    backgroundColor: "{colors.accentWash}"
+  navRow:                                 # side nav + document contents rail (files list): resting
+    backgroundColor: "transparent"
+    textColor:       "{colors.inkMuted}"
+    rounded:         "{rounded.inset}"
+  navRowHover:                            # the same rows on hover or focus-visible
+    backgroundColor: "{colors.paperRaised}"
     textColor:       "{colors.ink}"
+    rounded:         "{rounded.inset}"
+  sidebarRowActive:                       # the same rows, selected (one treatment, both lists)
+    backgroundColor: "{colors.accentWash}"
+    textColor:       "{colors.accent}"
     rounded:         "{rounded.inset}"
   connector:                              # supersede / rests_on edges drawn between entries
     backgroundColor: "transparent"
@@ -132,10 +143,16 @@ components:
 The whole design journey — research to prototype — is one pannable board, and the board's first
 job is to be **read**. This is an **editorial reading surface**, not an instrument: the artifacts
 are documents, so typography carries the design and the chrome recedes. Cards are paper sheets on
-a desk; a serif reading face at a real measure (~68ch) and generous leading (1.72) makes a card a
+a desk; a clean sans reading face at a real measure (~68ch) and generous leading (1.72) makes a card a
 page you actually read at 100% zoom, not a thumbnail you squint at. Calm, quiet, spare. Light
 (paper) and dark are both first-class; this front matter is the light theme, the dark theme is in
 Colors and in `globals.css`.
+
+**Voice.** Product copy avoids the em dash. This product's bar is *designed, not generated*, and a
+stray em dash reads as an AI tell, so the app's own strings (labels, headings, empty and error
+states, tooltips, buttons) use a comma, a colon, parentheses, or two short sentences instead. The
+rule governs copy the app authors; a human's own vault documents are rendered verbatim and left
+exactly as written.
 
 ## Colors
 Two families, kept strictly apart.
@@ -159,19 +176,24 @@ Dark theme (in `globals.css`): desk `oklch(0.20 0.006 275)`, paper `oklch(0.245 
 paperRaised `oklch(0.285 0.009 275)`, ink `oklch(0.94 0.004 85)`, inkMuted `oklch(0.72 0.006 85)`,
 inkFaint `oklch(0.58 0.006 85)`, rule `oklch(1 0 0 / 10%)`, ruleStrong `oklch(1 0 0 / 20%)`,
 accent `oklch(0.68 0.15 275)`, accentInk `oklch(0.16 0.02 275)`, verified `oklch(0.72 0.14 150)`,
-partial `oklch(0.78 0.13 80)`, unverified/danger `oklch(0.68 0.19 25)`, accepted `oklch(0.68 0.03 275)`.
+partial `oklch(0.78 0.13 80)`, unverified/danger `oklch(0.68 0.19 25)`, accepted `oklch(0.68 0.03 275)`,
+scrim `oklch(0 0 0 / 0.60)` (a touch deeper over the already-dark page).
 
 ## Typography
-Two faces with one job each. A **serif** (`Iowan Old Style`/`Georgia` system stack, no web fetch)
-is the *reading* face: every artifact body, heading, pull-quote, and the large guiding-principle
-display. A **sans** (`Geist Sans`, bundled) is the *chrome* face: card titles, the uppercase `label`
-eyebrow, HUD, sidebar. `Geist Mono` carries ids and code. The reading scale is deliberate —
+One face across the whole surface. **`Geist Sans`** carries everything — every artifact body,
+heading, pull-quote, and the guiding-principle display (the *reading* role) as well as card titles,
+the uppercase `label` eyebrow, HUD, and sidebar (the *chrome* role). The `fontFamilySerif` token is
+kept as the reading alias but points at the same sans stack, so no serif is used. `Geist Mono`
+carries ids and code. The reading scale is deliberate —
 `body` 17px at 1.72 leading on a 34rem measure, a true `artifactH1/H2/H3` hierarchy, and an italic
 `pullQuote` for the **In their words.** voice so the human is visibly distinct from the tool's prose.
-Type is the loud element here; everything else is quiet.
+Type is the loud element here; everything else is quiet. Sidebar navigation items are one size:
+0.875rem/14px (the `text-sm` step), across all groups (root docs, stage rows, the decision stream).
+The hero row (What's Worth Building) keeps its active accent color but never a larger size, so the
+index reads as one even list, not a ladder of weights.
 
 ## Layout
-A vertical **spine** runs down the left — the three phases (Understand / Decide / Build) as sections,
+A vertical **spine** runs down the left — the two phases (Understand / Build) as sections,
 each stage a marker. Off each marker, artifact cards run horizontally (`gutter` apart); rows are
 `spineGap` apart. Cards are paper `card` surfaces with `cardPad` padding and a reading `measure`
 cap on body text, so one overgrown document can't distort the board. Everything lives on one world
@@ -204,15 +226,23 @@ complete the chrome.
   live prototype, blast-radius. **Don't** use it as a background wash or decorative fill.
 - **Do** carry every state with a designed mark (fill/half/outline + a word). **Don't** ever ship a
   bare 🟢🟡🔴 dot — the traffic-light idiom is retired here.
-- **Do** keep the reading measure (~68ch) and serif body on artifact cards — readability at 100% is
-  the acceptance test. **Don't** let a card become a thumbnail.
+- **Do** keep the reading measure (~68ch) and the sans reading body on artifact cards — readability
+  at 100% is the acceptance test. **Don't** let a card become a thumbnail.
 - **Do** keep semantic status (green/ochre/red/slate) separate from the accent and from decoration.
   **Don't** add a second accent hue.
 - **Do** express depth with a hairline and a hair of lift. **Don't** reach for heavy drop shadows.
 - **Do** keep superseded entries visible-but-retired. **Don't** hide the real path.
 - **Do** derive every value from a token here. **Don't** hardcode a hex/oklch in a component.
+- **Do** write the app's own copy with commas, colons, parentheses, or two short sentences.
+  **Don't** put an em dash (or a spaced hyphen standing in for one) in product copy; it reads as an
+  AI tell, and the bar here is designed, not generated. Rendered vault content stays verbatim.
+- **Do** give every list of navigable rows (the side nav and the document contents rail / files
+  list) one shared treatment: resting `navRow`, `navRowHover` (`paperRaised` background) on hover
+  and focus-visible, `sidebarRowActive` (`accentWash` background, `accent` text) when selected, all
+  `rounded.inset`. **Don't** invent a different hover or selected style per list, and don't fill a
+  selected row with solid `accent` (that solid fill is for pill tabs, not list rows).
 
-## Contrast (hand-checked — `npx @google/design.md lint` unavailable in this sandbox)
+## Contrast (hand-checked here; enforced by the owned `design-lint.mjs`)
 Estimated WCAG AA against the canonical light theme:
 - `ink` on `paper` — ~13.5:1 ✅ · `inkMuted` on `paper` — ~5.6:1 ✅ (AA normal) ·
   `inkFaint` on `paper` — ~3.4:1 (AA large / non-text only — used for timestamps at ≥ small only).

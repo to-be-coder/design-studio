@@ -1,8 +1,8 @@
 # Plays & traps — by problem shape
 
 The problem-shaped view. When the decision on the table looks like the left side, read the right
-side first. `debrief` queries this for precedents; `converge` checks the ⚠ traps before the user
-commits. Maintained by `design-studio-harvest`.
+side first. `debrief` queries this for precedents; `research`'s trap-check surfaces the ⚠ traps as
+decisions accumulate. Maintained by `design-studio-harvest`.
 
 - **"The same artifact needs to be authoritative in two phases of its life"** →
   [[Single copy moving home]]

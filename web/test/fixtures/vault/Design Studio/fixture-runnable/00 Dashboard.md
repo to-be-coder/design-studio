@@ -15,6 +15,10 @@ test/fixtures/prototypes.json). The canvas can start its dev server itself via
 the Render control; once the server is ready the live frames mount. Used by
 run-control.spec.ts — no external dev server required.
 
+## Current stage
+
+Current stage: build, awaiting your review (a legacy free-prose status line, not the colon grammar)
+
 ## Recommended next step
 
 Render the prototype to see the running thing.

@@ -44,13 +44,25 @@ function frontmatter(raw) {
   return { data, body };
 }
 
+// Mirrors src/lib/schema.ts normalizeStageName (5 stages). `compile-spec` (and
+// its legacy `spec` alias) maps to the `compile-spec` UTILITY token — it was
+// reclassified from terminal stage to on-demand render utility (0028), so like a
+// `harvest` row it's KEPT, not dropped, just not one of the five spine stages.
+// The removed-stage tokens are deliberately absent so a legacy pipeline-log row
+// drops through to `null` and is skipped by the caller — never crashes, never
+// mislabeled onto a neighboring stage: `verify` (0018, folded into research),
+// `reframe` + `scope` (0020, folded into the Understand loop + Agreements.md),
+// `directions` / `explore-directions` + `converge` (0021 + 0023: directions
+// became a research move, converge dissolved), and `validate` (0027: drift check
+// moved into build's round-closing checklist, testing became research's
+// evaluate/reconcile moves). Real vaults (e.g. careerbot's) still carry those
+// rows from the old pipeline.
 function normalizeStageName(name) {
   const n = name.trim().toLowerCase().replace(/\s+/g, "-");
   const map = {
-    debrief: "debrief", research: "research", verify: "verify", reframe: "reframe",
-    scope: "scope", "scope-and-sequence": "scope", directions: "directions",
-    "explore-directions": "directions", converge: "converge", "design-system": "design-system",
-    build: "build", validate: "validate", spec: "spec", "compile-spec": "spec",
+    debrief: "debrief", research: "research", structure: "structure",
+    "design-system": "design-system", build: "build",
+    spec: "compile-spec", "compile-spec": "compile-spec",
     harvest: "harvest", "wiki-lint": "wiki-lint", setup: "setup",
   };
   return map[n] ?? null;
@@ -126,12 +138,20 @@ async function main() {
   assert(cbData.stage === "converge", `frontmatter stage = converge (got "${cbData.stage}")`);
   const log = parsePipelineLog(cbBody);
   const byStage = Object.fromEntries(log.map((s) => [s.stage, s]));
-  assert(log.length >= 11, `parsed ${log.length} pipeline-log rows`);
+  assert(log.length >= 6, `parsed ${log.length} pipeline-log rows`);
   assert(byStage.debrief?.state === "ran", `debrief → ran (got ${byStage.debrief?.state})`);
-  assert(byStage.verify?.state === "skipped", `verify → skipped/not-run (got ${byStage.verify?.state})`);
-  assert(byStage.scope !== undefined, "scope-and-sequence normalized to 'scope'");
-  assert(byStage.directions !== undefined, "explore-directions normalized to 'directions'");
-  assert(byStage.spec !== undefined, "compile-spec normalized to 'spec'");
+  // This vault's dashboard carries real legacy rows from before the pipeline
+  // compressed to 5 stages. They must be tolerated: dropped silently, not
+  // crashed on, not mislabeled onto a surviving neighbor.
+  assert(
+    byStage.verify === undefined &&
+      byStage.reframe === undefined &&
+      byStage.scope === undefined &&
+      byStage.directions === undefined &&
+      byStage.converge === undefined,
+    "legacy rows (verify/reframe/scope/directions/converge) are tolerated (dropped, not mislabeled)",
+  );
+  assert(byStage["compile-spec"] !== undefined, "compile-spec normalized to the 'compile-spec' utility token");
   assert(byStage["design-system"]?.state === "pending", `design-system → pending (got ${byStage["design-system"]?.state})`);
   assert(byStage.harvest !== undefined, "harvest utility row parsed");
 

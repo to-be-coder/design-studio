@@ -1,6 +1,7 @@
 "use client";
 
-import type { DecisionStreamEntry } from "@/lib/types";
+import { useMemo, useState } from "react";
+import type { BoardModel, DecisionStreamEntry } from "@/lib/types";
 import { STAGES } from "@/lib/schema";
 import type { RestsOnState, StreamFilter } from "./canvas";
 import { Reading } from "./markdown";
@@ -39,6 +40,7 @@ export function DecisionStream({
   restsOnState,
   filter = "all",
   onFilter,
+  variant = "canvas",
 }: {
   entries: DecisionStreamEntry[];
   id: string;
@@ -47,6 +49,8 @@ export function DecisionStream({
   restsOnState?: Record<string, RestsOnState>;
   filter?: StreamFilter;
   onFilter?: (f: StreamFilter) => void;
+  /** "canvas" = the pannable sheet; "doc" = fills a reading column (no card-sheet). */
+  variant?: "canvas" | "doc";
 }) {
   const shown = entries.filter((e) => {
     if (filter === "live") return e.status !== "superseded";
@@ -55,12 +59,16 @@ export function DecisionStream({
   });
 
   return (
-    <article id={id} className="card-sheet w-[52rem] max-w-[92vw] px-8 py-7" data-card-kind="decision-stream">
+    <article
+      id={id}
+      className={variant === "doc" ? "w-full" : "card-sheet w-[52rem] max-w-[92vw] px-8 py-7"}
+      data-card-kind="decision-stream"
+    >
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow mb-1">The decision stream</p>
           <p className="text-[0.8125rem] text-ink-faint">
-            Every decision, in order. Loop-backs stay visible — the real path is the point.
+            Every decision, in order. Loop-backs stay visible: the real path is the point.
           </p>
         </div>
         <div className="flex gap-1 rounded-pill border border-rule p-0.5" role="group" aria-label="Filter decisions" data-testid="stream-filter">
@@ -200,6 +208,45 @@ export function DecisionStream({
         </ol>
       )}
     </article>
+  );
+}
+
+/**
+ * The decision stream as a reading pane (doc mode): the same cards, receipts, and
+ * superseded treatments, off the canvas. It owns the filter and the blast-radius
+ * selection locally (there is no canvas graph here), so clicking a rests_on id
+ * still lights every decision standing on that assumption, and the "at risk" state
+ * still reads on each rests_on line. Pan/zoom/minimap are gone; the column scrolls.
+ */
+export function DecisionStreamPane({ model }: { model: BoardModel }) {
+  const [filter, setFilter] = useState<StreamFilter>("all");
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const highlighted = useMemo(() => {
+    if (!selected) return null;
+    const a = model.assumptions.find((x) => x.id === selected);
+    return a ? new Set(a.dependents) : null;
+  }, [selected, model.assumptions]);
+
+  const restsOnState = useMemo(() => {
+    const m: Record<string, RestsOnState> = {};
+    for (const a of model.assumptions) {
+      for (const dep of a.dependents) m[dep] = { assumptionId: a.id, state: a.state, riskiest: a.riskiest };
+    }
+    return m;
+  }, [model.assumptions]);
+
+  return (
+    <DecisionStream
+      entries={model.decisionStream}
+      id="region-decision-stream"
+      variant="doc"
+      highlighted={highlighted}
+      registerHref={(aid) => setSelected((p) => (p === aid ? null : aid))}
+      restsOnState={restsOnState}
+      filter={filter}
+      onFilter={setFilter}
+    />
   );
 }
 
