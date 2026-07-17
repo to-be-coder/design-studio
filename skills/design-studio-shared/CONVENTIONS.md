@@ -157,12 +157,10 @@ SORT file.mtime ASC
                               becomes a file before it becomes evidence
     Synthesis.md           ← the living prose research report (findings, recommendation, standing
                               lines); kept, but its round log now lives in the ledger, not here
-  03 Structure.md           ← user flows + information architecture, drafted by design-studio-structure
-                              from the accepted recommendation + What's Worth Building.md's Build
-                              section (fills the retired 03 slot; a directions move's data-model
-                              sketch lives in the research report, not here). 04 Directions.md and
-                              05 Validation.md are retired: testing folded into research's evaluate
-                              move (see [[0027 validate-dissolves-6-stages]]).
+                              (03 Structure.md is retired: the structure stage scaffolds the
+                              clickable skeleton repo instead, [[0039 structure-scaffolds-the-skeleton]];
+                              04 Directions.md and 05 Validation.md were already retired, testing
+                              folded into research's evaluate move, [[0027 validate-dissolves-6-stages]].)
   Spec.md                   ← audience-shaped render of the log (on demand; align / eng-handoff
                               modes may write Align.md / Handoff.md beside it)
   Decisions/                ← ADR log: NNNN <slug>.md, immutable, superseded-not-deleted; the only
@@ -181,14 +179,18 @@ SORT file.mtime ASC
                               shape so build's register gate and the web parser stay untouched;
                               research owns it, build is the ONE gate (warn-never-block) on an
                               unverified load-bearing assumption, at build's door only
-  DESIGN.md                 ← the visual contract (design.md format); moves to the prototype repo at build
+  DESIGN.md                 ← legacy slot only: the visual contract now lives at the prototype
+                              repo root from birth (the repo exists from structure onward); a vault
+                              copy appears only in projects older than [[0039 structure-scaffolds-the-skeleton]]
   Harvest.md                ← flag inbox: one-line keepers for the Studio Wiki (project-local until harvest)
   Drift Ledger.md           ← on-demand: decision-log-vs-shipped-reality reconciliation, written by
                               research's reconcile move ([[0027 validate-dissolves-6-stages]])
   _assets/                  ← attachments scoped to this project (incl. boards/ specimen pages)
 ```
 
-The **clickable prototype** is a separate code repo, NOT in the vault. `00 Dashboard.md` links to it.
+The **clickable prototype** is a separate code repo, NOT in the vault, created by `structure` at
+`~/dev/<slug>-prototype` as the skeleton it scaffolds ([[0039 structure-scaffolds-the-skeleton]]).
+`00 Dashboard.md` links to it via `prototype_repo`.
 
 `slug`: lowercase, hyphenated. Folder name = slug. Human-readable name lives in the dashboard YAML.
 
@@ -201,7 +203,7 @@ stage: debrief        # debrief|research|structure|design-system|build
 client:
 route: full           # full | lite
 started: YYYY-MM-DD
-prototype_repo:       # filled when build starts
+prototype_repo:       # absolute path; filled by structure when it scaffolds the skeleton
 ---
 ```
 
@@ -447,9 +449,11 @@ across parallel build agents.
   extensions** over the base: a **`motion`** token group (`duration` / `easing` / `transition`) and
   **declarable accessibility floors** — minimum contrast ratios stated up front in the Colors
   section (`contrast:` block), a drafting constraint, not just a post-hoc check.
-- **Single copy, moving home.** `design-studio-design-system` authors `<project>/DESIGN.md` in the
-  vault — canonical while no repo exists. `build` **moves** it to the prototype repo root as its
-  first committed act and leaves a link note in the vault. There is never a second copy to sync.
+- **Single copy, born at the repo root.** The prototype repo exists from `structure` onward
+  ([[0039 structure-scaffolds-the-skeleton]]), so `design-studio-design-system` authors
+  `<repo>/DESIGN.md` directly at the repo root and exports `tokens.css` beside it; the skeleton
+  wears the language on reload. There is never a second copy to sync. (Projects older than 0039
+  may still hold a vault copy; the web reader prefers the repo copy when both exist.)
 - **Token discipline.** Prototype UI takes every color / type / spacing / radius value from a token,
   directly or via the owned export
   (`node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs <path>` → CSS custom
@@ -477,6 +481,52 @@ across parallel build agents.
   supersedes the language decision like any other loop-back.
 - No node handy to run the lint, export, or diff? Author against `DESIGN-SPEC.md`, hand-check the
   floors, hand-derive the export, and say so on the dashboard instead of silently skipping the gate.
+
+---
+
+## The skeleton contract ([[0039 structure-scaffolds-the-skeleton]])
+
+The structure stage's output is the prototype repo itself: a clickable static skeleton at
+`~/dev/<slug>-prototype` (or the exact path a headless spawn passes), scaffolded so a human walks
+the flows instead of reading them and so every later stage works in the same repo. The rules, one
+place:
+
+**The repo.** Created by the structure SKILL (never by the web app's own hands; the app's vault
+writes stay bounded). `git init` plus one initial commit, so build's drift diff has a lineage from
+birth. Contents at the root: one flat `<id>.html` per screen with `index.html` as the entry,
+`flows.json`, `tokens.css`, `styles.css`, `README.md` (one paragraph: what this is, and that build
+replaces the skeleton keeping routes and flows.json). The skill fills `prototype_repo` in
+`00 Dashboard.md` with the ABSOLUTE path, never `~`.
+
+**The pages.** Zero JS, zero dependencies, relative links only (the canvas embeds the repo through
+its same-origin proxy with no run config). Every page repeats the same nav block verbatim: one link
+per screen in flows.json order, `aria-current="page"` on itself. Every flow edge is a real labeled
+link (`data-edge="from->to"`), so click-through is genuine. Each page marks itself with
+`data-screen="<id>"` on the html element, `data-serves="W3 W2"` on main, and a visible fidelity
+badge (`data-fidelity="full"` or `"stub"`); exactly one screen in the repo is `full` (the confirmed
+full-depth feature), and a stub never masquerades. Required states render as visible labeled blocks
+inside `<section data-states>` (one per state: empty, loading, error, plus the edge states the
+flows force), with designed-placeholder copy. Every page links `tokens.css` then `styles.css`;
+`tokens.css` ships as a commented placeholder with neutral fallbacks (design-system fills it via
+`design-export.mjs`, never hand-edited), and `styles.css` consumes only `var(...)` with fallbacks.
+
+**flows.json (the machine-readable structure).** Root fields: `version` (1), `project` (the slug),
+`source` (`"structure"` or `"build"`, whichever last rewrote it), `entry` (`"index.html"`),
+`screens` (array of `{id, route, title, serves, fidelity, states}` where `serves` lists the W-ids
+the screen serves, `fidelity` is `"full"` or `"stub"`, and `states` lists the non-default states
+the screen must carry), and `edges` (array of `{from, to, label}` screen-id pairs with the user
+action as the label). Skills read this instead of any prose doc; the canvas orders its device
+frames by it.
+
+**The collision rule.** If the target path already exists, the skill touches NOTHING: no writes
+into it, no `prototype_repo` fill, just one dated plain line appended to `00 Dashboard.md` naming
+the conflict. Re-runs route through the user.
+
+**Who reads what.** `design-system` reads `flows.json`, walks the pages, authors `<repo>/DESIGN.md`
+and exports `tokens.css` beside it. `build` gates on the repo and `flows.json`, drives the skeleton
+screen by screen, and replaces the static pages with the real app while keeping route names and
+`flows.json` current (`source: "build"`). `03 Structure.md` is retired; there is no vault page for
+structure.
 
 ---
 
@@ -961,9 +1011,10 @@ against the success criteria is research's **evaluate** move (users, or a Nielse
 expert review), the log-vs-reality check is its **reconcile** move (writing `Drift Ledger.md`), the
 visual-drift diff moved into build's round-closing checklist where drift happens, and the supersede
 back-edge (any finding from anywhere supersedes the decision it invalidates) is **universal law, not a
-stage**. **Bones before skin**: `structure` ([[0024 structure-stage-flows-and-ia]]) drafts user flows
-+ IA from the accepted recommendation so the visual language and the build are made for a known
-structure.
+stage**. **Bones before skin**: `structure` ([[0024 structure-stage-flows-and-ia]], reshaped by
+[[0039 structure-scaffolds-the-skeleton]]) scaffolds the clickable skeleton repo from the accepted
+recommendation and the confirmed Build now set, so the visual language and the build are made for a
+known, walkable structure; the skeleton contract above is its law.
 
 **The pipeline ends at build** ([[0028 compile-spec-is-a-render-utility]]). `compile-spec` is **not a
 terminal stage**: it is an **on-demand render utility**, invocable at any moment to shape the record
@@ -977,7 +1028,7 @@ compile-spec supplies audience-shaped projections of.
 |---|---|---|
 | Understand | `design-studio-debrief` | 🟡→🔴 (framing lock + route call); seeds the ledger (unknowns + load-bearing knowns, no client questions drafted) which chains straight into research with no gate, and ingests answer batches back into it |
 |  | `design-studio-research` | 🟢 loop engine, 🔴 for the directions-move pick and a mid-loop framing departure (each recorded as a `proposed` parked decision the loop continues past, [[0036 one-continuous-cycle]], never a self-made verdict): runs headless rounds over the ledger, attempting every open unknown until per-question exhaustion (M-latch) and loop convergence (K dry-streak, the first stop; C round cap) terminate it; mints receipted Knowns, spawns child unknowns, recompiles `What's Worth Building.md` + `Assumptions & Risks.md` each round; owns the risk register; forced framing-check + migration-flag + standing primary-contact line + wiki trap-check every round; on-demand **evaluate** and **reconcile** (writing `Drift Ledger.md`) moves |
-| Build | `design-studio-structure` | 🟡 (user flows + IA from the accepted recommendation + What's Worth Building.md) |
+| Build | `design-studio-structure` | 🟡 (scaffolds the clickable skeleton repo + flows.json at `~/dev/<slug>-prototype` from the accepted recommendation + What's Worth Building.md's Build now set; no vault page) |
 |  | `design-studio-design-system` | 🟡 + gate (lint + user sign-off) |
 |  | `design-studio-build` | 🟢, runs in rounds (specs → parallel agents → Canvas review → the four gates close each round; the exported Canvas feedback is the next round's specs); gates: states/edge/a11y + content + DESIGN.md consistency & drift (owned design:diff vs the signed-off ref) + register — the pipeline's only register gate |
 

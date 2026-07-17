@@ -5,7 +5,7 @@ gathering fresh evidence ([[0027 validate-dissolves-6-stages]]). The old `valida
 research as this move: the craft is ported intact, the ceremony is gone. Testing the prototype
 against the in-session success criteria is an **evaluative round** — the same convergence loop as any
 other, just aimed at the artifact instead of the problem space. Runs most often **after `build`**,
-but early evaluation (a concept, a flow, `03 Structure.md`) is far cheaper than post-build — prefer
+but early evaluation (a concept, a flow, the skeleton repo's stub screens) is far cheaper than post-build — prefer
 catching a broken flow before it is coded.
 
 ## Preconditions

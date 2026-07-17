@@ -1,6 +1,6 @@
 ---
 name: design-studio-build
-description: Build the clickable prototype spec-first, in rounds — per-feature specs against the flows/IA in 03 Structure.md → parallel agents build in Claude Code (every prompt opens "read DESIGN.md first") → run the prototype for review in the Canvas (comment/tweak) → the five round-closing gates: empty/error/loading states, edge cases, and accessibility; real content; token-level consistency against DESIGN.md plus the owned design:diff drift check against the signed-off ref; a prototype-review pass that drives the running prototype (every screen captured across states and both themes, read against DESIGN.md, real affordance verified, no console errors); and the register receipt at the door. The exported Canvas feedback becomes the next round's specs, and rounds repeat until the user calls enough. Gates on the upstream understanding existing — warns and asks before building without it, and holds the pipeline's only register gate (an unverified load-bearing assumption is a receipt, not a block). Fifth stage of the design-studio pipeline.
+description: Build the clickable prototype spec-first, in rounds — per-feature specs against the skeleton repo's flows.json → parallel agents build in Claude Code (every prompt opens "read DESIGN.md first") → run the prototype for review in the Canvas (comment/tweak) → the five round-closing gates: empty/error/loading states, edge cases, and accessibility; real content; token-level consistency against DESIGN.md plus the owned design:diff drift check against the signed-off ref; a prototype-review pass that drives the running prototype (every screen captured across states and both themes, read against DESIGN.md, real affordance verified, no console errors); and the register receipt at the door. The exported Canvas feedback becomes the next round's specs, and rounds repeat until the user calls enough. Gates on the upstream understanding existing — warns and asks before building without it, and holds the pipeline's only register gate (an unverified load-bearing assumption is a receipt, not a block). Fifth stage of the design-studio pipeline.
 ---
 
 # design-studio-build
@@ -28,9 +28,9 @@ start over.
 
 ## Preconditions — enforce the front-load (fix #1, gap #4)
 Check the vault for: a restated problem, the accepted recommendation, the flows/IA in
-`03 Structure.md`, and a linted `DESIGN.md`. **If the thinking is missing, stop and say so** —
+the skeleton repo with its `flows.json`, and a linted `DESIGN.md` at the repo root. **If the thinking is missing, stop and say so** —
 building cheap UI before the understanding exists is the exact junior failure this pipeline
-prevents. If `03 Structure.md` is missing, offer `design-studio-structure` first — build consumes
+prevents. If the prototype repo or its `flows.json` is missing, offer `design-studio-structure` first — build consumes
 the flows/IA, it no longer authors them ([[0024 structure-stage-flows-and-ia]]). If only `DESIGN.md`
 is missing, offer `design-studio-design-system` first — one shared visual contract is what keeps
 parallel agents from each inventing their own UI. The user may override, but make the gap explicit.
@@ -56,7 +56,7 @@ round on the exported feedback, or close. Every round runs the gates; the **firs
 the one-time craft-divergence and the `DESIGN.md` move (steps 2–3).
 
 1. **Spec the round — spec-first, always.** Never vibe-code; the intent lives in writing before the
-   code, so every decision is defensible. **Round 1:** read the **flows/IA** from `03 Structure.md`
+   code, so every decision is defensible. **Round 1:** read the **flows/IA** from the repo's `flows.json` and walk the skeleton pages
    (authored by `design-studio-structure`) — task flows for the core journeys, the screen/state
    inventory, and the navigation model. If it's missing, warn and offer to run `design-studio-structure`
    first, or map a lightweight flow inline on a Lite run — but prose specs alone are not a flow. Then,
@@ -68,9 +68,10 @@ the one-time craft-divergence and the `DESIGN.md` move (steps 2–3).
    (layout and interaction model, not variations on one) and have the user pick before building — the
    same anti-first-idea discipline `research`'s directions move runs at strategy altitude, applied
    here at craft altitude.
-3. **Wire in the visual contract** (first round — the single-copy move). Move the vault `DESIGN.md`
-   into the repo root as the first committed act, leaving a link note in its place in the vault — the
-   repo file is the only copy from here on (CONVENTIONS). Export the tokens with the studio's owned,
+3. **Wire in the visual contract.** `DESIGN.md` already lives at the repo root (design-system
+   authored it there; the repo was born at structure). The drift-diff ref is design-system's commit
+   in the repo's own history. A legacy project whose DESIGN.md still sits in the vault moves it in
+   as the first committed act, leaving a link note. Export the tokens with the studio's owned,
    zero-dependency script and consume them from code —
    `node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs DESIGN.md > tokens.css` (or
    `npm run design:export -- DESIGN.md` from the design-studio repo's `web/`): every leaf token becomes a
@@ -78,7 +79,9 @@ the one-time craft-divergence and the `DESIGN.md` move (steps 2–3).
    node to run it?** Hand-derive the variables from the front matter (each `group.key` → `--group-key:
    <resolved value>`) and note on the dashboard that the export was done by hand — exactly the fallback
    the lint gate uses. Either way, components take values from tokens, never inline.
-4. **Build against the spec with parallel agents.** Once the structure exists, run parallel agents for
+4. **Build against the spec with parallel agents.** The skeleton is the map: drive it screen by
+   screen from `flows.json`, replace the static pages with the real app, keep the route names, and
+   keep `flows.json` current (`source: "build"`). Run parallel agents for
    detail work across different parts of the prototype — and start every agent's prompt with: read
    `DESIGN.md` first; every visual value comes from its tokens.
 5. **Run the prototype in the Canvas for review.** The Canvas embeds the running prototype in
