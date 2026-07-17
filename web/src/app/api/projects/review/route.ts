@@ -164,7 +164,12 @@ export async function POST(req: Request) {
   const batchId = nextBatchId(ledgerRaw);
   const reviewer = process.env.DESIGN_STUDIO_REVIEWER?.trim() || "canvas";
   const block = buildBlock({ batchId, reviewer, wwbRound, entriesHash, verdicts, answers, ruling });
-  const blockHash = createHash("sha256").update(block).digest("hex");
+  // Hash convention (everywhere): the INNER text between the markers, trimmed.
+  const inner = block
+    .replace(new RegExp(`^\\s*<!--\\s*review:${batchId}:begin\\s*-->`), "")
+    .replace(new RegExp(`<!--\\s*review:${batchId}:end\\s*-->\\s*$`), "")
+    .trim();
+  const blockHash = createHash("sha256").update(inner).digest("hex");
 
   let out = ledgerRaw.replace(/\s*$/, "\n");
   if (!/^##\s+Review log\b/im.test(out)) out += "\n## Review log\n";
