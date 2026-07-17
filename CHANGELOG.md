@@ -6,13 +6,6 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
-- **The dashboard now keeps the durable-loop promises at runtime.** Restart the server and the
-  loop picks itself back up: stale locks clear, queued reviews resume, and a project whose old
-  spawn is still writing is left strictly alone. Clicking a verdict that is already recorded
-  closes on the spot, with no agent run. Several queued reviews drain in one recorder pass,
-  oldest first. While anything runs, the canvas shows one plain line saying what is running and
-  for how long. And the review cards refresh themselves the moment a recording lands, so a
-  decided card never sits looking clickable.
 - **The loop survives restarts and shows its work** (vault decision 0038). The state model is
   untouched; the runtime around it grows up. The server now resumes unfinished work when it starts:
   stale locks clear, queued review batches and interrupted loops pick themselves back up, and a

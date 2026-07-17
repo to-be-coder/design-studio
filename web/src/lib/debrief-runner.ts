@@ -1093,7 +1093,9 @@ function reviewIngestPrompt({
   batches: ReviewIngest[];
 }): string {
   const ids = batches.map((b) => b.batchId);
-  const listing = batches.map((b) => `${b.batchId} (hash ${b.blockHash})`).join(", ");
+  // The hash stays with the controller (pre-spawn fence + post-run quarantine);
+  // the recorder is never handed it (SKILL.md, recorder step 2).
+  const listing = ids.join(", ");
   const plural = ids.length > 1;
   return [
     `Run the design-studio-debrief skill in its HEADLESS review-ingestion mode: ingest review batch${plural ? "es" : ""} ${listing} in that order, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation. Take the batches oldest first (the order given) and complete each one fully, through its own fence, before opening the next, so a crash mid-list leaves every earlier batch committed.`,
