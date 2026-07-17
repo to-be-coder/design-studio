@@ -735,7 +735,7 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
                     type="button"
                     onClick={() => runStage("structure")}
                     disabled={generatingStage === "structure"}
-                    className="rounded-inset bg-accent px-5 py-2.5 text-[0.875rem] font-semibold text-accent-ink transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-inset border border-rule-strong bg-paper px-5 py-2.5 text-[0.875rem] font-semibold text-ink-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
                     data-testid="structure-cta-run"
                   >
                     {generatingStage === "structure" ? "Drafting structure…" : "Create structure"}
