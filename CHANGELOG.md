@@ -6,6 +6,17 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **The loop survives restarts and shows its work** (vault decision 0038). The state model is
+  untouched; the runtime around it grows up. The server now resumes unfinished work when it starts:
+  stale locks clear, queued review batches and interrupted loops pick themselves back up, and a
+  still-writing spawn from an old run blocks resume until it exits. The controller closes a queued
+  batch itself when it says nothing new (dispositions only, every one matching the recorded verdict):
+  no spawn, just the done marker, the app's third bounded vault write. Everything else drains in one
+  recorder invocation, oldest first, each batch fully committed before the next opens. A
+  `.loop-progress` heartbeat rides beside the lock: the banner shows what is running and for how long,
+  and What's Worth Building refreshes itself when the fence moves, so a recorded card can no longer
+  sit looking clickable. And inside a research round the default shape is one read-only investigator
+  per open question in parallel, the main thread staying the only writer and grader.
 - **A click is a verdict, and every card records itself** (vault decision 0037). The review
   surface loses its last batch ceremony: the bottom "Record review" bar is gone, and each candidate
   card gets its own Record verdict button (select a verdict, optionally add words, record), the
