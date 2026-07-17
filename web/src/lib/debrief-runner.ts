@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createWriteStream, promises as fsp } from "node:fs";
 import { createHash } from "node:crypto";
+import os from "node:os";
 import path from "node:path";
 import { findStatusLine, parseLoopStatus } from "./loop-status";
 import type { LoopProgress } from "./types";
@@ -166,9 +167,11 @@ export function startDebriefDraft({ slug, name, brief, client, vaultRoot, projec
 }
 
 /**
- * Fire ONE headless structure drafting pass: the skill proposes 03 Structure.md
- * (user flows + information architecture) as a 🟡 draft the user edits.
- * One-shot, no hand-off: a clean exit marks the run `done` and the poll
+ * Fire ONE headless structure pass: the skill scaffolds the clickable skeleton
+ * prototype repo (one flat HTML page per screen, flows.json, token/style
+ * placeholders) at a fixed absolute path and records that path in the dashboard
+ * as prototype_repo. It writes NO vault doc; the result is a scaffold the user
+ * edits. One-shot, no hand-off: a clean exit marks the run `done` and the poll
  * refreshes the board; nothing chains after it.
  */
 export function startStructureDraft({
@@ -180,10 +183,13 @@ export function startStructureDraft({
   vaultRoot: string;
   projectDir: string;
 }): void {
+  // The skeleton repo lives outside the vault, at a predictable per-slug path;
+  // the SKILL (not this app) creates it and fills prototype_repo with this path.
+  const targetRepo = path.join(os.homedir(), "dev", `${slug}-prototype`);
   runSkill({
     slug,
     stage: "structure",
-    prompt: structurePrompt({ slug, vaultRoot }),
+    prompt: structurePrompt({ slug, vaultRoot, targetRepo }),
     vaultRoot,
     projectDir,
     logName: ".structure-draft.log",
@@ -1066,24 +1072,40 @@ function debriefPrompt({
 }
 
 /**
- * The prompt for ONE headless structure draft. The skill drafts the product's
- * bones (user flows + information architecture) from the human-confirmed set
- * only; the result is a draft the human edits, and nothing chains after it.
+ * The prompt for ONE headless structure pass. The skill scaffolds the clickable
+ * static skeleton prototype repo (bones before skin) at EXACTLY the passed
+ * absolute path, records that path as prototype_repo, and writes NO vault doc;
+ * the result is a scaffold the human edits, and nothing chains after it.
  */
-function structurePrompt({ slug, vaultRoot }: { slug: string; vaultRoot: string }): string {
+function structurePrompt({
+  slug,
+  vaultRoot,
+  targetRepo,
+}: {
+  slug: string;
+  vaultRoot: string;
+  targetRepo: string;
+}): string {
   return [
-    "Run the design-studio-structure skill as ONE headless drafting pass for an existing project, per its SKILL.md, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation.",
+    "Run the design-studio-structure skill as ONE headless scaffolding pass for an existing project, per its SKILL.md, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation.",
     "",
     `Vault: ${vaultRoot}`,
     `Project slug: ${slug} (folder: Design Studio/${slug}/)`,
+    `Target skeleton repo (absolute): ${targetRepo}`,
     "",
-    "Read the skill's ../design-studio-shared/CONVENTIONS.md first, as the skill itself instructs.",
+    "Read the skill's ../design-studio-shared/CONVENTIONS.md first, as the skill itself instructs; it now carries The skeleton contract this pass follows.",
     "",
-    "This pass:",
-    "- Read the accepted recommendation and What's Worth Building.md, and take its Build now section ONLY as the feature set: that is the human-confirmed set. Do not structure anything from Backlog, Don't build, or Implied but unruled.",
-    "- Draft 03 Structure.md per the skill: task flows for the core journeys, the screen/state inventory, and the navigation model.",
-    "- It is a draft the human edits: propose, never decide. Keep everything supersedable and author no human verdicts.",
-    "- Close the way the skill's own close ritual says (the dashboard's stage line), then STOP. Do not run any other pipeline stage. Do not ask questions.",
+    "This pass scaffolds the clickable static skeleton prototype repo (bones before skin), not a vault document:",
+    `- Create the repo at EXACTLY the absolute path above (${targetRepo}). Do not invent a different location.`,
+    "- Derive the screens and flows ONLY from What's Worth Building's Build now set and the recorded picks in Decisions/. Do not scaffold anything from Backlog, Don't build, or Implied but unruled.",
+    "- One flat HTML page per screen, with index.html as the entry. Every page repeats the same nav block with REAL working links between the pages, plus visible labeled state stubs (empty, loading, error) and a fidelity badge per screen.",
+    '- Exactly ONE screen is at fidelity "full": the confirmed full-depth feature. Every other screen stays a low-fidelity skeleton.',
+    "- Include a tokens.css placeholder and a styles.css that consumes ONLY var() references with fallbacks (no raw color or size literals), a flows.json manifest listing the entry and the screens, and a README.md.",
+    "- git init the repo and make one initial commit.",
+    "- Fill prototype_repo in 00 Dashboard.md with that absolute path. Write NO 03 Structure.md and no other vault artifact.",
+    `- If the target path already exists, touch NOTHING inside it: instead append ONE dated plain line to 00 Dashboard.md naming the conflict (that ${targetRepo} already exists), and do not scaffold.`,
+    "- It is a scaffold the human edits: propose, never decide. Keep everything supersedable and author no human verdicts.",
+    "- Close with the dashboard stage line, written LAST as the commit fence: `Current stage: structure: scaffolded. Next: design-system.` then STOP. Do not run any other pipeline stage. Do not ask questions.",
   ].join("\n");
 }
 

@@ -6,6 +6,11 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **The structure stage builds a clickable skeleton, not a write-up.** It used to write a flows
+  and screens document. Now it stands up a small clickable prototype instead: one plain page per
+  screen, with real links between them, that design-system and build grow from. The Structure
+  board shows that skeleton as clickable device frames, the same way Build shows the finished
+  prototype, and the board knows the stage is done by the repo being there.
 - **The empty Structure board grows a Create-structure button.** Dead middle of the board: one
   press drafts the flows and screens from the confirmed Build-now set, as a draft you edit. It
   waits its turn while research runs, and with runs off it shows the command to run instead.

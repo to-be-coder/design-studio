@@ -253,22 +253,53 @@ test.describe("localStorage resilience", () => {
 // ── SSE thrash: rapid successive writes settle to the final state ─────────────
 
 test.describe("live board — SSE under rapid writes", () => {
+  // Structure no longer renders a reader card, so the thrash is asserted at the
+  // request level: five rapid writes still settle the SSE stream, and /api/card
+  // converges on the final write (earlier markers gone), no reload.
   const STRUCTURE = path.resolve(
     __dirname,
     "fixtures/vault/Design Studio/fixture-project/03 Structure.md",
   );
 
-  test("five writes in ~1.5s: no thrash, the final marker wins", async ({ page }) => {
+  test("five writes in ~1.5s: the SSE settles and /api/card serves the final marker", async ({
+    page,
+    request,
+  }) => {
     const errors = trackConsoleErrors(page);
     const original = await fs.readFile(STRUCTURE, "utf8");
     let last = "";
     try {
       await page.goto("/canvas/fixture-project");
-      await page.getByRole("option", { name: "Structure", exact: true }).click();
-      const card = page.locator("#card-structure-0");
-      await expect(card).toBeVisible();
-      await page.waitForTimeout(600); // let the EventSource connect
 
+      // Listen for change events on the file; resolve once a quiet window follows
+      // the last one (the coalescer settling), or on an overall timeout.
+      const settled = page.evaluate((slug) => {
+        return new Promise<string>((resolve) => {
+          const es = new EventSource(`/api/vault-events?slug=${slug}`);
+          let seen = "";
+          let quiet: ReturnType<typeof setTimeout> | null = null;
+          es.addEventListener("change", (e) => {
+            try {
+              const file = (JSON.parse((e as MessageEvent).data) as { file?: string }).file ?? "";
+              if (file !== "03 Structure.md") return;
+              seen = file;
+              if (quiet) clearTimeout(quiet);
+              quiet = setTimeout(() => {
+                es.close();
+                resolve(seen);
+              }, 1200);
+            } catch {
+              /* ignore a malformed frame */
+            }
+          });
+          setTimeout(() => {
+            es.close();
+            resolve(seen || "timeout");
+          }, 10000);
+        });
+      }, "fixture-project");
+
+      await page.waitForTimeout(600); // let the EventSource connect
       for (let i = 0; i < 5; i++) {
         last = `SSE-THRASH-${i}-${Date.now()}`;
         const changed = original.replace(/# Structure/, `# Structure\n\n${last}`);
@@ -276,10 +307,17 @@ test.describe("live board — SSE under rapid writes", () => {
         await page.waitForTimeout(250);
       }
 
-      // The card converges on the final write's content — earlier markers gone.
-      await expect(card).toHaveAttribute("data-live-updated", "true", { timeout: 8000 });
-      await expect(card.getByText(last)).toBeVisible();
-      await expect(card.getByText("SSE-THRASH-0-", { exact: false })).toHaveCount(0);
+      // At least one change event landed for the file, and the stream settled.
+      expect(await settled).toBe("03 Structure.md");
+
+      // /api/card converges on the final write: earlier markers are gone.
+      const res = await request.get(
+        "/api/card?slug=fixture-project&file=" + encodeURIComponent("03 Structure.md"),
+      );
+      expect(res.status()).toBe(200);
+      const text = JSON.stringify((await res.json()).blocks);
+      expect(text).toContain(last);
+      expect(text).not.toContain("SSE-THRASH-0-");
     } finally {
       await fs.writeFile(STRUCTURE, original, "utf8");
     }

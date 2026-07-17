@@ -314,6 +314,17 @@ export const getProject = cache(async (slug: string): Promise<ProjectDetail | nu
     }),
   );
 
+  // Structure scaffolds the skeleton prototype repo instead of writing a vault
+  // doc, so its presence derives from an absolute prototype_repo that exists on
+  // disk (server-side fs check), the same way build reads its running prototype.
+  if (
+    project.prototypeRepo &&
+    path.isAbsolute(project.prototypeRepo) &&
+    (await exists(project.prototypeRepo))
+  ) {
+    outputsPresent.push("structure");
+  }
+
   return {
     project,
     dashboardBlocks,

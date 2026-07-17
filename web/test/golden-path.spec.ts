@@ -73,9 +73,14 @@ test.describe("golden path (/canvas/fixture-project)", () => {
     await sidebar.getByRole("option", { name: "Assumptions & risks" }).click();
     await expect(page.locator("#assumption-A1")).toBeVisible();
 
-    // 2 · Structure → the screen inventory reads as a page (flows + IA).
+    // 2 · Structure → the scaffolded skeleton renders as device frames; a nav
+    // link inside a frame clicks through to a sibling page (same frameLocator
+    // idiom as the build step below).
     await sidebar.getByRole("option", { name: "Structure", exact: true }).click();
-    await expect(page.getByText(/screen inventory/i).first()).toBeVisible();
+    const structureDesktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
+    await expect(structureDesktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+    await structureDesktop.getByRole("link", { name: "Reports" }).click();
+    await expect(structureDesktop.getByRole("heading", { name: "Reports" })).toBeVisible();
 
     // 3 · Design system → its living-specimen board.
     await sidebar.getByRole("option", { name: "Design system", exact: true }).click();

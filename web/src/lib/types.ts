@@ -444,6 +444,12 @@ export interface PrototypeInfo {
   /** Has an embeddable source: a dev-server url or a static-servable repo. */
   embeddable: boolean;
   /**
+   * The prototype repo resolved to a path that exists on disk. Structure's
+   * presence derives from this (the stage scaffolds the skeleton repo instead of
+   * writing a vault doc), the same way build reads its running prototype.
+   */
+  repoPresent: boolean;
+  /**
    * The project has a pre-authored `run` command (server-side config), so the
    * canvas can start its dev server itself via the Render control. The command
    * itself NEVER crosses to the client — only this boolean does.
