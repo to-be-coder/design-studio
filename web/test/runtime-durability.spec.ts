@@ -218,7 +218,7 @@ const path = require("node:path");
     fs.writeFileSync(dash, fs.readFileSync(dash, "utf8").replace(/^Current stage:.*$/m, line));
   if (/review-ingestion mode/.test(prompt)) {
     const listing = prompt.match(/ingest review batch(?:es)? (.*?) in that order/);
-    const ids = [...(listing ? listing[1] : "").matchAll(/(\\w+) \\(hash/g)].map((m) => m[1]);
+    const ids = (listing ? listing[1] : "").split(",").map((s) => s.trim()).filter(Boolean);
     const ledgerPath = path.join(projectDir, "Knowns & Unknowns.md");
     let ledger = fs.readFileSync(ledgerPath, "utf8");
     for (const id of ids) {
@@ -284,7 +284,7 @@ test.describe("review-queue drain", () => {
     }
   });
 
-  test("notes, answers, differing verdicts, and unknown W-ids all drain through ONE recorder spawn, oldest first, each with its hash", async () => {
+  test("notes, answers, differing verdicts, and unknown W-ids all drain through ONE recorder spawn, oldest first, ids only", async () => {
     const dupInner = ["- date: 2026-07-10", "- reviewer: canvas", "- dispositions:", "  - W1: build-now"];
     const noteInner = ["- date: 2026-07-11", "- reviewer: canvas", "- dispositions:", '  - W2: backlog, "park it for later"'];
     const answersInner = ["- date: 2026-07-12", "- reviewer: canvas", "- answers:", '  - L7: "yes, they rely on CSV"'];
@@ -328,13 +328,11 @@ test.describe("review-queue drain", () => {
 
       const [recorderPrompt, researchPrompt] = await stubInvocations(logFile);
       expect(recorderPrompt).toContain("review-ingestion mode");
-      // Every open batch, oldest first, each id with its own block hash; the
-      // closed duplicate is NOT in the spawn.
-      const expected = [9, 10, 11, 12]
-        .map((id, i) => `${id} (hash ${hashOf([noteInner, answersInner, differInner, unknownInner][i].join("\n"))})`)
-        .join(", ");
-      expect(recorderPrompt).toContain(`ingest review batches ${expected} in that order`);
-      expect(recorderPrompt).not.toContain("8 (hash");
+      // Every open batch, oldest first, ids only; the closed duplicate is NOT
+      // in the spawn, and no hash ever reaches the recorder (the controller
+      // holds them for its fences: SKILL.md recorder step 2).
+      expect(recorderPrompt).toContain("ingest review batches 9, 10, 11, 12 in that order");
+      expect(recorderPrompt).not.toContain("hash");
       // The recorder marked every open batch done, so nothing is pending.
       expect(await pendingReviewBatches(projectDir)).toHaveLength(0);
       // The chained invocation was a research round, always, after a clean exit.
