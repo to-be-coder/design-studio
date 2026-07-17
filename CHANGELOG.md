@@ -6,6 +6,11 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **A pick card asks for a pick.** A directions pick has no single proposal, so its card no longer
+  offers a misleading Accept (the recorder was rightly refusing those clicks). It shows a plain
+  explanation of the decision, a "Your pick, in your own words" box, Record pick, and reject. Parked
+  cards whose render predates the ask-line contract get a per-kind fallback explanation, so no card
+  ever sits wordless again.
 - **A parked call leads with its ask.** The Needs-you ruling card was burying its own question
   under the full case. Each parked entry in What's Worth Building now opens with an `ask:` line (one
   plain sentence naming the decision and what a yes takes), the canvas leads with it, the accept and

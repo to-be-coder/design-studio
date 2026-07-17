@@ -90,11 +90,11 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
 
     const sidebar = page.getByTestId("sidebar");
     // PROJECT collapses to two rows; the agenda root doc is gone, and the count
-    // pill moved to the WWB row (review = proposed + questions + parked = 5).
+    // pill moved to the WWB row (review = proposed + questions + parked = 6).
     await expect(sidebar.getByRole("option", { name: "What's worth building" })).toBeVisible();
     await expect(sidebar.getByRole("option", { name: "Knowns & unknowns", exact: true })).toBeVisible();
     await expect(sidebar.getByRole("option", { name: /Questions for you/ })).toHaveCount(0);
-    await expect(page.getByTestId("review-pill")).toHaveText("5");
+    await expect(page.getByTestId("review-pill")).toHaveText("6");
 
     // Open the full ledger.
     await sidebar.getByRole("option", { name: "Knowns & unknowns", exact: true }).click();
@@ -136,7 +136,7 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await expect(wwb).toBeVisible();
     await expect(page.getByTestId("wwb-review")).toBeVisible();
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("wwb-ruling")).toBeVisible();
+    await expect(page.getByTestId("wwb-ruling").first()).toBeVisible();
 
     // Proposed tab: the entries, the mechanical ASSUMPTION mark on the unevidenced
     // reason, and the receipt link chips (scoped to the tab, since inactive panels
@@ -196,7 +196,7 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await page.goto("/canvas/fixture-project");
 
     // The review count rides the sidebar's WWB row; there is no floating banner.
-    await expect(page.getByTestId("review-pill")).toContainText("5");
+    await expect(page.getByTestId("review-pill")).toContainText("6");
     await expect(page.getByTestId("loop-banner")).toHaveCount(0);
 
     // The band itself is the landing surface.
@@ -362,7 +362,7 @@ test.describe("WWB review band", () => {
     // Ruling-first: the tabs open on Needs you; proposed entries stay read-only
     // (no verdict buttons anywhere), and the Proposed tab carries the re-scope note.
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("wwb-ruling")).toBeVisible();
+    await expect(page.getByTestId("wwb-ruling").first()).toBeVisible();
     await expect(page.getByTestId("verdict-build-now")).toHaveCount(0);
     await page.getByTestId("wwb-tab-proposed").click();
     await expect(page.getByTestId("proposed-rescope-note")).toBeVisible();
@@ -370,8 +370,9 @@ test.describe("WWB review band", () => {
     // Back on Needs you: accept or reject only, no words box, no reshape, no
     // confirm step. Record ruling posts the ruling by itself, immediately.
     await page.getByTestId("wwb-tab-needs-you").click();
-    await expect(page.getByTestId("ruling-reshape")).toHaveCount(0);
-    await expect(page.getByTestId("ruling-words")).toHaveCount(0);
+    const framingCard = page.locator('[data-parked="W7"]');
+    await expect(framingCard.getByTestId("ruling-reshape")).toHaveCount(0);
+    await expect(framingCard.getByTestId("ruling-pick-words")).toHaveCount(0);
     await page.getByTestId("ruling-accept").click();
     await expect(page.getByTestId("ruling-recorded")).toBeVisible();
     expect(captured.ruling).not.toBeNull();
@@ -403,7 +404,7 @@ test.describe("WWB tabs", () => {
 
     // Counts on the tabs match the model: 1 parked + 2 questions share the
     // Needs-you badge, 2 proposed.
-    await expect(page.getByTestId("wwb-tab-needs-you")).toContainText("(3)");
+    await expect(page.getByTestId("wwb-tab-needs-you")).toContainText("(4)");
     await expect(page.getByTestId("wwb-tab-proposed")).toContainText("(2)");
 
     // Three tabs exactly: Decided and Background merged into Build input.
@@ -413,7 +414,7 @@ test.describe("WWB tabs", () => {
 
     // Default tab: fixture-project has a parked 🔴, so it lands on Needs you.
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
-    await expect(page.getByTestId("wwb-ruling")).toBeVisible();
+    await expect(page.getByTestId("wwb-ruling").first()).toBeVisible();
 
     // Proposed is reachable by a click, and Needs you yields the selection.
     await page.getByTestId("wwb-tab-proposed").click();
@@ -870,14 +871,40 @@ test.describe("focus mode — one board per sidebar item", () => {
 
 test("a parked ruling leads with its ask; the full case stays folded until asked for", async ({ page }) => {
   await page.goto("/canvas/fixture-project");
-  const ruling = page.getByTestId("wwb-ruling");
-  await expect(ruling).toBeVisible();
+  const card = page.locator('[data-parked="W7"]');
+  await expect(card).toBeVisible();
   // The ask line is the card's lead, always visible.
-  await expect(page.getByTestId("ruling-ask")).toContainText("Do we settle the problem framing");
+  await expect(card.getByTestId("ruling-ask")).toContainText("Do we settle the problem framing");
   // The verbatim candidate is folded away until the toggle opens the case.
-  await expect(page.getByTestId("ruling-candidate")).toHaveCount(0);
-  await page.getByTestId("ruling-case-toggle").click();
-  await expect(page.getByTestId("ruling-candidate")).toContainText("settle what problem we are solving");
-  await page.getByTestId("ruling-case-toggle").click();
-  await expect(page.getByTestId("ruling-candidate")).toHaveCount(0);
+  await expect(card.getByTestId("ruling-candidate")).toHaveCount(0);
+  await card.getByTestId("ruling-case-toggle").click();
+  await expect(card.getByTestId("ruling-candidate")).toContainText("settle what problem we are solving");
+  await card.getByTestId("ruling-case-toggle").click();
+  await expect(card.getByTestId("ruling-candidate")).toHaveCount(0);
+});
+
+test("a directions pick asks for words: no accept button, Record pick posts a reshape ruling", async ({ page }) => {
+  let captured: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
+  await page.route("**/api/projects/review", async (route) => {
+    captured = route.request().postDataJSON();
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({ batchId: 7, running: true }),
+    });
+  });
+  await page.goto("/canvas/fixture-project?runs=1");
+  const pick = page.getByTestId("wwb-ruling").filter({ hasText: "where the export lives" });
+  await expect(pick).toBeVisible();
+  // No single proposal to accept: the fallback ask says so, and accept is absent.
+  await expect(pick.getByTestId("ruling-ask")).toContainText("pick between drafted options");
+  await expect(pick.getByTestId("ruling-accept")).toHaveCount(0);
+  const record = pick.getByTestId("ruling-reshape");
+  await expect(record).toBeDisabled();
+  await pick.getByTestId("ruling-pick-words").fill("Option B: one export tray.");
+  await record.click();
+  await expect(pick.getByTestId("ruling-recorded")).toContainText("your pick");
+  expect(captured.ruling.disposition).toBe("reshape");
+  expect(captured.ruling.words).toBe("Option B: one export tray.");
+  expect(captured.ruling.confirmed).toBe(true);
 });
