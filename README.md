@@ -17,7 +17,7 @@ The skills are meant to run roughly in order, though several can be used on dema
 |---|-------|--------------|
 | 1 | `design-studio-debrief` | Reads the brief and restates it as the problem to solve, not the task as handed over. Surfaces the choices hidden in the wording, sets up the project folder, and starts `Knowns & Unknowns.md`: the running list of what we know and what we still don't. This is also where you meet the client and feed their answers back in. |
 | 2 | `design-studio-research` | Runs itself, round after round. Every open question gets attempted every round, and every answer carries a quote plus a link to where it came from. Each round rewrites `What's Worth Building.md`, the one place you review: the calls only you can make, the questions only you can answer, and the build ideas to sort with Accept, Backlog, or Don't build. It stops when two rounds in a row add nothing new. It never makes the big calls for you. |
-| 3 | `design-studio-structure` | Drafts the user flows and the list of screens from what you accepted, so the later stages build against a known shape instead of inventing one as they go. |
+| 3 | `design-studio-structure` | Creates the prototype repo as a clickable skeleton: one stub page per screen, wired with real links, drawn from what you accepted. You walk the flows instead of reading them, and build fills the same repo in. |
 | 4 | `design-studio-design-system` | Writes the visual rules into one linted `DESIGN.md`: the exact colors, type, and spacing, plus the reasoning behind them. Pulled from the client's brand when there is one, or picked from rendered sample boards when there isn't. |
 | 5 | `design-studio-build` | Builds the clickable prototype in rounds. Each feature starts from a short written spec, and every screen is built against `DESIGN.md`. Each round closes with checks: empty, loading, and error states; edge cases; accessibility; real content instead of placeholders; and a drift check against the signed-off `DESIGN.md`. The pipeline ends here. |
 
@@ -34,10 +34,10 @@ not a skill itself. Leave it in place alongside the others.
 
 The visual-language stage uses the [design.md format](https://github.com/google-labs-code/design.md)
 from Google Labs: the design tokens in the front matter, the reasoning in prose, one file AI can
-read. `design-studio-design-system` writes and lints it, color contrast included.
-`design-studio-build` moves it into the prototype repo, so every screen and every parallel build
-agent draws from the same rules, and build's closing checks diff it against the signed-off version
-to catch drift.
+read. `design-studio-design-system` writes and lints it, color contrast included, straight at the
+prototype repo's root (the repo exists from the structure stage on), so every screen and every
+parallel build agent draws from the same rules, and build's closing checks diff it against the
+signed-off version to catch drift.
 
 ## How a project runs
 
@@ -58,7 +58,7 @@ to catch drift.
   is deleted (a reversed decision stays visible, marked superseded), the research files, a
   `DESIGN.md` that moves into the prototype repo when build starts, and a `Harvest.md` inbox that
   feeds the Studio Wiki. The skills write the vault; the dashboard reads it.
-- **The prototype is a separate code repo.** The project dashboard links to it.
+- **The prototype is a separate code repo, born at the structure stage.** The skeleton appears at ~/dev/<project>-prototype the moment you press Create structure, and the project dashboard links to it.
 - **Want the wiring?** [`ARCHITECTURE.md`](ARCHITECTURE.md) maps where every file lives, how the
   skills communicate (entirely through markdown on disk, nothing calls anything), and the rules
   that hold it together.

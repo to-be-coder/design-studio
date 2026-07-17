@@ -1,6 +1,6 @@
 ---
 name: design-studio-design-system
-description: Codify the project's visual language as a DESIGN.md — the studio's owned AI-readable format (forked from google-labs-code), with design tokens in YAML front matter and rationale in prose — derived from the client's existing brand when one exists, or chosen from rendered HTML specimen boards when it doesn't. Linted for structure and WCAG contrast and signed off by the user, so build and its parallel agents share one visual contract. Use after the structure stage, before build. Fourth stage of the design-studio pipeline.
+description: Codify the project's visual language as a DESIGN.md — the studio's owned AI-readable format (forked from google-labs-code), with design tokens in YAML front matter and rationale in prose — derived from the client's existing brand when one exists, or chosen from rendered HTML specimen boards when it doesn't. Linted for structure and WCAG contrast and signed off by the user, so build and its parallel agents share one visual contract. Authors DESIGN.md at the prototype repo root and fills the skeleton's tokens.css. Use after the structure stage, before build. Fourth stage of the design-studio pipeline.
 ---
 
 # design-studio-design-system
@@ -23,7 +23,7 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
 
 ## Preconditions
 - Expects the **accepted recommendation** (the leading `decided` decision), `What's Worth Building.md`
-  (the **Build now** scope, human-confirmed only), and `03 Structure.md` (the flows + IA the language
+  (the **Build now** scope, human-confirmed only), and the prototype repo's skeleton + `flows.json` (the screens and flows the language
   must serve). If missing, warn and offer to run `design-studio-structure` (or the loop) first; the
   user may proceed from brief-level knowledge, but name what the language is anchored to instead.
 - **Empty Build now?** If `What's Worth Building.md`'s **Build now** section has no entries, warn: no
@@ -38,7 +38,7 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
 2. **Collect the visual inputs.** Ask for existing brand material (guidelines, sites, apps, Figma —
    read variables and styles through the Figma MCP when connected, and treat what it yields as a
    draft to review with the user, not gospel). Pull the company vocabulary from
-   `02 Research/Company.md`, the accepted recommendation, the flows/IA in `03 Structure.md`, and any
+   `02 Research/Company.md`, the accepted recommendation, the flows/IA in the prototype repo's `flows.json` (walk the skeleton pages too: the screens, their states, and the nav are the sizing input), and any
    a11y requirements. **Derive before you invent** —
    if a visual identity exists, DESIGN.md codifies it faithfully; redesigning it was nobody's brief.
    If a studio-default DESIGN.md exists and the project is greenfield, offer it as the fork base.
@@ -75,9 +75,14 @@ Runs standalone. Also use it alone to derive a DESIGN.md from an existing produc
    prose carries what values can't: when a token applies and what it must never be used for. Write
    the Do's and Don'ts from this project's real temptations — patterns competitors overuse (per
    `02 Research/Landscape.md`), the accepted recommendation's known risks.
-8. **Write `<project>/DESIGN.md`** — canonical here until `build` moves it into the prototype repo.
+8. **Write `<repo>/DESIGN.md`** at the prototype repo root (the repo exists from structure onward;
+   read `prototype_repo` off `00 Dashboard.md`). Single copy, born at the repo root (CONVENTIONS).
+   After the lint passes, export the tokens into the same repo so the skeleton wears the language
+   on reload: `node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs <repo>/DESIGN.md > <repo>/tokens.css`
+   (it overwrites the placeholder the skeleton shipped with). A legacy project with no repo yet
+   falls back to the old home, `<project>/DESIGN.md` in the vault.
 9. **Lint gate** (🟢): run the owned lint until clean —
-   `node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs <project>/DESIGN.md` (or, from
+   `node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs <repo>/DESIGN.md` (or, from
    the design-studio repo's `web/`, `npm run design:lint -- <path>`). It validates structure (required sections in the fixed
    order, no duplicate heading), that every `{token}` reference resolves, motion and floor syntax,
    and WCAG contrast against the **declared floors** — a declared pair below its `min` is a design
