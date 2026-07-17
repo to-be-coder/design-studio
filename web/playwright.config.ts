@@ -63,6 +63,9 @@ export default defineConfig({
       // developer has it enabled in their shell — the create test would fire a
       // real Claude run against the fixture vault.
       DESIGN_STUDIO_AUTORUN_DEBRIEF: "",
+      // And never let the boot janitor resume fixture projects on server start;
+      // e2e must not spawn real claude no matter what the shell enables.
+      DESIGN_STUDIO_NO_RESUME: "1",
     },
   },
 });
