@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
+  AssumptionNode,
   WwbDisposition,
   WwbEntry,
   WwbModel,
@@ -11,28 +12,34 @@ import type {
 } from "@/lib/types";
 import { Reading } from "./markdown";
 import { ReceiptLinks } from "./receipts";
+import { RegisterCard } from "./register";
 
 /**
  * What's Worth Building v2, the single human review surface, organised as an
- * accessible tab bar rather than one long scroll. Tabs, in order: Needs you
+ * accessible tab bar rather than one long scroll. Three tabs: Needs you
  * (parked ruling cards + open questions, everything awaiting the human), Build
- * candidates (the triage entries with Accept / Backlog / Don't build), Already
- * decided (Will be built + Backlog + Don't build + freshly recorded rulings and
- * answers), and Background (Implied but unruled + the blocking band). Every
- * record button posts immediately by itself; draft state lives on the tab
- * controller so it survives tab switches. A parked call lands the reader on
- * Needs you (ruling-first). Every visual value reuses the existing accent /
- * state idioms; verdict identity is carried by the word, never a semantic
- * colour.
+ * candidates (the triage entries with Accept / Backlog / Don't build), and
+ * Build input (one organized doc of everything the build stage reads: the
+ * Will-be-built pile, the risk register checked at build's door, links to the
+ * Structure and Design system boards, then the held-back piles, the still-open
+ * background, and freshly recorded rulings and answers; the decision stream
+ * stays its own board). Every record button posts immediately by itself; draft
+ * state lives on the tab controller so it survives tab switches. A parked call
+ * lands the reader on Needs you (ruling-first). Every visual value reuses the
+ * existing accent / state idioms; verdict identity is carried by the word,
+ * never a semantic colour.
  */
 export function WwbPane({
   wwb,
+  assumptions,
   slug,
   runsEnabled,
   onFocusReceipt,
   onRunStarted,
 }: {
   wwb: WwbModel;
+  /** The Assumptions & Risks register, shown on Build input (checked at build's door). */
+  assumptions?: AssumptionNode[];
   slug: string;
   runsEnabled?: boolean;
   onFocusReceipt?: (docKey: string) => void;
@@ -48,6 +55,7 @@ export function WwbPane({
 
       <WwbTabs
         wwb={wwb}
+        assumptions={assumptions ?? []}
         slug={slug}
         runsEnabled={!!runsEnabled}
         onFocusReceipt={onFocusReceipt}
@@ -58,20 +66,28 @@ export function WwbPane({
 }
 
 /**
- * The five review tabs, in order. The keys are the contract's section names; the
- * labels are plain words that say what the reader does or finds there (the
+ * The three review tabs, in order. The keys are the contract's section names;
+ * the labels are plain words that say what the reader does or finds there (the
  * system vocabulary stays in the docs, never in the chrome).
  */
-type TabKey = "needs-you" | "proposed" | "rulings" | "context";
+type TabKey = "needs-you" | "proposed" | "build-input";
 
 const TABS: { key: TabKey; label: string; showCount: boolean }[] = [
   // One place for everything awaiting the human: parked rulings AND open
   // questions. Different inputs, same job (your attention), so one tab.
   { key: "needs-you", label: "Needs you", showCount: true },
   { key: "proposed", label: "Build candidates", showCount: true },
-  { key: "rulings", label: "Decided", showCount: false },
-  { key: "context", label: "Background", showCount: false },
+  // One organized doc of everything build consumes; review it in one place.
+  { key: "build-input", label: "Build input", showCount: false },
 ];
+
+/** Least-settled first: the order the register reads in at build's door. */
+const ASSUMPTION_STATE_RANK: Record<AssumptionNode["state"], number> = {
+  unverified: 0,
+  partial: 1,
+  accepted: 2,
+  verified: 3,
+};
 
 // ── The tabbed review surface: state that spans the tabs + the sticky bar ──────
 
@@ -92,12 +108,14 @@ interface RulingState {
 
 function WwbTabs({
   wwb,
+  assumptions,
   slug,
   runsEnabled,
   onFocusReceipt,
   onRunStarted,
 }: {
   wwb: WwbModel;
+  assumptions: AssumptionNode[];
   slug: string;
   runsEnabled: boolean;
   onFocusReceipt?: (docKey: string) => void;
@@ -114,7 +132,7 @@ function WwbTabs({
   const [answersDone, setAnswersDone] = useState<Record<string, string>>({});
   const [answerError, setAnswerError] = useState<{ id: string; message: string } | null>(null);
   const [verdictBusy, setVerdictBusy] = useState<string | null>(null);
-  const [verdictsDone, setVerdictsDone] = useState<Record<string, WwbDisposition>>({});
+  const [verdictsDone, setVerdictsDone] = useState<Record<string, { verdict: WwbDisposition; queued: boolean }>>({});
   const [verdictError, setVerdictError] = useState<{ id: string; message: string } | null>(null);
 
   // Ruling-first holds candidate triage only while a parked call still awaits
@@ -127,23 +145,40 @@ function WwbTabs({
   const ruledOut = wwb.dontBuild.filter((e) => e.source !== "proposed");
   const recommendedCuts = wwb.dontBuild.filter((e) => e.source === "proposed");
 
+  // The register, risk-first: riskiest load-bearing entries lead, then the
+  // least-settled states. Sorted on a copy; the prop array is never mutated.
+  const register = [...assumptions].sort(
+    (a, b) =>
+      Number(b.riskiest) - Number(a.riskiest) ||
+      ASSUMPTION_STATE_RANK[a.state] - ASSUMPTION_STATE_RANK[b.state],
+  );
+
   // Badge + default-tab counts are what still NEEDS you: a recorded ruling or
   // answer stays visible on its tab but no longer counts against you.
-  // Badge + default-tab counts are what still NEEDS you: a recorded ruling or
-  // answer stays visible on its tab but no longer counts against you.
+  // A verdict recorded THIS session leaves Build candidates immediately (client
+  // state) and shows under Build input as recorded-and-folding-in; the vault
+  // catches up when its recorder lands and the page refreshes.
+  const pendingProposed = wwb.proposed.filter((e) => !verdictsDone[e.id]);
+  const recordedThisSession = wwb.proposed.filter((e) => verdictsDone[e.id]);
+
   const counts: Record<TabKey, number> = {
     "needs-you":
       wwb.parked.filter((p) => !p.recorded).length +
       wwb.questions.filter((q) => !q.answered).length,
-    proposed: wwb.proposed.length,
-    rulings: wwb.buildNow.length + wwb.backlog.length + ruledOut.length,
-    context: wwb.unruled.length + wwb.blocking.length,
+    proposed: pendingProposed.length,
+    // Uncounted in the chrome (showCount: false); kept for the type + fallback.
+    "build-input":
+      wwb.buildNow.length +
+      wwb.backlog.length +
+      ruledOut.length +
+      wwb.unruled.length +
+      wwb.blocking.length,
   };
 
   // Default tab: Needs you while anything awaits the human, else Proposed,
-  // else Rulings. A parked 🔴 still leads inside the tab (ruling-first mode).
+  // else Build input. A parked 🔴 still leads inside the tab (ruling-first).
   const defaultTab: TabKey =
-    counts["needs-you"] > 0 ? "needs-you" : counts.proposed > 0 ? "proposed" : "rulings";
+    counts["needs-you"] > 0 ? "needs-you" : counts.proposed > 0 ? "proposed" : "build-input";
   const [active, setActive] = useState<TabKey>(defaultTab);
 
   const setVerdict = (id: string, verdict: WwbDisposition | null) => {
@@ -268,7 +303,8 @@ function WwbTabs({
         setVerdictBusy(null);
         return;
       }
-      setVerdictsDone((m) => ({ ...m, [e.id]: v.verdict }));
+      const okBody = (await res.json().catch(() => ({}))) as { queued?: boolean };
+      setVerdictsDone((m) => ({ ...m, [e.id]: { verdict: v.verdict, queued: !!okBody.queued } }));
       setVerdicts((prev) => {
         const next = { ...prev };
         delete next[e.id];
@@ -356,7 +392,11 @@ function WwbTabs({
 
       <TabPanel tabKey="proposed" active={active}>
         {counts.proposed === 0 && recommendedCuts.length === 0 ? (
-          <EmptyTab>No ideas to sort right now.</EmptyTab>
+          <EmptyTab>
+            {recordedThisSession.length > 0
+              ? "All sorted. Your verdicts are recorded; see Build input."
+              : "No ideas to sort right now."}
+          </EmptyTab>
         ) : (
           <>
             {rulingFirst && counts.proposed > 0 ? (
@@ -365,7 +405,7 @@ function WwbTabs({
               </p>
             ) : null}
             <ul className="space-y-4" data-testid="wwb-proposed">
-              {wwb.proposed.map((e) => (
+              {pendingProposed.map((e) => (
                 <ProposedEntry
                   key={e.id}
                   entry={e}
@@ -374,7 +414,7 @@ function WwbTabs({
                   triage={runsEnabled && !rulingFirst}
                   state={verdicts[e.id]}
                   busy={verdictBusy === e.id}
-                  recorded={verdictsDone[e.id] ?? null}
+                  recorded={null}
                   error={verdictError?.id === e.id ? verdictError.message : null}
                   onVerdict={(v) => setVerdict(e.id, v)}
                   onPatch={(patch) => patchVerdict(e.id, patch)}
@@ -387,82 +427,130 @@ function WwbTabs({
         )}
       </TabPanel>
 
-      <TabPanel tabKey="rulings" active={active}>
-        {counts.rulings === 0 && parkedFiled.length === 0 && questionsFiled.length === 0 ? (
-          <EmptyTab>Nothing decided yet. What you rule lands here: Will be built, Backlog, or Don&rsquo;t build.</EmptyTab>
-        ) : (
-          <>
-            {/* Freshly recorded rulings and answers file here the moment they
-                are in the Review log; research folds them in next round. */}
-            {parkedFiled.length > 0 ? (
-              <section className="mb-8" data-testid="wwb-filed-rulings">
-                <p className="eyebrow mb-3">Rulings recorded</p>
-                {parkedFiled.map((p) => (
-                  <RulingCard
-                    key={p.id}
-                    parked={p}
-                    slug={slug}
-                    interactive={false}
-                    picked={null}
-                    busy={false}
-                    recorded={p.recorded}
-                    error={null}
-                    onFocusReceipt={onFocusReceipt}
-                    onPick={() => {}}
-                    onRecord={() => {}}
-                  />
-                ))}
-              </section>
-            ) : null}
-            {questionsFiled.length > 0 ? (
-              <section className="mb-8" data-testid="wwb-filed-answers">
-                <p className="eyebrow mb-3">Answers recorded</p>
-                <ul className="space-y-4">
-                  {questionsFiled.map((q) => (
-                    <QuestionRow
-                      key={q.id}
-                      question={q}
-                      slug={slug}
-                      interactive={false}
-                      value=""
-                      answered={q.answered}
-                      busy={false}
-                      error={null}
-                      onFocusReceipt={onFocusReceipt}
-                      onChange={() => {}}
-                      onRecord={() => {}}
-                    />
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-            <BuildNow entries={wwb.buildNow} slug={slug} onFocusReceipt={onFocusReceipt} />
-            <Backlog entries={wwb.backlog} slug={slug} onFocusReceipt={onFocusReceipt} />
-            <DontBuild entries={ruledOut} slug={slug} onFocusReceipt={onFocusReceipt} />
-          </>
-        )}
-      </TabPanel>
+      <TabPanel tabKey="build-input" active={active}>
+        {/* One organized doc of everything the build stage reads, so the
+            review happens in one place instead of across documents. */}
+        <p className="mb-6 text-[0.8125rem] text-ink-faint">
+          Everything the build stage reads before it starts, in one place. The
+          decision stream stays on its own board.
+        </p>
 
-      <TabPanel tabKey="context" active={active}>
-        {counts.context === 0 ? (
-          <EmptyTab>Background that does not need a decision yet shows up here.</EmptyTab>
+        {counts["build-input"] === 0 &&
+        register.length === 0 &&
+        parkedFiled.length === 0 &&
+        questionsFiled.length === 0 &&
+        recordedThisSession.length === 0 ? (
+          <>
+            <EmptyTab>
+              Nothing for build yet. Rulings, the risk register, and held back
+              ideas land here as research runs.
+            </EmptyTab>
+            <BuildReads onFocusReceipt={onFocusReceipt} />
+          </>
         ) : (
           <>
-            <Unruled entries={wwb.unruled} slug={slug} onFocusReceipt={onFocusReceipt} />
-            {wwb.blocking.length ? (
-              <section
-                className="mt-8 rounded-inset border px-4 py-3"
-                data-testid="wwb-blocking"
-                style={{ borderColor: "var(--accent-edge)", background: "var(--accent-wash)" }}
-              >
-                <p className="eyebrow mb-1" style={{ color: "var(--accent)" }}>
-                  Still being researched
+            <RecordedThisSession entries={recordedThisSession} done={verdictsDone} />
+
+            {/* 1. The direct input: the accepted pile. */}
+            <BuildNow entries={wwb.buildNow} slug={slug} onFocusReceipt={onFocusReceipt} />
+
+            {/* 2. The risk register build checks at its door. */}
+            {register.length > 0 ? (
+              <section className="mb-8" data-testid="wwb-register">
+                <p className="eyebrow mb-1">Checked at the door</p>
+                <p className="mb-3 text-[0.8125rem] text-ink-faint">
+                  Build checks this register before starting. An unverified
+                  load-bearing assumption goes in as a receipt, not a block.
                 </p>
-                <p className="mb-2 text-[0.8125rem] text-ink-muted">
-                  Open questions the loop is still working on. When one gets answered, the idea it was holding back moves tabs.
-                </p>
-                <ReceiptLinks receipts={wwb.blocking} slug={slug} onFocus={onFocusReceipt} />
+                <RegisterCard assumptions={register} id="wwb-register-list" embedded />
               </section>
+            ) : null}
+
+            {/* 3. The other boards build reads: navigation, always present. */}
+            <BuildReads onFocusReceipt={onFocusReceipt} />
+
+            {/* 4. Held back: ruled, and explicitly not going into build. */}
+            {wwb.backlog.length > 0 || ruledOut.length > 0 ? (
+              <div className="mb-8 border-t border-rule pt-6">
+                <p className="eyebrow mb-1">Held back</p>
+                <p className="mb-4 text-[0.8125rem] text-ink-faint">
+                  Ruled, but not going into this build.
+                </p>
+                <Backlog entries={wwb.backlog} slug={slug} onFocusReceipt={onFocusReceipt} />
+                <DontBuild entries={ruledOut} slug={slug} onFocusReceipt={onFocusReceipt} />
+              </div>
+            ) : null}
+
+            {/* 5. Still open: context that has not been ruled. */}
+            {wwb.unruled.length > 0 || wwb.blocking.length > 0 ? (
+              <div className="mb-8 border-t border-rule pt-6">
+                <p className="eyebrow mb-4">Still open</p>
+                <Unruled entries={wwb.unruled} slug={slug} onFocusReceipt={onFocusReceipt} />
+                {wwb.blocking.length ? (
+                  <section
+                    className="mt-8 rounded-inset border px-4 py-3"
+                    data-testid="wwb-blocking"
+                    style={{ borderColor: "var(--accent-edge)", background: "var(--accent-wash)" }}
+                  >
+                    <p className="eyebrow mb-1" style={{ color: "var(--accent)" }}>
+                      Still being researched
+                    </p>
+                    <p className="mb-2 text-[0.8125rem] text-ink-muted">
+                      Open questions the loop is still working on. When one gets answered, the idea it was holding back moves tabs.
+                    </p>
+                    <ReceiptLinks receipts={wwb.blocking} slug={slug} onFocus={onFocusReceipt} />
+                  </section>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* 6. Freshly recorded rulings and answers, filed here the moment
+                they are in the Review log; research folds them in next round. */}
+            {parkedFiled.length > 0 || questionsFiled.length > 0 ? (
+              <div className="border-t border-rule pt-6">
+                {parkedFiled.length > 0 ? (
+                  <section className="mb-8" data-testid="wwb-filed-rulings">
+                    <p className="eyebrow mb-3">Rulings recorded</p>
+                    {parkedFiled.map((p) => (
+                      <RulingCard
+                        key={p.id}
+                        parked={p}
+                        slug={slug}
+                        interactive={false}
+                        picked={null}
+                        busy={false}
+                        recorded={p.recorded}
+                        error={null}
+                        onFocusReceipt={onFocusReceipt}
+                        onPick={() => {}}
+                        onRecord={() => {}}
+                      />
+                    ))}
+                  </section>
+                ) : null}
+                {questionsFiled.length > 0 ? (
+                  <section className="mb-8" data-testid="wwb-filed-answers">
+                    <p className="eyebrow mb-3">Answers recorded</p>
+                    <ul className="space-y-4">
+                      {questionsFiled.map((q) => (
+                        <QuestionRow
+                          key={q.id}
+                          question={q}
+                          slug={slug}
+                          interactive={false}
+                          value=""
+                          answered={q.answered}
+                          busy={false}
+                          error={null}
+                          onFocusReceipt={onFocusReceipt}
+                          onChange={() => {}}
+                          onRecord={() => {}}
+                        />
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </div>
             ) : null}
           </>
         )}
@@ -474,6 +562,73 @@ function WwbTabs({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The other boards build reads (03 Structure and DESIGN.md live on their own
+ * boards): compact rows that focus those boards in place. Navigation, not
+ * content, so the section renders even when the piles are empty. No debrief
+ * row on purpose: board focus can only land on the first debrief document,
+ * not the restated problem, and landing somewhere unpromised is worse than
+ * not linking.
+ */
+function BuildReads({ onFocusReceipt }: { onFocusReceipt?: (docKey: string) => void }) {
+  return (
+    <section className="mb-8" data-testid="wwb-build-reads">
+      <p className="eyebrow mb-3">Also read by build</p>
+      <ul className="space-y-2">
+        <BoardRow
+          label="Structure"
+          blurb="The flows and screens build works from."
+          docKey="structure"
+          onFocusReceipt={onFocusReceipt}
+        />
+        <BoardRow
+          label="Design system"
+          blurb="The visual contract every build agent styles against."
+          docKey="design-system"
+          onFocusReceipt={onFocusReceipt}
+        />
+      </ul>
+    </section>
+  );
+}
+
+function BoardRow({
+  label,
+  blurb,
+  docKey,
+  onFocusReceipt,
+}: {
+  label: string;
+  blurb: string;
+  docKey: string;
+  onFocusReceipt?: (docKey: string) => void;
+}) {
+  const body = (
+    <>
+      <span className="font-sans text-[0.9375rem] font-semibold text-ink">{label}</span>
+      <span className="text-[0.8125rem] text-ink-muted">{blurb}</span>
+    </>
+  );
+  if (!onFocusReceipt) {
+    return (
+      <li data-testid="wwb-build-read" className="flex flex-col gap-0.5 rounded-inset border border-rule px-4 py-3">
+        {body}
+      </li>
+    );
+  }
+  return (
+    <li data-testid="wwb-build-read">
+      <button
+        type="button"
+        onClick={() => onFocusReceipt(docKey)}
+        className="flex w-full flex-col gap-0.5 rounded-inset border border-rule px-4 py-3 text-left transition-colors hover:border-accent"
+      >
+        {body}
+      </button>
+    </li>
   );
 }
 
@@ -1019,6 +1174,48 @@ function DontBuild({
             <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
           </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * Verdicts recorded this session: gone from Build candidates the moment the
+ * click lands, shown here until the recorder folds them into the vault and the
+ * refreshed page files them for real.
+ */
+function RecordedThisSession({
+  entries,
+  done,
+}: {
+  entries: WwbEntry[];
+  done: Record<string, { verdict: WwbDisposition; queued: boolean }>;
+}) {
+  if (entries.length === 0) return null;
+  return (
+    <section className="mb-8" data-testid="wwb-recorded-session">
+      <p className="eyebrow mb-3">Recorded just now</p>
+      <ul className="space-y-3">
+        {entries.map((e) => {
+          const d = done[e.id];
+          return (
+            <li
+              key={e.id}
+              data-testid="verdict-recorded"
+              className="rounded-inset border border-rule bg-paper-raised px-4 py-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="font-sans text-[0.9375rem] font-semibold text-ink">{e.title}</span>
+                <OutlinePill label={VERDICT_WORDS[d.verdict]} testid="verdict-recorded-pill" />
+              </div>
+              <p className="mt-1 text-[0.8125rem] text-ink-muted">
+                {d.queued
+                  ? "Recorded and queued behind the current run. Research folds it in when that run ends."
+                  : "Recorded. Research is folding it in now; it files here for real when that lands."}
+              </p>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

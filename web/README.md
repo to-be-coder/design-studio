@@ -1,8 +1,9 @@
 # Design Studio Web
 
-**The Canvas** — a schema-driven, pannable board over one project in the
-[design-studio](https://) vault. A project's whole design journey, research to running prototype,
-rendered as one readable board instead of a stack of separate pages.
+**The Canvas**: a schema-driven, pannable board over one project in the
+[design-studio](../README.md) vault, an Obsidian markdown tree that is this app's only data
+source. A project's whole design journey, research to running prototype, rendered as one readable
+board instead of a stack of separate pages.
 
 - **Projects index** (`/`) — every project as a card: name, client, route, current stage, and its
   restated problem line.
@@ -36,8 +37,11 @@ npm run dev         # http://localhost:3000
 ```
 
 The app finds the vault via `DESIGN_STUDIO_VAULT` (in `.env.local`), falling back to
-`~/.design-studio-vault` — the same pointer every design-studio skill uses. It reads the vault
-read-only and never writes to it. `/api/vault-events` watches the active project's folder and
+`~/.design-studio-vault`, the same pointer every design-studio skill uses. Reading is read-only;
+the only vault writes are three bounded inputs (`/api/projects` scaffolds a new project from a
+brief, `/api/projects/review` records review verdicts, `/api/projects/input` drops added evidence
+into the research inbox), each written as the same markdown the skills consume.
+`/api/vault-events` watches the active project's folder and
 streams change events over SSE; the board refetches just the affected card (via `/api/card`) and
 swaps it in place — no full-page reload when a skill writes mid-session.
 

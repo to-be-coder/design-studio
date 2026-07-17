@@ -1,10 +1,13 @@
 # Design Studio Skills
 
-A spec-first product-design pipeline for [Claude Code](https://claude.com/claude-code), delivered as
-a set of installable [skills](https://docs.claude.com/en/docs/claude-code/skills). It takes a design
-brief from first framing all the way to a validated, handoff-ready prototype spec — one stage at a
-time, with the human in the loop at every hard decision — and compounds what every project teaches
-into a studio-wide wiki.
+Design Studio is a personal project that grew into more than one. It's a complete product-design
+process, the whole thing, from a messy brief all the way to a working prototype, packaged as
+installable [Claude Code](https://claude.com/claude-code)
+[skills](https://docs.claude.com/en/docs/claude-code/skills). Five stages carry a brief from first
+framing to a validated, clickable prototype, with the human in the loop at every hard decision. A
+web dashboard, the Canvas, renders each project as one pannable board. And everything the process
+produces lives as plain markdown in an Obsidian vault: the vault is the only data source, for the
+skills and the dashboard alike. What every project teaches compounds into a studio-wide wiki.
 
 ## The pipeline
 
@@ -54,7 +57,8 @@ the signed-off version.
 - **Everything lands in your vault.** Each project gets a dashboard, an immutable ADR decision log
   (superseded, never deleted — loop-backs stay visible), research files, a `DESIGN.md` visual
   contract that moves into the prototype repo when build starts, and a `Harvest.md` flag inbox
-  that feeds the Studio Wiki.
+  that feeds the Studio Wiki. The vault is the single data source: the skills write it, the
+  dashboard reads it.
 - **The prototype is a separate code repo**, built spec-first against `DESIGN.md`; the project
   dashboard links to it.
 - **Want the wiring?** [`ARCHITECTURE.md`](ARCHITECTURE.md) maps where every file lives, how the
@@ -82,22 +86,34 @@ own projects; that's the point.
 
 ## The dashboard
 
-The product includes its own dashboard, **the Canvas** — built through this very pipeline, as
-proof. It reads your vault read-only and renders every project as one pannable board: the
-Understand → Build spine, the Decision Stream with its supersede chains, the assumption
-graph, design-system and component boards, and the running prototype in live device frames.
+The product includes its own dashboard, **the Canvas**, built through this very pipeline, as
+proof. It renders every project as one pannable board: the Understand → Build spine, the Decision
+Stream with its supersede chains, the assumption graph, design-system and component boards, and
+the running prototype in live device frames.
 
 ```sh
 cd web && npm install && npm run dev   # http://localhost:3000
 ```
 
-The pipeline is defined exactly once, in [`web/src/lib/schema.ts`](web/src/lib/schema.ts) —
+### Obsidian is the data source
+
+There is no database behind any of this. Every skill reads the vault, writes plain markdown with
+YAML frontmatter, and stops: the vault on disk is the state of the world. The Canvas reads that
+same vault, resolving it exactly the way the skills do (`DESIGN_STUDIO_VAULT` in the environment,
+falling back to the `~/.design-studio-vault` pointer), parsing the frontmatter, and rendering its
+boards from the very files you open in Obsidian. It watches the active project's folder and
+streams change events to the browser, so when a skill writes mid-session, or you edit a note in
+Obsidian, the affected card refreshes in place. Reading is read-only; the app's only vault writes
+are three bounded inputs (a new project from a brief, review verdicts, added evidence), each
+dropped into the same markdown the skills consume, and each one chains the research loop so the
+cycle keeps moving.
+
+The pipeline is defined exactly once, in [`web/src/lib/schema.ts`](web/src/lib/schema.ts):
 stages, skills, autonomy, and the stage→artifact map. The UI renders from it; nothing hardcodes
 the pipeline. Every visual value derives from [`web/DESIGN.md`](web/DESIGN.md).
 
-The dashboard doesn't run skills for you: the conversational 🔴 stages are rituals, and a button
-cannot run a ritual — so the Canvas renders what the skills wrote and leaves running them to
-Claude Code.
+The conversational 🔴 rituals still happen in Claude Code: the Canvas structures the review and
+records your verdicts, but a button cannot run a ritual.
 
 ## Install
 

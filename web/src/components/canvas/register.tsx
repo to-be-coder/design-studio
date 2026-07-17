@@ -16,13 +16,23 @@ export function RegisterCard({
   id,
   selectedId,
   onSelect,
+  embedded,
 }: {
   assumptions: AssumptionNode[];
   id: string;
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
+  /**
+   * Render only the register list, no card-sheet chrome, for embedding inside
+   * another surface (the WWB pane's Build input tab) that brings its own
+   * section header. The default (card) path is unchanged.
+   */
+  embedded?: boolean;
 }) {
   if (assumptions.length === 0) {
+    if (embedded) {
+      return <p className="text-[0.9375rem] italic text-ink-faint">No register yet.</p>;
+    }
     return (
       <article id={id} className="card-sheet w-[34rem] max-w-[88vw] px-8 py-6">
         <p className="eyebrow mb-2">Assumptions &amp; Risks</p>
@@ -31,12 +41,7 @@ export function RegisterCard({
     );
   }
 
-  return (
-    <article id={id} className="card-sheet w-[38rem] max-w-[88vw] px-8 py-6" data-card-kind="register">
-      <p className="eyebrow mb-1">Assumptions &amp; Risks</p>
-      <p className="mb-5 text-[0.8125rem] text-ink-faint">
-        Before trusting a decision, see what it stands on.
-      </p>
+  const list = (
       <ul className="space-y-4" data-testid="register">
         {assumptions.map((a) => {
           const selected = selectedId === a.id;
@@ -92,6 +97,19 @@ export function RegisterCard({
           );
         })}
       </ul>
+  );
+
+  if (embedded) {
+    return <div id={id}>{list}</div>;
+  }
+
+  return (
+    <article id={id} className="card-sheet w-[38rem] max-w-[88vw] px-8 py-6" data-card-kind="register">
+      <p className="eyebrow mb-1">Assumptions &amp; Risks</p>
+      <p className="mb-5 text-[0.8125rem] text-ink-faint">
+        Before trusting a decision, see what it stands on.
+      </p>
+      {list}
     </article>
   );
 }
