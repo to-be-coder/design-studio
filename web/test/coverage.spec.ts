@@ -903,8 +903,14 @@ test("a directions pick renders its options as one-click choices: no accept, no 
   await expect(pick.locator("textarea")).toHaveCount(0);
   await expect(pick.getByTestId("ruling-pick-A")).toContainText("Export lives on each card");
   await pick.getByTestId("ruling-pick-B").click();
-  await expect(pick.getByTestId("ruling-recorded")).toContainText("your pick");
+  // A pick does not lock the card: two-half calls take two clicks.
+  await expect(pick.getByTestId("pick-recorded")).toContainText("Recorded: B");
+  await expect(pick.getByTestId("ruling-recorded")).toHaveCount(0);
   expect(captured.ruling.disposition).toBe("pick");
   expect(captured.ruling.words).toBe("B: One export tray for the whole board");
   expect(captured.ruling.confirmed).toBe(true);
+  await expect(pick.getByTestId("ruling-pick-B")).toBeDisabled();
+  await pick.getByTestId("ruling-pick-A").click();
+  await expect(pick.getByTestId("pick-recorded")).toContainText("Recorded: B, A");
+  expect(captured.ruling.words).toBe("A: Export lives on each card");
 });

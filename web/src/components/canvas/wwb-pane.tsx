@@ -126,6 +126,9 @@ function WwbTabs({
   const [ruling, setRuling] = useState<RulingState | null>(null);
   const [rulingBusy, setRulingBusy] = useState<string | null>(null);
   const [rulingDone, setRulingDone] = useState<Record<string, "accept" | "reject" | "reshape" | "pick">>({});
+  // A pick can need more than one click (a container AND an arrival form), so
+  // picks accumulate here instead of locking the card after the first.
+  const [picksDone, setPicksDone] = useState<Record<string, string[]>>({});
   const [rulingError, setRulingError] = useState<{ id: string; message: string } | null>(null);
   const [answerBusy, setAnswerBusy] = useState<string | null>(null);
   const [answersDone, setAnswersDone] = useState<Record<string, string>>({});
@@ -269,7 +272,11 @@ function WwbTabs({
         setRulingBusy(null);
         return;
       }
-      setRulingDone((prev) => ({ ...prev, [p.id]: disposition }));
+      if (disposition === "pick") {
+        setPicksDone((prev) => ({ ...prev, [p.id]: [...(prev[p.id] ?? []), words] }));
+      } else {
+        setRulingDone((prev) => ({ ...prev, [p.id]: disposition }));
+      }
       setRulingBusy(null);
       onRunStarted?.();
       router.refresh();
@@ -360,6 +367,7 @@ function WwbTabs({
                 picked={ruling?.id === p.id ? ruling.disposition : null}
                 busy={rulingBusy === p.id}
                 recorded={rulingDone[p.id] ?? p.recorded ?? null}
+                recordedPicks={picksDone[p.id] ?? []}
                 error={rulingError?.id === p.id ? rulingError.message : null}
                 onFocusReceipt={onFocusReceipt}
                 onPick={(disposition, words) => recordRuling(p, disposition, words)}
@@ -521,6 +529,7 @@ function WwbTabs({
                         key={p.id}
                         parked={p}
                         slug={slug}
+                        recordedPicks={picksDone[p.id] ?? []}
                         interactive={false}
                         picked={null}
                         busy={false}
@@ -743,6 +752,7 @@ function RulingCard({
   picked,
   busy,
   recorded,
+  recordedPicks,
   error,
   onFocusReceipt,
   onPick,
@@ -753,6 +763,7 @@ function RulingCard({
   picked: "accept" | "reject" | "reshape" | "pick" | null;
   busy: boolean;
   recorded: "accept" | "reject" | "reshape" | "pick" | null;
+  recordedPicks: string[];
   error: string | null;
   onFocusReceipt?: (docKey: string) => void;
   onPick: (d: "accept" | "reject" | "reshape" | "pick", words?: string) => void;
@@ -837,7 +848,7 @@ function RulingCard({
         </div>
       ) : null}
 
-      {recorded ? (
+      {recorded && !(isPick && recorded === "pick") ? (
         // Read from the ledger's Review log, so it survives a page refresh:
         // the card stays visible as a recorded ruling until research
         // re-scopes What's Worth Building, then clears with the next round.
@@ -855,21 +866,35 @@ function RulingCard({
             </p>
             {parked.options.length ? (
               <div className="mb-2 space-y-2">
-                {parked.options.map((o) => (
-                  <button
-                    key={o.label}
-                    type="button"
-                    data-testid={`ruling-pick-${o.label}`}
-                    disabled={busy}
-                    onClick={() => onPick("pick", `${o.label}: ${o.text}`)}
-                    className="w-full rounded-inset border px-3 py-2 text-left text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }}
-                  >
-                    <span className="mr-2" style={{ color: "var(--accent)" }}>{o.label}</span>
-                    {busy && picked === "pick" ? "Recording…" : o.text}
-                  </button>
-                ))}
+                {parked.options.map((o) => {
+                  const words = `${o.label}: ${o.text}`;
+                  const done = recordedPicks.includes(words);
+                  return (
+                    <button
+                      key={o.label}
+                      type="button"
+                      data-testid={`ruling-pick-${o.label}`}
+                      disabled={busy || done}
+                      onClick={() => onPick("pick", words)}
+                      className="w-full rounded-inset border px-3 py-2 text-left text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      style={
+                        done
+                          ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
+                          : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+                      }
+                    >
+                      <span className="mr-2" style={{ color: "var(--accent)" }}>{o.label}</span>
+                      {done ? `${o.text} (recorded)` : busy && picked === "pick" ? "Recording…" : o.text}
+                    </button>
+                  );
+                })}
               </div>
+            ) : null}
+            {recordedPicks.length || recorded === "pick" ? (
+              <p className="mb-2 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }} data-testid="pick-recorded">
+                Recorded: {recordedPicks.map((w) => w.split(":")[0]).join(", ") || "your pick"}. A call
+                with two halves takes two clicks; research folds them in together.
+              </p>
             ) : null}
             <button
               type="button"
