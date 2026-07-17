@@ -139,11 +139,15 @@ function WwbTabs({
   // a ruling; the moment every ruling is recorded, triage unlocks.
   const rulingFirst = wwb.parked.some((p) => !p.recorded);
 
-  // Research's dont-build-lean proposals are NOT human rulings: they render on
-  // the Ideas-to-sort tab (a receded, uncounted group), never under Already
-  // decided, which holds only what a human ruled.
+  // Held back holds only what a human ruled out.
   const ruledOut = wwb.dontBuild.filter((e) => e.source !== "proposed");
+  // Research's dont-build-lean proposals are still AI recommendations, so they
+  // ride Build candidates as first-class reviewable cards (same verdicts,
+  // counted as awaiting you) with the lean shown. Only a HUMAN don't-build
+  // ruling reaches Build input's Held back pile.
   const recommendedCuts = wwb.dontBuild.filter((e) => e.source === "proposed");
+  const pendingCuts = recommendedCuts.filter((e) => !verdictsDone[e.id]);
+  const recordedCuts = recommendedCuts.filter((e) => verdictsDone[e.id]);
 
   // The register, risk-first: riskiest load-bearing entries lead, then the
   // least-settled states. Sorted on a copy; the prop array is never mutated.
@@ -165,7 +169,7 @@ function WwbTabs({
     "needs-you":
       wwb.parked.filter((p) => !p.recorded).length +
       wwb.questions.filter((q) => !q.answered).length,
-    proposed: pendingProposed.length,
+    proposed: pendingProposed.length + pendingCuts.length,
     // Uncounted in the chrome (showCount: false); kept for the type + fallback.
     "build-input":
       wwb.buildNow.length +
@@ -391,9 +395,9 @@ function WwbTabs({
       </TabPanel>
 
       <TabPanel tabKey="proposed" active={active}>
-        {counts.proposed === 0 && recommendedCuts.length === 0 ? (
+        {counts.proposed === 0 ? (
           <EmptyTab>
-            {recordedThisSession.length > 0
+            {recordedThisSession.length + recordedCuts.length > 0
               ? "All sorted. Your verdicts are recorded; see Build input."
               : "No ideas to sort right now."}
           </EmptyTab>
@@ -405,7 +409,7 @@ function WwbTabs({
               </p>
             ) : null}
             <ul className="space-y-4" data-testid="wwb-proposed">
-              {pendingProposed.map((e) => (
+              {[...pendingProposed, ...pendingCuts].map((e) => (
                 <ProposedEntry
                   key={e.id}
                   entry={e}
@@ -422,7 +426,6 @@ function WwbTabs({
                 />
               ))}
             </ul>
-            <RecommendedCuts entries={recommendedCuts} slug={slug} onFocusReceipt={onFocusReceipt} />
           </>
         )}
       </TabPanel>
@@ -439,7 +442,7 @@ function WwbTabs({
         register.length === 0 &&
         parkedFiled.length === 0 &&
         questionsFiled.length === 0 &&
-        recordedThisSession.length === 0 ? (
+        recordedThisSession.length + recordedCuts.length === 0 ? (
           <>
             <EmptyTab>
               Nothing for build yet. Rulings, the risk register, and held back
@@ -449,7 +452,7 @@ function WwbTabs({
           </>
         ) : (
           <>
-            <RecordedThisSession entries={recordedThisSession} done={verdictsDone} />
+            <RecordedThisSession entries={[...recordedThisSession, ...recordedCuts]} done={verdictsDone} />
 
             {/* 1. The direct input: the accepted pile. */}
             <BuildNow entries={wwb.buildNow} slug={slug} onFocusReceipt={onFocusReceipt} />
@@ -878,6 +881,9 @@ function ProposedEntry({
   onRecord: () => void;
 }) {
   const pending = !!state && !recorded;
+  // A dont-build-lean proposal is still a full candidate; the lean is shown,
+  // and your verdict either confirms the cut or overrules it into the build.
+  const researchLean = entry.source === "proposed" && entry.disposition === "dont-build";
   return (
     <li
       data-testid="wwb-entry"
@@ -888,6 +894,15 @@ function ProposedEntry({
         borderLeft: pending ? "2px solid var(--accent)" : undefined,
       }}
     >
+      {researchLean ? (
+        <p
+          className="mb-1 text-[0.75rem] font-semibold uppercase tracking-[0.08em]"
+          style={{ color: "var(--unverified)" }}
+          data-testid="wwb-research-lean"
+        >
+          Research recommends: don&rsquo;t build
+        </p>
+      ) : null}
       <div className="mb-2 flex items-start justify-between gap-3">
         <h4 className="font-sans text-[1rem] font-semibold text-ink">{entry.title}</h4>
         {recorded ? (
@@ -1216,49 +1231,6 @@ function RecordedThisSession({
             </li>
           );
         })}
-      </ul>
-    </section>
-  );
-}
-
-/**
- * Research's dont-build-lean proposals: evidence-backed cuts the human has NOT
- * ruled. They ride the Ideas-to-sort tab as a receded, uncounted group (no
- * action needed; kept visible so any of them can be resurrected by a ruling).
- */
-function RecommendedCuts({
-  entries,
-  slug,
-  onFocusReceipt,
-}: {
-  entries: WwbEntry[];
-  slug: string;
-  onFocusReceipt?: (docKey: string) => void;
-}) {
-  if (entries.length === 0) return null;
-  return (
-    <section className="mt-8 opacity-85" data-testid="wwb-recommended-cuts">
-      <h3 className="mb-1 font-serif text-[1.25rem] font-semibold text-ink">
-        Research recommends not building these
-      </h3>
-      <p className="mb-3 text-[0.8125rem] text-ink-faint">
-        Cut on evidence, not by you. No action needed; a review can bring any of them back.
-      </p>
-      <ul className="space-y-5">
-        {entries.map((e) => (
-          <li
-            key={e.id}
-            data-testid="wwb-entry"
-            data-entry={e.id}
-            className="rounded-inset border border-rule bg-paper-raised px-4 py-3"
-          >
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <h4 className="font-sans text-[1rem] font-semibold text-ink">{e.title}</h4>
-              <OutlinePill label="Recommended cut" testid="wwb-proposed-mark" />
-            </div>
-            <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
-          </li>
-        ))}
       </ul>
     </section>
   );
