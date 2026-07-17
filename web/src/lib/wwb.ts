@@ -125,11 +125,16 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
   return model;
 }
 
-/** reviewCount(model) = proposed + unanswered questions + unruled parked, the items awaiting you. */
+/**
+ * reviewCount(model) = the items awaiting you: proposed candidates, research's
+ * dont-build-lean proposals (still AI recommendations, so they need a verdict
+ * too), unanswered questions, and unruled parked calls.
+ */
 export function reviewCount(model: WwbModel): number {
+  const cutsAwaiting = model.dontBuild.filter((e) => e.source === "proposed").length;
   const unruledParked = model.parked.filter((p) => !p.recorded).length;
   const unanswered = model.questions.filter((q) => !q.answered).length;
-  return model.proposed.length + unanswered + unruledParked;
+  return model.proposed.length + cutsAwaiting + unanswered + unruledParked;
 }
 
 function str(v: unknown): string | null {

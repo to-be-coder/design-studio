@@ -76,6 +76,7 @@ export function Sidebar({
   // status line's fallback.
   const reviewItems = model.wwb
     ? model.wwb.proposed.length +
+      model.wwb.dontBuild.filter((e) => e.source === "proposed").length +
       model.wwb.questions.filter((q) => !q.answered).length +
       model.wwb.parked.filter((p) => !p.recorded).length
     : model.header.loop?.reviewCount ?? 0;
