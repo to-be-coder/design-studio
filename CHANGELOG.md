@@ -6,6 +6,9 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **The side nav no longer shows a running dot on the research row.** While a headless draft was
+  generating, the row used to pulse a dot. That dot is gone; the live signal still shows in the
+  progress banner in the main pane and in the sidebar's status line.
 - **A parked call no longer locks the verdict buttons.** Build-candidates cards keep their three
   verdicts whatever else is waiting; ruling-first now only chooses the landing tab. Also, a parked
   entry that carries options is treated as a pick even when its kind line is missing, so a dead

@@ -85,8 +85,8 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   // Which document a doc-mode stage (debrief/research) is showing — picked from
   // the sidebar accordion; null means the stage's first document.
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
-  // The stage a headless AI draft is currently generating (the sidebar pulses a
-  // dot on it). Today only the debrief autorun feeds this; null when idle.
+  // The stage a headless AI draft is currently generating; a runnable stage's
+  // Run control reflects it (shows and disables itself). Null when idle.
   const [generatingStage, setGeneratingStage] = useState<string | null>(null);
   // The `.loop-progress` heartbeat, when one exists: the banner's one line.
   const [progress, setProgress] = useState<LoopProgress | null>(null);
@@ -103,11 +103,11 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   const [reviewOverride, setReviewOverride] = useState(false);
   const router = useRouter();
 
-  // Poll the skill-run status while a headless generation is in flight — pulse
-  // the sidebar dot on its stage, and refresh the board once it lands so the
-  // freshly-written docs show. Idle projects keep a light watch (a recorder can
-  // land minutes after page load, and skills also run outside this server), and
-  // every poll carries the fence + the heartbeat.
+  // Poll the skill-run status while a headless generation is in flight: track
+  // which stage is generating (a runnable Run control reflects it) and refresh
+  // the board once it lands so the freshly-written docs show. Idle projects keep
+  // a light watch (a recorder can land minutes after page load, and skills also
+  // run outside this server), and every poll carries the fence + the heartbeat.
   useEffect(() => {
     const slug = model.project.slug;
     let stopped = false;
@@ -157,8 +157,8 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
     };
   }, [model.project.slug, router, pollNonce]);
 
-  // Kick off a headless run of a stage's skill, then start polling so the sidebar
-  // dot pulses on that stage's row.
+  // Kick off a headless run of a stage's skill, then start polling so the Run
+  // control reflects the run while it works.
   const runStage = useCallback(
     async (stage: string) => {
       setRunError(null);
@@ -566,7 +566,7 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
     setSelectedDoc(null);
   }, []);
   // A review submission spawns the recorder headless; bump the poll so the
-  // sidebar dot pulses and the board refreshes when it lands.
+  // board refreshes when it lands.
   const onRunStarted = useCallback(() => setPollNonce((n) => n + 1), []);
   const selectDoc = useCallback((docKey: string) => {
     interacted.current = true;
@@ -601,7 +601,6 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
           model={model}
           focused={focused}
           selectedDoc={selectedDoc}
-          generatingStage={generatingStage}
           onFocus={focusItem}
           onSelectDoc={selectDoc}
           onCollapse={toggleSidebar}
@@ -637,8 +636,8 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
           {runsEnabled || reviewOverride ? (
             <AddInputButton slug={model.project.slug} onRunStarted={onRunStarted} />
           ) : null}
-          {/* A runnable stage's on-demand run control (opt-in) — spawns that
-              stage's skill headless; the sidebar dot pulses on it while it works. */}
+          {/* A runnable stage's on-demand run control (opt-in): spawns that
+              stage's skill headless and shows itself as running while it works. */}
           {RUNNABLE_STAGES.has(focused) && runsEnabled ? (
             <>
               {runError ? (
