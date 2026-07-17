@@ -684,6 +684,10 @@ Every research round, in order:
 7. **Write the round block, then the status line LAST.** Append the round's
    `<!-- round:N:begin -->` … `<!-- round:N:end -->` block, then write the dashboard Current stage
    line **last** as the commit fence: the status line's presence is what says the round committed.
+   The fence is never written over a failing `receipt-verify`: a ledger failure downgrades grades
+   (step 4), and a render failure (a missing `ask:` or `options:`, a candidate without its
+   `what:` / `for:` / `against:`, a leaning summary line) is a defect this same round's recompile
+   must fix before closing.
 
 ### Crash idempotence
 

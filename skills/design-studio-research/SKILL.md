@@ -150,7 +150,11 @@ anatomy with research's craft filled in. Every round starts at step 1, including
      answer; after 2 reopenings on a lineage, auto-escalate to the human.
 
    Run `receipt-verify.mjs` (below) over the ledger and `What's Worth Building.md` at this point, so a
-   bad receipt is caught in the round that wrote it.
+   bad receipt is caught in the round that wrote it. Run it AGAIN after step 5's recompile and fix
+   what it flags before closing the round: a render violation (a pick missing its `ask:` or
+   `options:`, a candidate missing `what:` / `for:` / `against:`, a summary line that leans on
+   another line) is yours to repair in the recompile, and the fence is never written while verify
+   fails.
 
 5. **Recompile the renders.** Regenerate wholesale from the ledger plus `Decisions/`:
    - **`What's Worth Building.md`** (v2, the single review surface, exactly per CONVENTIONS' contract):
