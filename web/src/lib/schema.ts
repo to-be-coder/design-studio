@@ -67,9 +67,11 @@ export const STAGES: StageDef[] = [
     // Runnable: the draft completes with no mid-run 🔴 (the human edits the
     // result), so the canvas may spawn it headlessly. Still a 🟡 draft.
     runnable: true,
-    outputs: ["03 Structure.md"],
-    blurb: "Draft user flows + information architecture from the accepted recommendation.",
-    gate: "🟡 — the skill drafts; you edit. Consumed by design-system and build.",
+    // Presence derives from prototype_repo (the scaffolded skeleton repo), like
+    // build; the stage no longer writes a vault doc.
+    outputs: [],
+    blurb: "Scaffold the clickable skeleton repo and flows.json from the accepted recommendation.",
+    gate: "🟡 the skill scaffolds a skeleton you edit. Consumed by design-system and build.",
   },
   {
     stage: "design-system",

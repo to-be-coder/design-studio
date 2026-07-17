@@ -16,9 +16,10 @@ export const dynamic = "force-dynamic";
 /**
  * Run a stage's skill headless for a project (the board's "Run <stage>"
  * control). `research` starts the spawn-per-round Understand loop; `structure`
- * fires one drafting pass of 03 Structure.md. Same opt-in gate as the debrief
- * autorun: spawning a real agent that writes the vault is never on by default.
- * A live research loop 409s either request (one vault writer at a time).
+ * scaffolds the clickable skeleton prototype repo (the skill creates it, outside
+ * the vault, and records its path as prototype_repo). Same opt-in gate as the
+ * debrief autorun: spawning a real agent that writes the vault is never on by
+ * default. A live research loop 409s either request (one vault writer at a time).
  */
 export async function POST(req: Request) {
   if (!autorunEnabled()) {

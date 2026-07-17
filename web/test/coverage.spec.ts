@@ -702,10 +702,50 @@ test.describe("prototype proxy (/prototype/<slug>/*)", () => {
   });
 });
 
+// ── Structure + build share one route comb ────────────────────────────────────
+
+test.describe("structure + build route comb (/canvas/fixture-project)", () => {
+  test.use({ viewport: { width: 1600, height: 1000 } });
+
+  test("both boards expose the same data-route set (the fixture's flows.json manifest)", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project");
+
+    // Both boards render the same <PrototypeFrames> from one prototype model, so
+    // they must lay out the identical route comb. Route columns carry data-route
+    // whether mounted or still queued, so we can read the set without booting.
+    const routesFor = async (name: string): Promise<string[]> => {
+      await page.getByRole("option", { name, exact: true }).click();
+      await expect(page.getByTestId("prototype-frames")).toBeVisible();
+      const cols = page.locator('[data-testid="route-column"]');
+      await expect(cols.first()).toBeVisible();
+      const routes = await cols.evaluateAll((els) =>
+        els.map((e) => e.getAttribute("data-route") ?? ""),
+      );
+      return routes.sort();
+    };
+
+    const structureRoutes = await routesFor("Structure");
+    const buildRoutes = await routesFor("Build");
+
+    expect(structureRoutes.length).toBeGreaterThan(0);
+    expect(structureRoutes).toEqual(buildRoutes);
+    // flows.json drives both to the three skeleton routes (root + the two pages).
+    expect(structureRoutes).toEqual(["", "page2.html", "page3.html"]);
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+});
+
 // ── API routes (/api/card, /api/vault-events) directly ────────────────────────
 
 test.describe("api routes", () => {
   test("/api/card returns rendered blocks, guards missing params + bad slug", async ({ request }) => {
+    // 03 Structure.md is a legacy file: structure now scaffolds a repo instead of
+    // writing it, but /api/card still serves any project file that exists on disk,
+    // and the fixture keeps it (the read path must stay tolerant of older vaults).
     const ok = await request.get("/api/card?slug=fixture-project&file=" + encodeURIComponent("03 Structure.md"));
     expect(ok.status()).toBe(200);
     const body = await ok.json();

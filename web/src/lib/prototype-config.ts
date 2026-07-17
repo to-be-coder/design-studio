@@ -55,6 +55,12 @@ export interface PrototypeConfig {
   /** repo exists on disk AND holds an index.html → the proxy can serve it statically. */
   staticRepo: boolean;
   /**
+   * repo resolved to a path that exists on disk (the skeleton repo structure
+   * scaffolds). Broader than staticRepo: a source checkout with no index.html is
+   * present but not statically servable. Drives the structure stage's presence.
+   */
+  repoPresent: boolean;
+  /**
    * Explicit route list (§2 of canvas-maker: enumerate the real route table). A
    * SPA has no static files to discover, so its pages can't be auto-found — list
    * them here to show every page. Null → fall back to discovery.
@@ -112,6 +118,15 @@ async function hasIndex(dir: string): Promise<boolean> {
   }
 }
 
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Validate a raw `run` block into a PrototypeRunConfig, or null if malformed.
  * A relative `cwd` resolves against the config file's dir (so a checked-in
@@ -156,10 +171,11 @@ export const resolvePrototypeConfig = cache(
     if (!url && process.env.PROTOTYPE_URL?.trim()) url = process.env.PROTOTYPE_URL.trim();
 
     const staticRepo = repo ? await hasIndex(repo) : false;
+    const repoPresent = repo ? await pathExists(repo) : false;
     const routes = Array.isArray(entry.routes) && entry.routes.length ? entry.routes : null;
     const direct = entry.direct === true && !!url;
     const run = parseRun(entry.run, dir);
-    return { slug, repo, url, staticRepo, routes, direct, run };
+    return { slug, repo, url, staticRepo, repoPresent, routes, direct, run };
   },
 );
 
@@ -180,6 +196,11 @@ export async function discoverRoutes(cfg: PrototypeConfig): Promise<string[]> {
     return Array.from(new Set(["", ...cfg.routes.map((r) => r.replace(/^\//, ""))]));
   }
   if (cfg.staticRepo && cfg.repo) {
+    // A scaffolded skeleton lists its screens in flows.json (manifest order,
+    // entry first); honor it so the board shows the pages in the intended order.
+    const manifest = await routesFromFlows(cfg.repo);
+    if (manifest) return manifest;
+    // Otherwise enumerate the top-level .html files.
     try {
       const entries = await fs.readdir(cfg.repo, { withFileTypes: true });
       const html = entries
@@ -195,4 +216,58 @@ export async function discoverRoutes(cfg: PrototypeConfig): Promise<string[]> {
     }
   }
   return [""];
+}
+
+/**
+ * Read a scaffolded skeleton's flows.json manifest and return its screen routes
+ * in manifest order with the entry first, deduped, and limited to files that
+ * exist on disk (index.html normalizes to the root route ""). Returns null (so
+ * discoverRoutes falls back to enumeration) when flows.json is absent, malformed,
+ * or names no existing screens. Tolerant of bad JSON: a parse error falls back
+ * silently.
+ */
+async function routesFromFlows(repo: string): Promise<string[] | null> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(path.join(repo, "flows.json"), "utf8");
+  } catch {
+    return null; // no manifest: enumerate instead
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null; // malformed: fall back silently
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+  const obj = parsed as { entry?: unknown; screens?: unknown };
+  if (!Array.isArray(obj.screens)) return null;
+
+  // Each screen names its file as a bare string or a { route } / { file } object.
+  const screenFile = (s: unknown): string | null => {
+    if (typeof s === "string") return s;
+    if (s && typeof s === "object") {
+      const o = s as Record<string, unknown>;
+      if (typeof o.route === "string") return o.route;
+      if (typeof o.file === "string") return o.file;
+    }
+    return null;
+  };
+  const files = obj.screens.map(screenFile).filter((f): f is string => !!f);
+  if (files.length === 0) return null;
+
+  const entry = typeof obj.entry === "string" && obj.entry ? obj.entry : null;
+  const ordered = entry ? [entry, ...files] : files;
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const f of ordered) {
+    const name = f.replace(/^\//, "");
+    if (!(await pathExists(path.join(repo, name)))) continue;
+    const route = /^index\.html?$/i.test(name) ? "" : name;
+    if (seen.has(route)) continue;
+    seen.add(route);
+    out.push(route);
+  }
+  return out.length ? out : null;
 }

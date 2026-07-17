@@ -191,6 +191,13 @@ function StageRow({
       <div className="flex items-start gap-12">
         {stage.stage === "design-system" ? (
           <DesignSystemBoard model={model.designSystem} prototype={model.prototype} id="design-system-board" />
+        ) : stage.stage === "structure" ? (
+          // Structure terminates in the scaffolded skeleton's device frames (same
+          // idiom as build). When no repo exists yet the CTA overlay owns the
+          // empty state, so render nothing here.
+          model.prototype.repoPresent ? (
+            <PrototypeFrames prototype={model.prototype} id="structure-frames-region" />
+          ) : null
         ) : stage.stage === "build" ? (
           <>
             <PrototypeFrames prototype={model.prototype} id="prototype-frames-region" />

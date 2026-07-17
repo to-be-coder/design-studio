@@ -154,11 +154,6 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // The structure stage's screen inventory is a readable card on its board.
-    await page.getByRole("option", { name: "Structure", exact: true }).click();
-    await expect(page.locator("#card-structure-0")).toBeVisible();
-    await expect(page.getByText(/screen inventory/i).first()).toBeVisible();
-
     // Research reads as documents: the synthesis is a readable page, not a thumbnail.
     await page.getByRole("option", { name: "Research", exact: true }).click();
     await page.getByTestId("sidebar").getByRole("option", { name: "Synthesis" }).click();
@@ -449,32 +444,60 @@ test.describe("prototype frames (/canvas/fixture-project)", () => {
 });
 
 test.describe("live board — vault SSE (/canvas/fixture-project)", () => {
+  // Structure no longer renders a reader card (it scaffolds the skeleton repo),
+  // so the live-board contract is asserted at the request level instead: a vault
+  // write emits an SSE change event, and /api/card serves the fresh content.
   const STRUCTURE = path.resolve(
     __dirname,
     "fixtures/vault/Design Studio/fixture-project/03 Structure.md",
   );
 
-  test("a changed vault file updates the affected card in place, no reload", async ({ page }) => {
+  test("a vault write emits an SSE change event and /api/card serves the updated content", async ({
+    page,
+    request,
+  }) => {
     const original = await fs.readFile(STRUCTURE, "utf8");
     const marker = `LIVE-SSE-${Date.now()}`;
     try {
       await page.goto("/canvas/fixture-project");
-      await page.getByRole("option", { name: "Structure", exact: true }).click();
-      const card = page.locator("#card-structure-0");
-      await expect(card).toBeVisible();
+
+      // Start listening for the change event for 03 Structure.md, then write it.
+      const change = page.evaluate((slug) => {
+        return new Promise<string>((resolve) => {
+          const es = new EventSource(`/api/vault-events?slug=${slug}`);
+          es.addEventListener("change", (e) => {
+            try {
+              const file = (JSON.parse((e as MessageEvent).data) as { file?: string }).file;
+              if (file === "03 Structure.md") {
+                es.close();
+                resolve(file);
+              }
+            } catch {
+              /* ignore a malformed frame */
+            }
+          });
+          setTimeout(() => {
+            es.close();
+            resolve("timeout");
+          }, 8000);
+        });
+      }, "fixture-project");
+
       // Give the EventSource a moment to connect before we touch the file.
       await page.waitForTimeout(600);
-
-      // Touch the vault file (the app never writes the vault; the test does).
-      const changed = original.replace(
-        /# Structure/,
-        `# Structure\n\n${marker}`,
-      );
+      const changed = original.replace(/# Structure/, `# Structure\n\n${marker}`);
       await fs.writeFile(STRUCTURE, changed, "utf8");
 
-      // The card refetches and swaps its blocks in place — no navigation.
-      await expect(card).toHaveAttribute("data-live-updated", "true", { timeout: 8000 });
-      await expect(card.getByText(marker)).toBeVisible();
+      // The watcher emits a change event naming the file.
+      expect(await change).toBe("03 Structure.md");
+
+      // And /api/card serves the freshly written content for that file.
+      const res = await request.get(
+        "/api/card?slug=fixture-project&file=" + encodeURIComponent("03 Structure.md"),
+      );
+      expect(res.status()).toBe(200);
+      const text = JSON.stringify((await res.json()).blocks);
+      expect(text).toContain(marker);
     } finally {
       await fs.writeFile(STRUCTURE, original, "utf8");
     }

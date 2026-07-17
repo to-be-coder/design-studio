@@ -588,7 +588,7 @@ function BuildReads({ onFocusReceipt }: { onFocusReceipt?: (docKey: string) => v
       <ul className="space-y-2">
         <BoardRow
           label="Structure"
-          blurb="The flows and screens build works from."
+          blurb="The skeleton app build fills in."
           docKey="structure"
           onFocusReceipt={onFocusReceipt}
         />

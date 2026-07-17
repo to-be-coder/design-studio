@@ -585,13 +585,10 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
 
   const componentNames = useMemo(() => componentBaseNames(model.tokens), [model.tokens]);
 
-  // Does the project have any structure content yet? The model already knows:
-  // the structure stage's cards are empty exactly when 03 Structure.md is
-  // absent, so the empty board's centered call-to-action derives from it.
-  const hasStructure = useMemo(
-    () => (model.stages.find((s) => s.stage === "structure")?.cards.length ?? 0) > 0,
-    [model.stages],
-  );
+  // Does the project have a scaffolded structure yet? Structure now derives its
+  // presence from the prototype repo (the skeleton the skill scaffolds), so the
+  // empty board's centered call-to-action shows exactly when that repo is absent.
+  const hasStructure = model.prototype.repoPresent;
 
   // Debrief and research (prose stages), the project root docs (What's Worth
   // Building, the ledger, the agenda), and the decision stream read as documents,
@@ -727,7 +724,7 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
               data-testid="structure-cta"
             >
               <p className="text-[0.9375rem] leading-relaxed text-ink-muted">
-                No structure yet. Draft the flows and screens from what you confirmed.
+                No structure yet. Scaffold the clickable skeleton from what you confirmed.
               </p>
               {runsEnabled || reviewOverride ? (
                 <>

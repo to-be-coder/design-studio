@@ -1,0 +1,11 @@
+{
+  "entry": "index.html",
+  "screens": [
+    { "route": "index.html", "name": "Home", "fidelity": "full" },
+    { "route": "page3.html", "name": "Settings", "fidelity": "skeleton" },
+    { "route": "page2.html", "name": "Reports", "fidelity": "skeleton" }
+  ],
+  "flows": [
+    { "name": "Read a report", "steps": ["index.html", "page2.html"] }
+  ]
+}

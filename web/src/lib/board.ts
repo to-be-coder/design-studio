@@ -67,6 +67,8 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
   const prototype: PrototypeInfo = {
     slug,
     embeddable: isEmbeddable(config),
+    // Structure's presence: the skeleton repo resolved and exists on disk.
+    repoPresent: config.repoPresent,
     // Client-safe: just whether a run command exists. cmd/cwd stay server-side.
     runnable: !!config.run,
     tokenHome: tokens.home,
@@ -159,6 +161,13 @@ async function buildCards(
   if (stage === "build") {
     // The build tick terminates in the live prototype frames (§9) — BoardView
     // special-cases it from the model's prototype info, no card here.
+    return [];
+  }
+
+  if (stage === "structure") {
+    // Structure now scaffolds the skeleton prototype repo (not a vault doc), so
+    // its tick also terminates in device frames. BoardView renders them from the
+    // model's prototype info, no reader card here (exactly like build).
     return [];
   }
 

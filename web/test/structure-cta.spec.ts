@@ -2,9 +2,10 @@ import { test, expect, type Page } from "@playwright/test";
 
 /**
  * The empty Structure board's centered call-to-action (Create structure).
- * A project with no 03 Structure.md gets a dead-middle button that drafts the
- * flows and screens headlessly; with runs off it shows the read-only command
- * line instead; a project that already has structure shows no layer at all.
+ * A project with no scaffolded prototype repo gets a dead-middle button that
+ * scaffolds the clickable skeleton headlessly; with runs off it shows the
+ * read-only command line instead; a project whose repo is present shows the
+ * skeleton frames and no layer at all.
  * Hermetic: the run + status routes are intercepted, so nothing real spawns.
  */
 
@@ -84,15 +85,21 @@ test.describe("empty structure board (/canvas/fixture-minimal)", () => {
   });
 });
 
-test.describe("structure board with content (/canvas/fixture-project)", () => {
-  test("no CTA layer when 03 Structure.md exists", async ({ page }) => {
+test.describe("structure board with a scaffolded repo (/canvas/fixture-project)", () => {
+  test("no CTA layer, and the skeleton frames render, when the prototype repo is present", async ({
+    page,
+  }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
     await focusStructure(page);
 
-    // The board shows the doc as before, with no call-to-action overlay.
+    // The prototype repo is present (config points at the fixture prototype), so
+    // structure renders the skeleton device frames, not the call-to-action.
     await expect(page.getByTestId("canvas-viewport")).toBeVisible();
     await expect(page.getByTestId("structure-cta")).toHaveCount(0);
+    await expect(page.getByTestId("prototype-frames")).toBeVisible();
+    const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
+    await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
