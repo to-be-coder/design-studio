@@ -41,7 +41,7 @@ show good thinking.
 
 **3. `eng-handoff`** (what + acceptance).
 Render for engineering: the accepted recommendation and chosen directions, acceptance criteria, the
-states/edge/a11y notes from build, the flows/IA and data model from `03 Structure.md` (and any
+states/edge/a11y notes from build, the flows/IA from the prototype repo's `flows.json` and the data model from the research report (and any
 directions-move data-model sketch in the research report), copy, the migration plan, and the visual
 contract — link the prototype repo's `DESIGN.md` and attach a token export produced by the studio's
 owned script (`node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs DESIGN.md`, or

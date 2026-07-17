@@ -16,7 +16,7 @@ tells you what to run next. The vault on disk *is* the state. Everything below f
 | **This repo** | Source of the skills. Nothing here is read at runtime. | You, editing |
 | `~/.claude/skills/` | The installed copies Claude Code actually loads at session start. | `./install.sh` |
 | **Your vault** | Every project, every decision, the Studio Wiki. The state of the world. | The skills |
-| **Prototype repos** | One code repo per project, outside the vault. | `design-studio-build` |
+| **Prototype repos** | One code repo per project, outside the vault. | `design-studio-structure` scaffolds, `design-studio-build` fills |
 
 `install.sh` copies each `skills/design-studio-*` folder into `~/.claude/skills/`. It matches by
 glob, so a new skill folder needs no installer change. Skills load at session start, which is why
@@ -74,13 +74,12 @@ decision, or any machine section.
       01 Brief & Problem.md      restated problem, rubric, principle, success criteria
       Knowns & Unknowns.md       the ledger: every unknown and known, receipts, round log + review log (the loop's spine)
       02 Research/               Company.md · Pain.md · Standards.md · Landscape.md · Synthesis.md
-      03 Structure.md            user flows + information architecture (drafted by structure)
       Spec.md                    on-demand audience-shaped render (compile-spec; may also write Align.md / Handoff.md)
       Decisions/                 ADR log: `NNNN <slug>.md`, immutable
       What's Worth Building.md   THE review surface: parked 🔴 calls, questions, and candidates to triage
                                  (Build now / Backlog / Don't build), every reason receipted; a render, never hand-authored
       Assumptions & Risks.md     render of the ledger's load-bearing knowns: verified / partial / unverified / accepted
-      DESIGN.md                  the visual contract — until build moves it to the repo
+      DESIGN.md                  legacy slot: the visual contract lives at the prototype repo root now
       Harvest.md                 flag inbox: one-liners bound for the wiki
       Drift Ledger.md            on-demand: decision-log-vs-shipped-reality reconciliation (research's reconcile move)
       _assets/                   attachments, Excalidraw sketches, specimen boards/
@@ -95,8 +94,11 @@ decision, or any machine section.
     wiki/                        the pages, flat
 ```
 
-The **clickable prototype is never in the vault.** It's a separate code repo; `00 Dashboard.md`
-records its path in the `prototype_repo` frontmatter field.
+The **clickable prototype is never in the vault.** It's a separate code repo, created by the
+structure stage at `~/dev/<slug>-prototype` as the clickable skeleton it scaffolds (one static stub
+page per screen, wired with real links, plus a `flows.json` manifest; vault decision 0039).
+`00 Dashboard.md` records its absolute path in the `prototype_repo` frontmatter field, and
+design-system and build work in that same repo from then on.
 
 ---
 
@@ -120,7 +122,7 @@ stage: debrief            # debrief|research|structure|design-system|build
 client:
 route: full               # full | lite
 started: YYYY-MM-DD
-prototype_repo:           # filled when build starts
+prototype_repo:           # absolute path; filled by structure when it scaffolds the skeleton
 ---
 ```
 
@@ -141,8 +143,8 @@ missing, and offer to proceed anyway.
 |---|---|---|
 | 1 | `debrief` | `01 Brief & Problem.md` + seeds `Knowns & Unknowns.md` (+ scaffolds the whole project folder); the human pole of the Understand loop: framing 🔴 and answer-batch ingestion |
 | 2 | `research` | `02 Research/`, and each round recompiles `What's Worth Building.md` + `Assumptions & Risks.md` from the ledger; the loop engine: attempts every open unknown per round until exhaustion (forced framing-check + migration-flag + primary-contact line + trap-check per report) |
-| 3 | `structure` | `03 Structure.md` (user flows + information architecture) |
-| 4 | `design-system` | `DESIGN.md` |
+| 3 | `structure` | *the skeleton prototype repo* (stub screens + `flows.json`, at `~/dev/<slug>-prototype`) |
+| 4 | `design-system` | `DESIGN.md` + `tokens.css` at the prototype repo root |
 | 5 | `build` | *the prototype repo* (outside the vault); round-closing checklist runs the `design:diff` drift check |
 
 The pipeline ends at `build` ([[0028 compile-spec-is-a-render-utility]]). `compile-spec` is a **utility,
