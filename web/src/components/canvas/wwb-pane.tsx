@@ -881,9 +881,10 @@ function ProposedEntry({
   onRecord: () => void;
 }) {
   const pending = !!state && !recorded;
-  // A dont-build-lean proposal is still a full candidate; the lean is shown,
-  // and your verdict either confirms the cut or overrules it into the build.
-  const researchLean = entry.source === "proposed" && entry.disposition === "dont-build";
+  // Every candidate wears its lean, colored so the split is visible at a
+  // glance: build in the verified green, don't-build in the unverified red.
+  // The words stay beside the color, so the marker still reads in greyscale.
+  const cutLean = entry.source === "proposed" && entry.disposition === "dont-build";
   return (
     <li
       data-testid="wwb-entry"
@@ -894,15 +895,14 @@ function ProposedEntry({
         borderLeft: pending ? "2px solid var(--accent)" : undefined,
       }}
     >
-      {researchLean ? (
-        <p
-          className="mb-1 text-[0.75rem] font-semibold uppercase tracking-[0.08em]"
-          style={{ color: "var(--unverified)" }}
-          data-testid="wwb-research-lean"
-        >
-          Research recommends: don&rsquo;t build
-        </p>
-      ) : null}
+      <p
+        className="mb-1 text-[0.75rem] font-semibold uppercase tracking-[0.08em]"
+        style={{ color: cutLean ? "var(--unverified)" : "var(--verified)" }}
+        data-testid="wwb-research-lean"
+        data-lean={cutLean ? "dont-build" : "build"}
+      >
+        {cutLean ? <>Research recommends: don&rsquo;t build</> : <>Research recommends: build</>}
+      </p>
       <div className="mb-2 flex items-start justify-between gap-3">
         <h4 className="font-sans text-[1rem] font-semibold text-ink">{entry.title}</h4>
         {recorded ? (
