@@ -194,6 +194,8 @@ export interface LedgerModel {
   recordedRulings: Record<string, "accept" | "reject" | "reshape" | "pick">;
   /** Answers already recorded in the Review log, id → answer text (same idea). */
   recordedAnswers: Record<string, string>;
+  /** Candidate verdicts queued in unprocessed review blocks, id → disposition. */
+  recordedVerdicts: Record<string, "build-now" | "backlog" | "dont-build">;
 }
 
 /** One capability line in What's Worth Building, with its receipted reasons. */
@@ -229,6 +231,8 @@ export interface WwbEntry {
   forLine: string | null;
   /** The strongest reason not to, one line. */
   againstLine: string | null;
+  /** A verdict already queued in the Review log for this entry (survives refresh). */
+  recordedVerdict: WwbDisposition | null;
   /** A cited L-id retired or dropped a grade since the ruling → re-rule. */
   evidenceMoved: boolean;
 }

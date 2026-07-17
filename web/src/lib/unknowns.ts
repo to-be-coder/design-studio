@@ -70,6 +70,7 @@ export async function getLedger(slug: string): Promise<LedgerModel | null> {
     humanOpenCount: escalated.length,
     recordedRulings: parseRecordedRulings(raw),
     recordedAnswers: parseRecordedAnswers(raw),
+    recordedVerdicts: parseRecordedVerdicts(raw),
   };
 }
 
@@ -77,8 +78,28 @@ export async function getLedger(slug: string): Promise<LedgerModel | null> {
 export function reviewOverlay(raw: string): {
   rulings: Record<string, "accept" | "reject" | "reshape" | "pick">;
   answers: Record<string, string>;
+  verdicts: Record<string, "build-now" | "backlog" | "dont-build">;
 } {
-  return { rulings: parseRecordedRulings(raw), answers: parseRecordedAnswers(raw) };
+  return {
+    rulings: parseRecordedRulings(raw),
+    answers: parseRecordedAnswers(raw),
+    verdicts: parseRecordedVerdicts(raw),
+  };
+}
+
+/**
+ * Candidate verdicts already queued in the Review log (unprocessed blocks only,
+ * same truth rule as the rulings): a clicked card stays out of Build candidates
+ * across a refresh, before the recorder lands.
+ */
+function parseRecordedVerdicts(body: string): Record<string, "build-now" | "backlog" | "dont-build"> {
+  const out: Record<string, "build-now" | "backlog" | "dont-build"> = {};
+  for (const block of reviewBlocks(body)) {
+    for (const m of block.matchAll(/^\s*-\s+(\S+):\s+(build-now|backlog|dont-build)\b/gim)) {
+      out[m[1]] = m[2].toLowerCase() as "build-now" | "backlog" | "dont-build";
+    }
+  }
+  return out;
 }
 
 /**

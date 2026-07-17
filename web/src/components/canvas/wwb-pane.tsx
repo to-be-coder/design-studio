@@ -148,8 +148,8 @@ function WwbTabs({
   // counted as awaiting you) with the lean shown. Only a HUMAN don't-build
   // ruling reaches Build input's Held back pile.
   const recommendedCuts = wwb.dontBuild.filter((e) => e.source === "proposed");
-  const pendingCuts = recommendedCuts.filter((e) => !verdictsDone[e.id]);
-  const recordedCuts = recommendedCuts.filter((e) => verdictsDone[e.id]);
+  const pendingCuts = recommendedCuts.filter((e) => !verdictsDone[e.id] && !e.recordedVerdict);
+  const recordedCuts = recommendedCuts.filter((e) => verdictsDone[e.id] || e.recordedVerdict);
 
   // The register, risk-first: riskiest load-bearing entries lead, then the
   // least-settled states. Sorted on a copy; the prop array is never mutated.
@@ -164,8 +164,8 @@ function WwbTabs({
   // A verdict recorded THIS session leaves Build candidates immediately (client
   // state) and shows under Build input as recorded-and-folding-in; the vault
   // catches up when its recorder lands and the page refreshes.
-  const pendingProposed = wwb.proposed.filter((e) => !verdictsDone[e.id]);
-  const recordedThisSession = wwb.proposed.filter((e) => verdictsDone[e.id]);
+  const pendingProposed = wwb.proposed.filter((e) => !verdictsDone[e.id] && !e.recordedVerdict);
+  const recordedThisSession = wwb.proposed.filter((e) => verdictsDone[e.id] || e.recordedVerdict);
 
   const counts: Record<TabKey, number> = {
     "needs-you":
@@ -1358,7 +1358,9 @@ function RecordedThisSession({
       <p className="eyebrow mb-3">Recorded just now</p>
       <ul className="space-y-3">
         {entries.map((e) => {
-          const d = done[e.id];
+          // A verdict clicked this session, or one queued in the Review log
+          // from before the refresh: either way the click is safe.
+          const d = done[e.id] ?? { verdict: e.recordedVerdict as WwbDisposition, queued: true };
           return (
             <li
               key={e.id}

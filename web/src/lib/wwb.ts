@@ -97,6 +97,10 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
     // A ruling already in the ledger's Review log marks its parked card as
     // recorded until research re-scopes this file (survives a page refresh).
     for (const p of model.parked) p.recorded = ledger.recordedRulings[p.id] ?? null;
+    // A clicked candidate stays out of Build candidates across a refresh: its
+    // verdict is queued in the Review log even before the recorder lands.
+    for (const e of [...model.proposed, ...model.dontBuild])
+      e.recordedVerdict = ledger.recordedVerdicts[e.id] ?? null;
   }
 
   // Questions fall back to the ledger's escalated entries when the WWB has none.
@@ -131,10 +135,13 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
  * too), unanswered questions, and unruled parked calls.
  */
 export function reviewCount(model: WwbModel): number {
-  const cutsAwaiting = model.dontBuild.filter((e) => e.source === "proposed").length;
+  const cutsAwaiting = model.dontBuild.filter(
+    (e) => e.source === "proposed" && !e.recordedVerdict,
+  ).length;
   const unruledParked = model.parked.filter((p) => !p.recorded).length;
   const unanswered = model.questions.filter((q) => !q.answered).length;
-  return model.proposed.length + cutsAwaiting + unanswered + unruledParked;
+  const proposedAwaiting = model.proposed.filter((e) => !e.recordedVerdict).length;
+  return proposedAwaiting + cutsAwaiting + unanswered + unruledParked;
 }
 
 function str(v: unknown): string | null {
@@ -389,6 +396,7 @@ async function parseEntries(
       what,
       forLine,
       againstLine,
+      recordedVerdict: null,
       evidenceMoved: false,
     };
   }));
@@ -400,7 +408,7 @@ function blankEntry(
   disposition: WwbDisposition | null,
   source: WwbEntry["source"],
 ): WwbEntry {
-  return { id, title, reasons: [], source, disposition, unblocks: null, inTheirWords: null, ruledBy: null, what: null, forLine: null, againstLine: null, evidenceMoved: false };
+  return { id, title, reasons: [], source, disposition, unblocks: null, inTheirWords: null, ruledBy: null, what: null, forLine: null, againstLine: null, recordedVerdict: null, evidenceMoved: false };
 }
 
 function normalizeDisposition(v: string): WwbDisposition | null {

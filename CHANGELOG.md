@@ -8,6 +8,10 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 - **Home-page projects are individual cards.** The shared border around the project list is gone;
   each project now has its own bordered paper surface with clear space between cards.
+- **A clicked verdict survives a refresh.** Candidate verdicts already sat safely in the review
+  log, but a refresh before the recorder ran brought the card back as if unclicked. The page now
+  reads queued verdicts from the log, so a clicked card stays recorded (and out of Build
+  candidates) across any refresh, the same guarantee answers and rulings already had.
 - **Summary lines stand alone, in one color.** A candidate's what / for / against sentences must
   each read cold, with no pronoun pointing at another line and no coined phrases; the verifier
   fails a leaning line. The card also stops dimming For and Against below the what line: one

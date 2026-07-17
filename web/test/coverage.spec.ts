@@ -94,7 +94,7 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await expect(sidebar.getByRole("option", { name: "What's worth building" })).toBeVisible();
     await expect(sidebar.getByRole("option", { name: "Knowns & unknowns", exact: true })).toBeVisible();
     await expect(sidebar.getByRole("option", { name: /Questions for you/ })).toHaveCount(0);
-    await expect(page.getByTestId("review-pill")).toHaveText("6");
+    await expect(page.getByTestId("review-pill")).toHaveText("5");
 
     // Open the full ledger.
     await sidebar.getByRole("option", { name: "Knowns & unknowns", exact: true }).click();
@@ -201,7 +201,7 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await page.goto("/canvas/fixture-project");
 
     // The review count rides the sidebar's WWB row; there is no floating banner.
-    await expect(page.getByTestId("review-pill")).toContainText("6");
+    await expect(page.getByTestId("review-pill")).toContainText("5");
     await expect(page.getByTestId("loop-banner")).toHaveCount(0);
 
     // The band itself is the landing surface.
@@ -411,7 +411,7 @@ test.describe("WWB tabs", () => {
     // Counts on the tabs match the model: 1 parked + 2 questions share the
     // Needs-you badge, 2 proposed.
     await expect(page.getByTestId("wwb-tab-needs-you")).toContainText("(4)");
-    await expect(page.getByTestId("wwb-tab-proposed")).toContainText("(2)");
+    await expect(page.getByTestId("wwb-tab-proposed")).toContainText("(1)");
 
     // Three tabs exactly: Decided and Background merged into Build input.
     await expect(page.getByTestId("wwb-tab-build-input")).toBeVisible();
@@ -919,4 +919,19 @@ test("a directions pick renders its options as one-click choices: no accept, no 
   await pick.getByTestId("ruling-pick-A").click();
   await expect(pick.getByTestId("pick-recorded")).toContainText("Recorded: B, A");
   expect(captured.ruling.words).toBe("A: Export lives on each card");
+});
+
+test("a queued verdict survives refresh: the clicked card stays out of Build candidates", async ({ page }) => {
+  // The fixture ledger holds an UNPROCESSED review block recording W4:
+  // build-now. With no client state at all (fresh load = the refresh case),
+  // the card must stay out of Build candidates and read as recorded.
+  await page.goto("/canvas/fixture-project?runs=1");
+  await page.getByTestId("wwb-tab-proposed").click();
+  await expect(page.getByTestId("wwb-proposed")).toBeVisible();
+  await expect(page.getByTestId("wwb-proposed").getByText("A one-glance loop checkpoint")).toHaveCount(0);
+  await page.getByTestId("wwb-tab-build-input").click();
+  const recorded = page.getByTestId("wwb-recorded-session");
+  await expect(recorded).toBeVisible();
+  await expect(recorded).toContainText("A one-glance loop checkpoint");
+  await expect(recorded.getByTestId("verdict-recorded-pill")).toContainText(/accepted/i);
 });

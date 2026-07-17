@@ -72,3 +72,14 @@ note: Superseded by the reading-first direction; kept visible, not hidden.
 dry-streak: 2
 open: 2
 round: 3
+
+## Review log
+
+<!-- review:7:begin -->
+- date: 2026-07-16
+- reviewer: canvas
+- wwb_round: 3
+- entries_hash: ab12cd34
+- dispositions:
+  - W4: build-now
+<!-- review:7:end -->
