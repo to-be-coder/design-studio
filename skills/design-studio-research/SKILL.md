@@ -163,7 +163,10 @@ anatomy with research's craft filled in. Every round starts at step 1, including
      then the candidate verbatim with both sides + reframe-test
      legs, `supersedes_if_taken:`, `blocks:`, receipts), `## Questions for you` (every research-exhausted
      L-entry's `ask:` + receipts), `## Proposed` (untriaged `build`-lean candidates as `### W<N>:`
-     entries with receipts + ASSUMPTION marks). **Write Tier 1 prose in everyday language** (the
+     entries with receipts + ASSUMPTION marks). Every Proposed entry and every `dont-build`-lean card
+     opens with `what:` / `for:` / `against:`, one plain sentence each (the exact feature, the
+     strongest reason for, the strongest reason against); receipt-verify fails a reviewable candidate
+     missing any of the three, so the skim layer is contract, not courtesy. **Write Tier 1 prose in everyday language** (the
      CONVENTIONS plain-language hard rule): what it means and what taking or rejecting it changes,
      in words a client could read cold; the research vocabulary stays in the decision files and the
      receipts. Tier 2: `## Build now` (human-confirmed ONLY, from the

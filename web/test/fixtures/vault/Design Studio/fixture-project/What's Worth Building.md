@@ -51,10 +51,16 @@ in_their_words: "The screenshot lied to me. I want the real running thing on eve
 ## Proposed
 
 ### W2: A pannable spatial canvas
+what: One pannable board that holds research, decisions, and the prototype side by side.
+for: Everything about the project is visible in one place, no tab-hopping.
+against: Rests on reviewers trusting a restated problem, which is unverified.
 - One world shows research through prototype without the pieces fighting for a screen. [[02 Research/Company|company]] "The pain is not authoring"
 - ASSUMPTION: Reviewers will trust an AI-restated problem over their own brief. [[Knowns & Unknowns|L1]]
 
 ### W4: A one-glance loop checkpoint
+what: A single status signal that says whether the loop needs you right now.
+for: Interrupts the team at the right moment instead of asking them to poll.
+against: Assumes one signal is enough, which no round has tested.
 - A single signal could interrupt the team at the right moment, if one signal is enough. [[Knowns & Unknowns|L4]]
 
 ## Backlog

@@ -350,6 +350,25 @@ async function main() {
       }
     }
 
+    // Reviewable candidates must be skimmable: every Proposed entry, and every
+    // Don't build entry that is an AI proposal, carries a one-line what:, for:,
+    // and against:. The receipted bullets stay as the folded evidence.
+    {
+      for (const secName of ["Proposed", "Don't build"]) {
+        const sec = wwbRaw.match(new RegExp(`^## ${secName.replace(/'/g, "'")}\\s*$([\\s\\S]*?)(?=^## |\\n*$(?![\\s\\S]))`, "m"));
+        if (!sec) continue;
+        const entries = sec[1].split(/^### /m).slice(1);
+        for (const entry of entries) {
+          const title = entry.split("\n", 1)[0].trim();
+          if (secName === "Don't build" && !/proposed-by-AI/i.test(entry)) continue;
+          for (const need of ["what", "for", "against"]) {
+            if (!new RegExp(`^${need}:\\s*\\S`, "m").test(entry))
+              violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `candidate lacks a one-line ${need}: ${title.slice(0, 80)}`);
+          }
+        }
+      }
+    }
+
     // Parked directions picks must be clickable: an ask: line, and the drafted
     // options as an options: list (two lines minimum). Prose alone leaves the
     // reviewer a card with nothing to press.

@@ -223,6 +223,12 @@ export interface WwbEntry {
   inTheirWords: string | null;
   /** Who ruled it (a `ruled_by:` line), for a Build-now entry. */
   ruledBy: string | null;
+  /** One plain sentence: the exact thing that would be built. */
+  what: string | null;
+  /** The strongest reason to build it, one line. */
+  forLine: string | null;
+  /** The strongest reason not to, one line. */
+  againstLine: string | null;
   /** A cited L-id retired or dropped a grade since the ruling → re-rule. */
   evidenceMoved: boolean;
 }
