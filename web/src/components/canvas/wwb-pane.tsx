@@ -102,7 +102,7 @@ interface VerdictState {
  */
 interface RulingState {
   id: string;
-  disposition: "accept" | "reject" | "reshape";
+  disposition: "accept" | "reject" | "reshape" | "pick";
 }
 
 function WwbTabs({
@@ -125,7 +125,7 @@ function WwbTabs({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ruling, setRuling] = useState<RulingState | null>(null);
   const [rulingBusy, setRulingBusy] = useState<string | null>(null);
-  const [rulingDone, setRulingDone] = useState<Record<string, "accept" | "reject" | "reshape">>({});
+  const [rulingDone, setRulingDone] = useState<Record<string, "accept" | "reject" | "reshape" | "pick">>({});
   const [rulingError, setRulingError] = useState<{ id: string; message: string } | null>(null);
   const [answerBusy, setAnswerBusy] = useState<string | null>(null);
   const [answersDone, setAnswersDone] = useState<Record<string, string>>({});
@@ -236,7 +236,7 @@ function WwbTabs({
   // the call everything else re-scopes on, so it does not wait in the batch.
   const recordRuling = async (
     p: WwbParked,
-    disposition: "accept" | "reject" | "reshape",
+    disposition: "accept" | "reject" | "reshape" | "pick",
     words = "",
   ) => {
     if (rulingBusy) return;
@@ -257,7 +257,7 @@ function WwbTabs({
             id: p.id,
             kind: p.kind,
             disposition,
-            words: disposition === "reshape" ? words : "",
+            words: disposition === "reshape" || disposition === "pick" ? words : "",
             confirmed: true,
             candidate: p.candidate,
           },
@@ -750,17 +750,16 @@ function RulingCard({
   parked: WwbParked;
   slug: string;
   interactive: boolean;
-  picked: "accept" | "reject" | "reshape" | null;
+  picked: "accept" | "reject" | "reshape" | "pick" | null;
   busy: boolean;
-  recorded: "accept" | "reject" | "reshape" | null;
+  recorded: "accept" | "reject" | "reshape" | "pick" | null;
   error: string | null;
   onFocusReceipt?: (docKey: string) => void;
-  onPick: (d: "accept" | "reject" | "reshape", words?: string) => void;
+  onPick: (d: "accept" | "reject" | "reshape" | "pick", words?: string) => void;
 }) {
   // The card leads with the ask and the buttons; the full case (the proposal's
   // own words, both sides, receipts) stays folded until asked for.
   const [caseOpen, setCaseOpen] = useState(false);
-  const [pickWords, setPickWords] = useState("");
   const hasCase = !!parked.candidate || parked.bodyBlocks.length > 0 || parked.receipts.length > 0;
   // A directions pick has no single proposal to accept (the recorder refuses a
   // bare accept on one); the card asks for the pick in the human's own words.
@@ -769,7 +768,7 @@ function RulingCard({
   // still get a plain explanation of what kind of decision this is.
   const FALLBACK_ASK: Record<string, string> = {
     "directions-pick":
-      "This is a pick between drafted options, so there is no single thing to accept. Open the full case to read the options, then type your pick below.",
+      "This is a pick between drafted options, so there is no single thing to accept. Open the full case to read what each option means, then click the one you pick.",
     "framing-departure":
       "Research believes the evidence changes what problem this project is solving. Accepting replaces the current framing with the proposal in the full case; rejecting keeps the framing as is.",
     "route-call":
@@ -843,55 +842,50 @@ function RulingCard({
         // the card stays visible as a recorded ruling until research
         // re-scopes What's Worth Building, then clears with the next round.
         <p className="mt-2 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }} data-testid="ruling-recorded">
-          Ruling recorded: {recorded === "reshape" ? "your pick" : recorded}. Research re-scopes
-          around it, then this card clears.
+          Ruling recorded: {recorded === "reshape" || recorded === "pick" ? "your pick" : recorded}.
+          Research re-scopes around it, then this card clears.
         </p>
       ) : interactive ? (
         isPick ? (
           <>
             <p className="mb-2 text-[0.8125rem] text-ink-muted">
-              Typing your pick and recording it is the ruling; reject sends the whole set back.
+              {parked.options.length
+                ? "Click the option you pick; that click is the ruling. None of these sends the set back."
+                : "The drafted options live in the full case; they turn into one-click choices after the next research pass. None of these sends the set back."}
             </p>
-            <textarea
-              value={pickWords}
-              onChange={(e) => setPickWords(e.target.value)}
-              rows={2}
-              placeholder="Your pick, in your own words…"
-              data-testid="ruling-pick-words"
-              className="mb-2 w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
-            />
-            <div className="mb-1 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                data-testid="ruling-reshape"
-                aria-pressed={picked === "reshape"}
-                disabled={busy || !pickWords.trim()}
-                onClick={() => onPick("reshape", pickWords.trim())}
-                className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                style={
-                  picked === "reshape"
-                    ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-                    : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
-                }
-              >
-                {busy && picked === "reshape" ? "Recording…" : "Record pick"}
-              </button>
-              <button
-                type="button"
-                data-testid="ruling-reject"
-                aria-pressed={picked === "reject"}
-                disabled={busy}
-                onClick={() => onPick("reject")}
-                className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                style={
-                  picked === "reject"
-                    ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-                    : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
-                }
-              >
-                {busy && picked === "reject" ? "Recording…" : "reject"}
-              </button>
-            </div>
+            {parked.options.length ? (
+              <div className="mb-2 space-y-2">
+                {parked.options.map((o) => (
+                  <button
+                    key={o.label}
+                    type="button"
+                    data-testid={`ruling-pick-${o.label}`}
+                    disabled={busy}
+                    onClick={() => onPick("pick", `${o.label}: ${o.text}`)}
+                    className="w-full rounded-inset border px-3 py-2 text-left text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }}
+                  >
+                    <span className="mr-2" style={{ color: "var(--accent)" }}>{o.label}</span>
+                    {busy && picked === "pick" ? "Recording…" : o.text}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              data-testid="ruling-reject"
+              aria-pressed={picked === "reject"}
+              disabled={busy}
+              onClick={() => onPick("reject")}
+              className="mb-1 w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              style={
+                picked === "reject"
+                  ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
+                  : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+              }
+            >
+              {busy && picked === "reject" ? "Recording…" : "None of these, send it back"}
+            </button>
             {error ? <p className="mt-1 text-[0.8125rem] text-unverified">{error}</p> : null}
           </>
         ) : (

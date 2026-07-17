@@ -441,7 +441,15 @@ async function parseQuestions(
   );
 }
 
-const PARKED_LABELS = new Set(["kind", "supersedes", "supersedes_if_taken", "blocks", "receipts", "ask"]);
+const PARKED_LABELS = new Set([
+  "kind",
+  "supersedes",
+  "supersedes_if_taken",
+  "blocks",
+  "receipts",
+  "ask",
+  "options",
+]);
 
 /** Parse the `## Parked decisions` tier: the verbatim candidate + both-sides body. */
 async function parseParked(
@@ -458,11 +466,25 @@ async function parseParked(
       let supersedes: string | null = null;
       let blocks: string | null = null;
       let ask: string | null = null;
+      const options: { label: string; text: string }[] = [];
+      let inOptions = false;
       const quoteLines: string[] = [];
       const body: string[] = [];
       for (const line of g.lines) {
+        if (inOptions) {
+          const opt = line.match(/^\s*-\s*([A-Za-z0-9]{1,3}):\s*(.+)$/);
+          if (opt) {
+            options.push({ label: opt[1], text: opt[2].trim() });
+            continue;
+          }
+          inOptions = false;
+        }
         const lab = labeledLine(line, PARKED_LABELS);
         if (lab) {
+          if (lab.key === "options") {
+            inOptions = true;
+            continue;
+          }
           if (lab.key === "kind") kind = normalizeParkedKind(lab.value);
           else if (lab.key === "supersedes" || lab.key === "supersedes_if_taken")
             supersedes = stripWiki(unquote(lab.value)) || null;
@@ -490,6 +512,7 @@ async function parseParked(
         kind,
         title,
         ask,
+        options,
         candidate: quoteLines.join(" "),
         supersedes,
         blocks,

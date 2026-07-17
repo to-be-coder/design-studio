@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 const LEDGER_FILE = "Knowns & Unknowns.md";
 const VERDICTS = new Set(["build-now", "backlog", "dont-build"]);
-const DISPOSITIONS = new Set(["accept", "reshape", "reject"]);
+const DISPOSITIONS = new Set(["accept", "reshape", "reject", "pick"]);
 
 interface Verdict {
   id: string;
@@ -99,7 +99,8 @@ export async function POST(req: Request) {
   // ruling: only with confirmed === true. Accepting or rejecting the candidate
   // as written is a complete ruling with no words needed; a reshape requires
   // words that are not the candidate text verbatim (an unedited candidate is
-  // not a reshape).
+  // not a reshape). A pick carries the chosen drafted option as its words:
+  // selected by click, never typed, so the block has a quotable span.
   let ruling: Ruling | null = null;
   if (body.ruling && typeof body.ruling === "object") {
     const r = body.ruling as {
@@ -115,14 +116,18 @@ export async function POST(req: Request) {
     const words = typeof r.words === "string" ? r.words.trim() : "";
     const candidate = typeof r.candidate === "string" ? r.candidate : "";
     const wordsOk =
-      disposition === "reshape" ? Boolean(words) && norm(words) !== norm(candidate) : true;
+      disposition === "reshape"
+        ? Boolean(words) && norm(words) !== norm(candidate)
+        : disposition === "pick"
+          ? Boolean(words)
+          : true;
     if (r.confirmed === true && id && DISPOSITIONS.has(disposition) && wordsOk) {
       ruling = {
         id,
         kind: typeof r.kind === "string" ? r.kind.trim() : undefined,
         disposition,
         // The UI shows no words field on accept/reject; drop anything stale.
-        words: disposition === "reshape" ? words : "",
+        words: disposition === "reshape" || disposition === "pick" ? words : "",
       };
     }
   }
