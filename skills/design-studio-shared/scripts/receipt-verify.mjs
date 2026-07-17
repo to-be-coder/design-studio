@@ -349,6 +349,28 @@ async function main() {
         violation(`${WWB} [${sec}]`, `reason bullet lacks a receipt or ASSUMPTION: mark: ${unit.trim().slice(0, 120)}`);
       }
     }
+
+    // Parked directions picks must be clickable: an ask: line, and the drafted
+    // options as an options: list (two lines minimum). Prose alone leaves the
+    // reviewer a card with nothing to press.
+    {
+      const parkedSec = wwbRaw.match(/^## Parked decisions\s*$([\s\S]*?)(?=^## |\n*$(?![\s\S]))/m);
+      if (parkedSec) {
+        const entries = parkedSec[1].split(/^### /m).slice(1);
+        for (const entry of entries) {
+          const title = entry.split("\n", 1)[0].trim();
+          if (!/^kind:\s*directions-pick/m.test(entry)) continue;
+          if (!/^ask:\s*\S/m.test(entry))
+            violation(`${WWB} [parked]`, `directions pick lacks an ask: line: ${title.slice(0, 80)}`);
+          const optHeader = entry.match(/^options:\s*$/m);
+          const optCount = optHeader
+            ? (entry.slice(optHeader.index).match(/^\s+-\s+[A-Za-z0-9]{1,3}:\s+\S/gm) || []).length
+            : 0;
+          if (optCount < 2)
+            violation(`${WWB} [parked]`, `directions pick needs an options: list with at least two drafted options: ${title.slice(0, 80)}`);
+        }
+      }
+    }
   }
 
   // What's Worth Building v2 (e): W-ids + Build now ruled_by, gated on a Candidates
