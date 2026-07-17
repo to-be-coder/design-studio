@@ -102,7 +102,7 @@ interface VerdictState {
  */
 interface RulingState {
   id: string;
-  disposition: "accept" | "reject";
+  disposition: "accept" | "reject" | "reshape";
 }
 
 function WwbTabs({
@@ -125,7 +125,7 @@ function WwbTabs({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [ruling, setRuling] = useState<RulingState | null>(null);
   const [rulingBusy, setRulingBusy] = useState<string | null>(null);
-  const [rulingDone, setRulingDone] = useState<Record<string, "accept" | "reject">>({});
+  const [rulingDone, setRulingDone] = useState<Record<string, "accept" | "reject" | "reshape">>({});
   const [rulingError, setRulingError] = useState<{ id: string; message: string } | null>(null);
   const [answerBusy, setAnswerBusy] = useState<string | null>(null);
   const [answersDone, setAnswersDone] = useState<Record<string, string>>({});
@@ -234,7 +234,11 @@ function WwbTabs({
 
   // Record ruling posts the ruling by itself, immediately: a framing ruling is
   // the call everything else re-scopes on, so it does not wait in the batch.
-  const recordRuling = async (p: WwbParked, disposition: "accept" | "reject") => {
+  const recordRuling = async (
+    p: WwbParked,
+    disposition: "accept" | "reject" | "reshape",
+    words = "",
+  ) => {
     if (rulingBusy) return;
     setRuling({ id: p.id, disposition });
     setRulingBusy(p.id);
@@ -253,7 +257,7 @@ function WwbTabs({
             id: p.id,
             kind: p.kind,
             disposition,
-            words: "",
+            words: disposition === "reshape" ? words : "",
             confirmed: true,
             candidate: p.candidate,
           },
@@ -358,7 +362,7 @@ function WwbTabs({
                 recorded={rulingDone[p.id] ?? p.recorded ?? null}
                 error={rulingError?.id === p.id ? rulingError.message : null}
                 onFocusReceipt={onFocusReceipt}
-                onPick={(disposition) => recordRuling(p, disposition)}
+                onPick={(disposition, words) => recordRuling(p, disposition, words)}
               />
             ))}
             {questionsNeeds.length > 0 ? (
@@ -746,17 +750,32 @@ function RulingCard({
   parked: WwbParked;
   slug: string;
   interactive: boolean;
-  picked: "accept" | "reject" | null;
+  picked: "accept" | "reject" | "reshape" | null;
   busy: boolean;
   recorded: "accept" | "reject" | "reshape" | null;
   error: string | null;
   onFocusReceipt?: (docKey: string) => void;
-  onPick: (d: "accept" | "reject") => void;
+  onPick: (d: "accept" | "reject" | "reshape", words?: string) => void;
 }) {
   // The card leads with the ask and the buttons; the full case (the proposal's
   // own words, both sides, receipts) stays folded until asked for.
   const [caseOpen, setCaseOpen] = useState(false);
+  const [pickWords, setPickWords] = useState("");
   const hasCase = !!parked.candidate || parked.bodyBlocks.length > 0 || parked.receipts.length > 0;
+  // A directions pick has no single proposal to accept (the recorder refuses a
+  // bare accept on one); the card asks for the pick in the human's own words.
+  const isPick = parked.kind === "directions-pick";
+  // Renders without an ask: line (written before the contract required one)
+  // still get a plain explanation of what kind of decision this is.
+  const FALLBACK_ASK: Record<string, string> = {
+    "directions-pick":
+      "This is a pick between drafted options, so there is no single thing to accept. Open the full case to read the options, then type your pick below.",
+    "framing-departure":
+      "Research believes the evidence changes what problem this project is solving. Accepting replaces the current framing with the proposal in the full case; rejecting keeps the framing as is.",
+    "route-call":
+      "A call on how much of the pipeline this project runs. Accepting takes the proposed route; rejecting keeps the current one.",
+  };
+  const ask = parked.ask ?? FALLBACK_ASK[parked.kind] ?? null;
   // The supersedes value may carry a trailing note ("(the loop's own earlier
   // proposal)"); the stakes line wants just the decision id.
   const supersededId = parked.supersedes?.match(/\b\d{3,4}\b/)?.[0] ?? null;
@@ -771,9 +790,9 @@ function RulingCard({
         <span className="eyebrow">{parked.kind.replace(/-/g, " ")}</span>
       </div>
 
-      {parked.ask ? (
+      {ask ? (
         <p className="mb-3 max-w-[34rem] text-[0.9375rem] text-ink" data-testid="ruling-ask">
-          {parked.ask}
+          {ask}
         </p>
       ) : null}
 
@@ -824,10 +843,59 @@ function RulingCard({
         // the card stays visible as a recorded ruling until research
         // re-scopes What's Worth Building, then clears with the next round.
         <p className="mt-2 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }} data-testid="ruling-recorded">
-          Ruling recorded: {recorded}. Research re-scopes around it, then this card clears.
+          Ruling recorded: {recorded === "reshape" ? "your pick" : recorded}. Research re-scopes
+          around it, then this card clears.
         </p>
       ) : interactive ? (
-        <>
+        isPick ? (
+          <>
+            <p className="mb-2 text-[0.8125rem] text-ink-muted">
+              Typing your pick and recording it is the ruling; reject sends the whole set back.
+            </p>
+            <textarea
+              value={pickWords}
+              onChange={(e) => setPickWords(e.target.value)}
+              rows={2}
+              placeholder="Your pick, in your own words…"
+              data-testid="ruling-pick-words"
+              className="mb-2 w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
+            />
+            <div className="mb-1 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                data-testid="ruling-reshape"
+                aria-pressed={picked === "reshape"}
+                disabled={busy || !pickWords.trim()}
+                onClick={() => onPick("reshape", pickWords.trim())}
+                className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                style={
+                  picked === "reshape"
+                    ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
+                    : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+                }
+              >
+                {busy && picked === "reshape" ? "Recording…" : "Record pick"}
+              </button>
+              <button
+                type="button"
+                data-testid="ruling-reject"
+                aria-pressed={picked === "reject"}
+                disabled={busy}
+                onClick={() => onPick("reject")}
+                className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                style={
+                  picked === "reject"
+                    ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
+                    : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+                }
+              >
+                {busy && picked === "reject" ? "Recording…" : "reject"}
+              </button>
+            </div>
+            {error ? <p className="mt-1 text-[0.8125rem] text-unverified">{error}</p> : null}
+          </>
+        ) : (
+          <>
             {/* One click IS the ruling: it posts the moment you choose. */}
             <p className="mb-2 text-[0.8125rem] text-ink-muted">
               One click records it: accept takes the proposal as written, reject turns it down.
@@ -854,6 +922,7 @@ function RulingCard({
             </div>
             {error ? <p className="mt-1 text-[0.8125rem] text-unverified">{error}</p> : null}
           </>
+        )
       ) : null}
     </article>
   );

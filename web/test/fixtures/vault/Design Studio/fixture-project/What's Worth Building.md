@@ -27,6 +27,15 @@ receipts: [[0009 refined-direction|0009]] [[02 Research/Interviews|R2]]
 
 Both sides: ruling framing-first re-scopes the whole Build-now set against the reframed problem, at the cost of a slower start. Keeping scope-first ships something clickable sooner but risks re-litigating the frame mid-build. This passes the reframe test, so it is yours to call.
 
+### 0042: Directions pick, where the export lives
+kind: directions-pick
+blocks: build now
+receipts: [[0009 refined-direction|0009]]
+
+> Option A: export lives on each card. Option B: one export tray for the whole board.
+
+Both drafted options are in the case; the pick is taste, so it is yours.
+
 ## Build now
 
 ### W1: Evidence-first cards
