@@ -7,8 +7,9 @@ import type { LoopProgress } from "./types";
 
 /**
  * Run design-studio skills as headless background passes from the canvas:
- * `debrief` round 1 when a project is created, and the `research` Understand
- * loop on demand (or resumed with a human-answer batch). Each spawns a real
+ * `debrief` round 1 when a project is created, the `research` Understand
+ * loop on demand (or resumed with a human-answer batch), and a one-shot
+ * `structure` draft from the empty Structure board. Each spawns a real
  * Claude agent that WRITES the vault, so the whole capability is gated behind
  * DESIGN_STUDIO_AUTORUN_DEBRIEF (opt-in, off by default), so it can never fire in
  * tests or surprise anyone. Everything a run writes stays `proposed`/provisional,
@@ -52,10 +53,10 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 /**
  * Stages the canvas can trigger on demand from their board (debrief auto-runs on
- * Create). Only `research` is runnable; structure is `runnable: false` in the
- * schema, so it is copy-command only.
+ * Create). `research` starts the spawn-per-round Understand loop; `structure`
+ * fires one headless drafting pass of 03 Structure.md the user then edits.
  */
-export const RUNNABLE_STAGES = new Set(["research"]);
+export const RUNNABLE_STAGES = new Set(["research", "structure"]);
 export function isRunnableStage(stage: string): boolean {
   return RUNNABLE_STAGES.has(stage);
 }
@@ -161,6 +162,31 @@ export function startDebriefDraft({ slug, name, brief, client, vaultRoot, projec
     projectDir,
     logName: ".debrief-draft.log",
     onCleanExit: () => chainResearchLoop({ slug, vaultRoot, projectDir }),
+  });
+}
+
+/**
+ * Fire ONE headless structure drafting pass: the skill proposes 03 Structure.md
+ * (user flows + information architecture) as a 🟡 draft the user edits.
+ * One-shot, no hand-off: a clean exit marks the run `done` and the poll
+ * refreshes the board; nothing chains after it.
+ */
+export function startStructureDraft({
+  slug,
+  vaultRoot,
+  projectDir,
+}: {
+  slug: string;
+  vaultRoot: string;
+  projectDir: string;
+}): void {
+  runSkill({
+    slug,
+    stage: "structure",
+    prompt: structurePrompt({ slug, vaultRoot }),
+    vaultRoot,
+    projectDir,
+    logName: ".structure-draft.log",
   });
 }
 
@@ -1036,6 +1062,28 @@ function debriefPrompt({
     "- Seed a thin What's Worth Building.md (Implied but unruled from the full vision; Build and Don't build empty).",
     "- Set 00 Dashboard.md's Current stage to `Current stage: debrief: seeded: round 1`.",
     "Everything stays proposed/provisional. Do not run any other pipeline stage. Do not ask questions.",
+  ].join("\n");
+}
+
+/**
+ * The prompt for ONE headless structure draft. The skill drafts the product's
+ * bones (user flows + information architecture) from the human-confirmed set
+ * only; the result is a draft the human edits, and nothing chains after it.
+ */
+function structurePrompt({ slug, vaultRoot }: { slug: string; vaultRoot: string }): string {
+  return [
+    "Run the design-studio-structure skill as ONE headless drafting pass for an existing project, per its SKILL.md, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation.",
+    "",
+    `Vault: ${vaultRoot}`,
+    `Project slug: ${slug} (folder: Design Studio/${slug}/)`,
+    "",
+    "Read the skill's ../design-studio-shared/CONVENTIONS.md first, as the skill itself instructs.",
+    "",
+    "This pass:",
+    "- Read the accepted recommendation and What's Worth Building.md, and take its Build now section ONLY as the feature set: that is the human-confirmed set. Do not structure anything from Backlog, Don't build, or Implied but unruled.",
+    "- Draft 03 Structure.md per the skill: task flows for the core journeys, the screen/state inventory, and the navigation model.",
+    "- It is a draft the human edits: propose, never decide. Keep everything supersedable and author no human verdicts.",
+    "- Close the way the skill's own close ritual says (the dashboard's stage line), then STOP. Do not run any other pipeline stage. Do not ask questions.",
   ].join("\n");
 }
 

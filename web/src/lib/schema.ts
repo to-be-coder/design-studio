@@ -64,7 +64,9 @@ export const STAGES: StageDef[] = [
     phase: "Build",
     autonomy: "draft",
     autonomyIcon: "🟡",
-    runnable: false,
+    // Runnable: the draft completes with no mid-run 🔴 (the human edits the
+    // result), so the canvas may spawn it headlessly. Still a 🟡 draft.
+    runnable: true,
     outputs: ["03 Structure.md"],
     blurb: "Draft user flows + information architecture from the accepted recommendation.",
     gate: "🟡 — the skill drafts; you edit. Consumed by design-system and build.",
