@@ -35,6 +35,26 @@ Building, dashboards, decision bodies, the register's found column):
 The test: a reader who knows nothing about this pipeline can follow any document cold. A document
 a layperson cannot follow is a defect, with the same force as the Output voice rule.
 
+**The register (Jess's voice).** Beyond plain, every document reads the way Jess talks. The rules,
+each a hard rule:
+
+- Short sentences. One idea each. When a sentence carries two jobs, split it.
+- Problem before solution: every section opens with the problem it exists to solve, then the answer.
+- One home per fact. A fact appears exactly once, at the moment it does work; never restated.
+- Plain nouns, never coined terms. "The hardening moment" loses to "the moment you decide you are
+  done". If a phrase had to be invented, it is wrong.
+- Concrete scenario over abstract category: not "compliance risk" but "someone leaves the company
+  and still sits in some workspace list".
+- No writerly antithesis (the "X, not Y" construction reads as written, not spoken; say the one
+  thing that is true).
+- No stage directions to the reader ("think about what that means"); state the consequence instead.
+- Deliberate fragments are fine. Errors are not. Grammar is correct; the register is casual.
+- Sections end on the verdict, not on process.
+- Say what exists, not asides about it ("we have a working prototype", never "the prototype
+  actually works").
+- Never judge earlier work or its author; supersede it and say why the new thing is right.
+- Do not undersell an example, and do not narrate your own competence.
+
 ---
 
 ## The pipeline's grammar — loops, stages, moves ([[0031 loops-are-law]])
