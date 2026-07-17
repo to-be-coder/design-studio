@@ -349,7 +349,7 @@ test.describe("WWB review band", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("ruling-first (runs on): verdict buttons hidden; Record ruling and Record answer each post immediately", async ({
+  test("a parked call never locks triage: verdict buttons stay live; Record ruling and Record answer each post immediately", async ({
     page,
   }) => {
     const errors = trackConsoleErrors(page);
@@ -364,13 +364,14 @@ test.describe("WWB review band", () => {
     });
     await page.goto("/canvas/fixture-project?runs=1");
 
-    // Ruling-first: the tabs open on Needs you; proposed entries stay read-only
-    // (no verdict buttons anywhere), and the Proposed tab carries the re-scope note.
+    // Ruling-first only picks the landing tab: the tabs open on Needs you,
+    // while the Build-candidates verdicts stay live alongside the parked call
+    // (a parked call never locks triage).
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-ruling").first()).toBeVisible();
-    await expect(page.getByTestId("verdict-build-now")).toHaveCount(0);
     await page.getByTestId("wwb-tab-proposed").click();
-    await expect(page.getByTestId("proposed-rescope-note")).toBeVisible();
+    await expect(page.getByTestId("proposed-rescope-note")).toHaveCount(0);
+    await expect(page.getByTestId("wwb-proposed").getByTestId("verdict-build-now").first()).toBeVisible();
 
     // Back on Needs you: accept or reject only, no words box, no reshape, no
     // confirm step. Record ruling posts the ruling by itself, immediately.

@@ -6,6 +6,10 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **A parked call no longer locks the verdict buttons.** Build-candidates cards keep their three
+  verdicts whatever else is waiting; ruling-first now only chooses the landing tab. Also, a parked
+  entry that carries options is treated as a pick even when its kind line is missing, so a dead
+  Accept can never regrow on a choose-one card.
 - **Candidate cards lead with the feature, not the essay.** Every reviewable card in Build
   candidates now opens with three one-line summaries the machine must write: what exactly would be
   built, the strongest reason for, and the strongest reason against. The receipted evidence folds
