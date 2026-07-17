@@ -157,7 +157,9 @@ anatomy with research's craft filled in. Every round starts at step 1, including
      the eight tiered sections in reading order. Tier 1: `## Parked decisions` (one entry per live
      `proposed` 🔴 decision, opening with an `ask:` line, one plain sentence naming exactly what the
      human is deciding and what a yes takes; a directions pick also carries an `options:` list, one
-     plain line per drafted option with an `A:` / `B:` label, each rendered as a one-click choice;
+     plain line per drafted option with an `A:` / `B:` label, each rendered as a one-click choice
+     (receipt-verify FAILS a directions pick missing its `ask:` or carrying fewer than two options,
+     so a prose-only pick is a render defect, not a style choice);
      then the candidate verbatim with both sides + reframe-test
      legs, `supersedes_if_taken:`, `blocks:`, receipts), `## Questions for you` (every research-exhausted
      L-entry's `ask:` + receipts), `## Proposed` (untriaged `build`-lean candidates as `### W<N>:`
