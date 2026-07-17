@@ -324,14 +324,8 @@ test.describe("WWB review band", () => {
 
     const build = page.getByTestId("verdict-build-now").first();
     await expect(build).toBeVisible();
-    await expect(build).toHaveAttribute("aria-pressed", "false");
+    // Accept records on the click itself: no note step, no separate button.
     await build.click();
-    await expect(build).toHaveAttribute("aria-pressed", "true");
-
-    // Selecting reveals the note + the card's own Record button; no bottom bar.
-    await page.getByTestId("verdict-note").first().fill("Ship the checkpoint.");
-    await expect(page.getByTestId("submit-review")).toHaveCount(0);
-    await page.getByTestId("verdict-record").first().click();
 
     // The card leaves Build candidates immediately and files under Build input
     // as recorded-and-folding-in; the posted payload is exactly one verdict.
@@ -343,7 +337,6 @@ test.describe("WWB review band", () => {
     await expect(recorded.getByTestId("verdict-recorded")).toContainText(/folding it in/i);
     expect(captured.verdicts).toHaveLength(1);
     expect(captured.verdicts[0].verdict).toBe("build-now");
-    expect(captured.verdicts[0].note).toBe("Ship the checkpoint.");
     expect(captured.answers).toEqual([]);
     expect(captured.ruling ?? null).toBeNull();
     expect(errors, errors.join("\n")).toEqual([]);
@@ -378,7 +371,6 @@ test.describe("WWB review band", () => {
     await expect(page.getByTestId("ruling-reshape")).toHaveCount(0);
     await expect(page.getByTestId("ruling-words")).toHaveCount(0);
     await page.getByTestId("ruling-accept").click();
-    await page.getByTestId("ruling-record").click();
     await expect(page.getByTestId("ruling-recorded")).toBeVisible();
     expect(captured.ruling).not.toBeNull();
     expect(captured.ruling.id).toBe("W7");
@@ -430,42 +422,46 @@ test.describe("WWB tabs", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("tab switching preserves a selected verdict and a typed note (triage)", async ({ page }) => {
+  test("tab switching preserves a backlog selection and its typed note (triage)", async ({ page }) => {
     const errors = trackConsoleErrors(page);
-    // fixture-minimal has no parked / no questions, so it opens on Proposed in triage mode.
+    // fixture-minimal has no parked / no questions, so it opens on Proposed in
+    // triage mode. Backlog is the one verdict that opens a note instead of
+    // recording on the click, so it is the one with draft state to preserve.
     await page.goto("/canvas/fixture-minimal?runs=1");
 
     await expect(page.getByTestId("wwb-tab-proposed")).toHaveAttribute("aria-selected", "true");
-    const build = page.getByTestId("verdict-build-now").first();
-    await build.click();
-    await expect(build).toHaveAttribute("aria-pressed", "true");
+    const backlog = page.getByTestId("verdict-backlog").first();
+    await backlog.click();
+    await expect(backlog).toHaveAttribute("aria-pressed", "true");
     await page.getByTestId("verdict-note").first().fill("Ship the cheap early signal.");
+    await page.getByTestId("verdict-unblocks").first().fill("After the probe lands.");
 
     // Switch away (Build input) and back: the panel only hides, so the selection + note survive.
     await page.getByTestId("wwb-tab-build-input").click();
     await expect(page.getByTestId("wwb-proposed")).toBeHidden();
     await page.getByTestId("wwb-tab-proposed").click();
-    await expect(page.getByTestId("verdict-build-now").first()).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("verdict-backlog").first()).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByTestId("verdict-note").first()).toHaveValue("Ship the cheap early signal.");
+    await expect(page.getByTestId("verdict-unblocks").first()).toHaveValue("After the probe lands.");
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
-  test("tab switching preserves a typed answer and the ruling draft (ruling-first)", async ({ page }) => {
+  test("tab switching preserves a typed answer (rulings have no draft: the click records)", async ({
+    page,
+  }) => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project?runs=1");
 
-    // Pick a disposition and type an answer, both on the one Needs-you tab
-    // (nothing posts until a record button is hit).
-    await page.getByTestId("ruling-accept").click();
+    // Type an answer on Needs you. Nothing posts until its record button; the
+    // ruling buttons carry no draft at all now (a click on them records).
     await page.getByTestId("answer-L1").fill("I act on the restated problem.");
 
     // Switch away to Build candidates and back.
     await page.getByTestId("wwb-tab-proposed").click();
     await page.getByTestId("wwb-tab-needs-you").click();
 
-    // Both drafts survive the round-trip.
-    await expect(page.getByTestId("ruling-accept")).toHaveAttribute("aria-pressed", "true");
+    // The draft survives the round-trip.
     await expect(page.getByTestId("answer-L1")).toHaveValue("I act on the restated problem.");
 
     expect(errors, errors.join("\n")).toEqual([]);

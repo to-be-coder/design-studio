@@ -235,8 +235,9 @@ function WwbTabs({
 
   // Record ruling posts the ruling by itself, immediately: a framing ruling is
   // the call everything else re-scopes on, so it does not wait in the batch.
-  const recordRuling = async (p: WwbParked) => {
-    if (!ruling || ruling.id !== p.id || rulingBusy) return;
+  const recordRuling = async (p: WwbParked, disposition: "accept" | "reject") => {
+    if (rulingBusy) return;
+    setRuling({ id: p.id, disposition });
     setRulingBusy(p.id);
     setRulingError(null);
     try {
@@ -252,7 +253,7 @@ function WwbTabs({
           ruling: {
             id: p.id,
             kind: p.kind,
-            disposition: ruling.disposition,
+            disposition,
             words: "",
             confirmed: true,
             candidate: p.candidate,
@@ -265,7 +266,7 @@ function WwbTabs({
         setRulingBusy(null);
         return;
       }
-      setRulingDone((prev) => ({ ...prev, [p.id]: ruling.disposition }));
+      setRulingDone((prev) => ({ ...prev, [p.id]: disposition }));
       setRulingBusy(null);
       onRunStarted?.();
       router.refresh();
@@ -277,8 +278,10 @@ function WwbTabs({
 
   // Record verdict posts one candidate's ruling by itself, immediately, the
   // same as Record answer and Record ruling: no batch, no second surface.
-  const recordVerdict = async (e: WwbEntry) => {
-    const v = verdicts[e.id];
+  const recordVerdict = async (e: WwbEntry, direct?: WwbDisposition) => {
+    // Accept and Don't build auto-submit on click (no note). Backlog goes
+    // through the selected state so its optional note and unblocks ride along.
+    const v = direct ? { verdict: direct, note: "", unblocks: "" } : verdicts[e.id];
     if (!v || verdictBusy) return;
     setVerdictBusy(e.id);
     setVerdictError(null);
@@ -356,14 +359,7 @@ function WwbTabs({
                 recorded={rulingDone[p.id] ?? p.recorded ?? null}
                 error={rulingError?.id === p.id ? rulingError.message : null}
                 onFocusReceipt={onFocusReceipt}
-                onPick={(disposition) =>
-                  setRuling((prev) =>
-                    prev && prev.id === p.id && prev.disposition === disposition
-                      ? null
-                      : { id: p.id, disposition },
-                  )
-                }
-                onRecord={() => recordRuling(p)}
+                onPick={(disposition) => recordRuling(p, disposition)}
               />
             ))}
             {questionsNeeds.length > 0 ? (
@@ -420,7 +416,10 @@ function WwbTabs({
                   busy={verdictBusy === e.id}
                   recorded={null}
                   error={verdictError?.id === e.id ? verdictError.message : null}
-                  onVerdict={(v) => setVerdict(e.id, v)}
+                  onVerdict={(v) => {
+                    if (v === "backlog" || v == null) setVerdict(e.id, v);
+                    else recordVerdict(e, v);
+                  }}
                   onPatch={(patch) => patchVerdict(e.id, patch)}
                   onRecord={() => recordVerdict(e)}
                 />
@@ -526,7 +525,6 @@ function WwbTabs({
                         error={null}
                         onFocusReceipt={onFocusReceipt}
                         onPick={() => {}}
-                        onRecord={() => {}}
                       />
                     ))}
                   </section>
@@ -745,7 +743,6 @@ function RulingCard({
   error,
   onFocusReceipt,
   onPick,
-  onRecord,
 }: {
   parked: WwbParked;
   slug: string;
@@ -756,7 +753,6 @@ function RulingCard({
   error: string | null;
   onFocusReceipt?: (docKey: string) => void;
   onPick: (d: "accept" | "reject") => void;
-  onRecord: () => void;
 }) {
   return (
     <article
@@ -805,40 +801,28 @@ function RulingCard({
         </p>
       ) : interactive ? (
         <>
-            <div className="mb-3 grid grid-cols-2 gap-2">
+            {/* One click IS the ruling: it posts the moment you choose. */}
+            <div className="mb-1 grid grid-cols-2 gap-2">
               {(["accept", "reject"] as const).map((d) => (
                 <button
                   key={d}
                   type="button"
                   data-testid={`ruling-${d}`}
                   aria-pressed={picked === d}
+                  disabled={busy}
                   onClick={() => onPick(d)}
-                  className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors"
+                  className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   style={
                     picked === d
                       ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
                       : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
                   }
                 >
-                  {d}
+                  {busy && picked === d ? "Recording…" : d}
                 </button>
               ))}
             </div>
-
-            {error ? <p className="mb-2 text-[0.8125rem] text-unverified">{error}</p> : null}
-
-            {/* One click records it: the ruling posts by itself, right now,
-                not as part of the review batch below. */}
-            <button
-              type="button"
-              onClick={onRecord}
-              disabled={!picked || busy}
-              data-testid="ruling-record"
-              className="rounded-inset border px-3 py-1 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-            >
-              {busy ? "Recording…" : "Record ruling"}
-            </button>
+            {error ? <p className="mt-1 text-[0.8125rem] text-unverified">{error}</p> : null}
           </>
       ) : null}
     </article>
@@ -932,12 +916,15 @@ function ProposedEntry({
         </p>
       ) : triage ? (
         <div className="mt-3">
+          {/* Accept and Don't build record on the click. Backlog opens its
+              optional note first, then records with its own button. */}
           <div className="flex flex-wrap gap-2" role="group" aria-label={`Verdict for ${entry.title}`}>
-            <VerdictButton label="Accept" verdict="build-now" testid="verdict-build-now" state={state} onVerdict={onVerdict} />
-            <VerdictButton label="Backlog" verdict="backlog" testid="verdict-backlog" state={state} onVerdict={onVerdict} />
-            <VerdictButton label="Don't build" verdict="dont-build" testid="verdict-dont-build" state={state} onVerdict={onVerdict} />
+            <VerdictButton label={busy ? "Recording…" : "Accept"} verdict="build-now" testid="verdict-build-now" state={state} disabled={busy} onVerdict={onVerdict} />
+            <VerdictButton label="Backlog" verdict="backlog" testid="verdict-backlog" state={state} disabled={busy} onVerdict={onVerdict} />
+            <VerdictButton label={busy ? "Recording…" : "Don't build"} verdict="dont-build" testid="verdict-dont-build" state={state} disabled={busy} onVerdict={onVerdict} />
           </div>
-          {state ? (
+          {!state && error ? <p className="mt-2 text-[0.8125rem] text-unverified">{error}</p> : null}
+          {state?.verdict === "backlog" ? (
             <div className="mt-2 space-y-2">
               <textarea
                 value={state.note}
@@ -947,16 +934,14 @@ function ProposedEntry({
                 data-testid="verdict-note"
                 className="w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
               />
-              {state.verdict === "backlog" ? (
-                <input
-                  type="text"
-                  value={state.unblocks}
-                  onChange={(e) => onPatch({ unblocks: e.target.value })}
-                  placeholder="What unblocks it? (optional)"
-                  data-testid="verdict-unblocks"
-                  className="w-full rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] text-ink outline-none transition-colors focus-visible:border-accent"
-                />
-              ) : null}
+              <input
+                type="text"
+                value={state.unblocks}
+                onChange={(e) => onPatch({ unblocks: e.target.value })}
+                placeholder="What unblocks it? (optional)"
+                data-testid="verdict-unblocks"
+                className="w-full rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] text-ink outline-none transition-colors focus-visible:border-accent"
+              />
               {error ? <p className="text-[0.8125rem] text-unverified">{error}</p> : null}
               <button
                 type="button"
@@ -966,7 +951,7 @@ function ProposedEntry({
                 className="rounded-inset border px-3.5 py-1.5 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ borderColor: "var(--accent)", background: "var(--accent-wash)", color: "var(--accent)" }}
               >
-                {busy ? "Recording…" : "Record verdict"}
+                {busy ? "Recording…" : "Record backlog"}
               </button>
             </div>
           ) : null}
@@ -981,18 +966,21 @@ function VerdictButton({
   verdict,
   testid,
   state,
+  disabled,
   onVerdict,
 }: {
   label: string;
   verdict: WwbDisposition;
   testid: string;
   state?: VerdictState;
+  disabled?: boolean;
   onVerdict: (v: WwbDisposition | null) => void;
 }) {
   const active = state?.verdict === verdict;
   return (
     <button
       type="button"
+      disabled={disabled}
       data-testid={testid}
       aria-pressed={active}
       onClick={() => onVerdict(active ? null : verdict)}
