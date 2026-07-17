@@ -224,6 +224,9 @@ const ENTRY_LABELS = new Set([
   "ruled_by",
   "ruled-by",
   "source",
+  "what",
+  "for",
+  "against",
 ]);
 
 /** `### W1: title`, `### L3: ask`: pull a leading W/L id off a heading. */
@@ -328,6 +331,9 @@ async function parseEntries(
     let unblocks: string | null = null;
     let inTheirWords: string | null = null;
     let ruledBy: string | null = null;
+    let what: string | null = null;
+    let forLine: string | null = null;
+    let againstLine: string | null = null;
     const reasons: WwbReason[] = [];
     const quoteLines: string[] = [];
 
@@ -340,6 +346,9 @@ async function parseEntries(
         else if (lab.key === "in_their_words") inTheirWords = unquote(lab.value) || null;
         else if (lab.key === "ruled_by") ruledBy = lab.value || null;
         else if (lab.key === "source") source = sourceOf(lab.value) ?? source;
+        else if (lab.key === "what") what = lab.value || null;
+        else if (lab.key === "for") forLine = lab.value || null;
+        else if (lab.key === "against") againstLine = lab.value || null;
         continue;
       }
       const bq = line.match(/^\s*>\s?(.*)$/);
@@ -377,6 +386,9 @@ async function parseEntries(
       unblocks,
       inTheirWords,
       ruledBy,
+      what,
+      forLine,
+      againstLine,
       evidenceMoved: false,
     };
   }));
@@ -388,7 +400,7 @@ function blankEntry(
   disposition: WwbDisposition | null,
   source: WwbEntry["source"],
 ): WwbEntry {
-  return { id, title, reasons: [], source, disposition, unblocks: null, inTheirWords: null, ruledBy: null, evidenceMoved: false };
+  return { id, title, reasons: [], source, disposition, unblocks: null, inTheirWords: null, ruledBy: null, what: null, forLine: null, againstLine: null, evidenceMoved: false };
 }
 
 function normalizeDisposition(v: string): WwbDisposition | null {

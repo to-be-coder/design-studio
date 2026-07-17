@@ -987,6 +987,11 @@ function ProposedEntry({
   // glance: build in the verified green, don't-build in the unverified red.
   // The words stay beside the color, so the marker still reads in greyscale.
   const cutLean = entry.source === "proposed" && entry.disposition === "dont-build";
+  // When the render carries the one-line summary (what / for / against), the
+  // card leads with it and the receipted reasons fold away; a render from
+  // before that contract keeps them inline so nothing goes missing.
+  const hasSummary = !!(entry.what || entry.forLine || entry.againstLine);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   return (
     <li
       data-testid="wwb-entry"
@@ -1024,7 +1029,43 @@ function ProposedEntry({
           </span>
         ) : null}
       </div>
-      <Reasons entry={entry} slug={slug} onFocusReceipt={onFocusReceipt} />
+      {hasSummary ? (
+        <>
+          {entry.what ? (
+            <p className="mb-2 max-w-[34rem] text-[0.9375rem] text-ink" data-testid="entry-what">
+              {entry.what}
+            </p>
+          ) : null}
+          <div className="mb-2 space-y-1 text-[0.8125rem] text-ink-muted">
+            {entry.forLine ? (
+              <p data-testid="entry-for">
+                <span className="font-semibold">For:</span> {entry.forLine}
+              </p>
+            ) : null}
+            {entry.againstLine ? (
+              <p data-testid="entry-against">
+                <span className="font-semibold">Against:</span> {entry.againstLine}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            data-testid="entry-evidence-toggle"
+            aria-expanded={evidenceOpen}
+            onClick={() => setEvidenceOpen((v) => !v)}
+            className="mb-1 rounded-pill border border-rule px-3 py-1 text-[0.8125rem] font-medium text-ink-muted transition-colors"
+          >
+            {evidenceOpen ? "Hide the evidence" : "Show the evidence"}
+          </button>
+          {evidenceOpen ? (
+            <div className="mt-2">
+              <Reasons entry={entry} slug={slug} onFocusReceipt={onFocusReceipt} />
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <Reasons entry={entry} slug={slug} onFocusReceipt={onFocusReceipt} />
+      )}
 
       {recorded ? (
         <p className="mt-3 text-[0.8125rem] text-ink-muted" data-testid="verdict-recorded">

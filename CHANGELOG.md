@@ -6,6 +6,11 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **Candidate cards lead with the feature, not the essay.** Every reviewable card in Build
+  candidates now opens with three one-line summaries the machine must write: what exactly would be
+  built, the strongest reason for, and the strongest reason against. The receipted evidence folds
+  behind a Show-the-evidence toggle. The verifier fails a candidate missing any of the three, same
+  teeth as the pick cards.
 - **A pick card shows its options as buttons.** A directions pick has no single proposal, so its
   card no longer offers Accept and never asks you to type. It explains the decision in one line,
   lists the drafted options as full-width choices, and clicking one records the pick carrying the

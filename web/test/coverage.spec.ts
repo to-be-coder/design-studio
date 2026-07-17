@@ -138,12 +138,17 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-ruling").first()).toBeVisible();
 
-    // Proposed tab: the entries, the mechanical ASSUMPTION mark on the unevidenced
-    // reason, and the receipt link chips (scoped to the tab, since inactive panels
-    // stay mounted-but-hidden).
+    // Proposed tab: each card leads with its one-line summary (what / for /
+    // against) and folds the receipted evidence, ASSUMPTION marks included,
+    // behind the toggle.
     await page.getByTestId("wwb-tab-proposed").click();
     const proposed = page.getByTestId("wwb-proposed");
     await expect(proposed).toBeVisible();
+    await expect(proposed.getByTestId("entry-what").first()).toContainText("One pannable board");
+    await expect(proposed.getByTestId("entry-for").first()).toContainText("one place");
+    await expect(proposed.getByTestId("entry-against").first()).toContainText("unverified");
+    await expect(proposed.getByTestId("wwb-assumption")).toHaveCount(0);
+    await proposed.getByTestId("entry-evidence-toggle").first().click();
     await expect(proposed.getByTestId("wwb-assumption").first()).toBeVisible();
     await expect(proposed.getByTestId("receipt-link").first()).toBeVisible();
 

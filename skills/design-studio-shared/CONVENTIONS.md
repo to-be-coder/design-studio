@@ -794,7 +794,12 @@ Eight `##` sections in three tiers, in this reading order:
 
 **Entry markup (so the render parses deterministically).** A candidate is an H3 `### W<N>: <title>`
 under Proposed / Build now / Backlog / Don't build, carrying its `lean`, receipts, and marks as
-labeled lines; Build now adds `ruled_by:` and `in_their_words:`, Backlog adds `unblocks:`. A question
+labeled lines; Build now adds `ruled_by:` and `in_their_words:`, Backlog adds `unblocks:`. Every
+Proposed entry and every AI-proposed Don't build entry ALSO opens with three one-line labeled
+summaries the canvas leads with: `what:` (the exact thing that would be built, one plain sentence),
+`for:` (the strongest reason to build it), `against:` (the strongest reason not to). The receipted
+reason bullets stay below as the folded evidence; receipt-verify fails a reviewable candidate
+missing any of the three. A question
 is an H3 `### L<N>: <ask>` under Questions for you. A parked decision is an H3 naming its decision id
 under Parked decisions, its `ask:` line first. W-ids are the sticky identity from the recommendation's
 Candidates table (decision-log section above).
