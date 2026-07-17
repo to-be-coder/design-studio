@@ -214,8 +214,9 @@ block into decisions and renders. It is **strictly bounded**: it may only write 
 authorized block, fold that block's answers, re-render, and fence. It never invents a verdict, and **a
 ruling absent from the block does not exist.**
 
-The controller passes one or more authorized batch ids, each with its block's content hash, **out of
-band** (as process args, never via the vault). Take the batches oldest first and complete each one,
+The controller passes one or more authorized batch ids **out of band** (as process args, never via
+the vault) and holds each block's content hash itself: the tamper check is the controller's (step 2)
+and you never receive a hash. Take the batches oldest first and complete each one,
 steps 1 through 7 with its own fence, before opening the next: a crash mid-list then loses nothing,
 because the earlier batches are fully committed and the controller's boot check picks up the rest.
 Batches that say nothing new never reach you: the controller closes pure duplicates itself

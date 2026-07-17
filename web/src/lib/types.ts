@@ -330,6 +330,22 @@ export interface LoopStatus {
   raw: string;
 }
 
+/**
+ * The `.loop-progress` heartbeat beside a project's lock: what the loop is
+ * doing right now and since when. Written by the loop controller at every
+ * spawn, deleted when the loop ends; the status API relays it and the
+ * LoopBanner renders it with live elapsed time.
+ */
+export interface LoopProgress {
+  phase: "recorder" | "research" | "drain";
+  /** The review batch a recorder spawn is ingesting (the oldest, when several). */
+  batch?: number;
+  round?: number;
+  spawnPid?: number;
+  spawnedAt: number;
+  updatedAt: number;
+}
+
 export type AssumptionState = "verified" | "partial" | "unverified" | "accepted";
 
 export interface AssumptionNode {

@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { AssumptionState, BoardModel, RenderableBlock } from "@/lib/types";
+import type { AssumptionState, BoardModel, LoopProgress, RenderableBlock } from "@/lib/types";
 import { AddInputButton } from "./add-input";
 import { BoardView } from "./board-view";
 import { DocView } from "./doc-view";
+import { LoopBanner } from "./loop-banner";
 import { Sidebar } from "./sidebar";
 import { ZoomHud } from "./hud";
 import { FramesProvider } from "./frames-context";
@@ -87,6 +88,11 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   // The stage a headless AI draft is currently generating (the sidebar pulses a
   // dot on it). Today only the debrief autorun feeds this; null when idle.
   const [generatingStage, setGeneratingStage] = useState<string | null>(null);
+  // The `.loop-progress` heartbeat, when one exists: the banner's one line.
+  const [progress, setProgress] = useState<LoopProgress | null>(null);
+  // The last observed fence (the dashboard's committed status line). When it
+  // changes value the vault moved under the board; only then do we refetch.
+  const lastFence = useRef<string | null>(null);
   // Bump to (re)start the status poll — e.g. right after triggering a run.
   const [pollNonce, setPollNonce] = useState(0);
   const [runError, setRunError] = useState<string | null>(null);
@@ -99,7 +105,9 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
 
   // Poll the skill-run status while a headless generation is in flight — pulse
   // the sidebar dot on its stage, and refresh the board once it lands so the
-  // freshly-written docs show. Idle projects poll once and stop.
+  // freshly-written docs show. Idle projects keep a light watch (a recorder can
+  // land minutes after page load, and skills also run outside this server), and
+  // every poll carries the fence + the heartbeat.
   useEffect(() => {
     const slug = model.project.slug;
     let stopped = false;
@@ -108,18 +116,38 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
     const poll = async () => {
       try {
         const res = await fetch(`/api/projects/status?slug=${encodeURIComponent(slug)}`);
-        const data = (await res.json()) as { stage?: string | null; state?: string | null };
+        const data = (await res.json()) as {
+          stage?: string | null;
+          state?: string | null;
+          fence?: string | null;
+          progress?: LoopProgress | null;
+        };
         if (stopped) return;
+        setProgress(data.progress ?? null);
+        // The fence is the vault's committed status line. When its VALUE moves,
+        // the server-rendered board is stale (a recorder landed, a round
+        // committed): refetch it, so a recorded card never sits looking
+        // clickable. Change only, never per tick.
+        if (typeof data.fence === "string" && data.fence) {
+          if (lastFence.current !== null && lastFence.current !== data.fence) router.refresh();
+          lastFence.current = data.fence;
+        }
         if (data.state === "drafting") {
           sawDrafting = true;
           setGeneratingStage(data.stage ?? null);
           timer = setTimeout(poll, 2000);
         } else {
           setGeneratingStage(null);
-          if (sawDrafting && data.state === "done") router.refresh();
+          if (sawDrafting && data.state === "done") {
+            sawDrafting = false;
+            router.refresh();
+          }
+          timer = setTimeout(poll, 12_000);
         }
       } catch {
-        if (!stopped) setGeneratingStage(null);
+        if (stopped) return;
+        setGeneratingStage(null);
+        timer = setTimeout(poll, 12_000);
       }
     };
     poll();
@@ -600,6 +628,9 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
         {/* z-40: the mode toolbar must stay clickable above the tokens panel
             (z-30) — otherwise opening Tokens makes its own toggle unreachable. */}
         <div className="absolute right-4 top-4 z-40 flex items-center gap-2">
+          {/* The loop's heartbeat: one plain line saying what is running and
+              for how long. Nothing renders while the loop is quiet. */}
+          <LoopBanner progress={progress} />
           {/* Add input, anytime (decision 0036): every project accepts new input
               at any stage; it lands in the research inbox and the loop sorts it
               in. Shown on every board when runs are enabled (?runs=1 previews it). */}

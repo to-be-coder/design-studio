@@ -846,10 +846,12 @@ door)" above.) The interactive Claude-session path (the two-turn 🔴 ritual) is
 block.
 
 **The recorder.** `design-studio-debrief`'s review-ingestion mode (its own numbered section in that
-skill), headless-runnable. The controller spawns it with one or more authorized batch ids, each with
-its block's content hash, passed **out of band** (process args, never via the vault); the recorder
-takes the batches oldest first and completes each one, steps 1 through 6 and its fence, before opening
-the next, so a crash mid-list leaves every earlier batch fully committed. Per batch it:
+skill), headless-runnable. The controller spawns it with one or more authorized batch ids passed
+**out of band** (process args, never via the vault), and holds each block's content hash itself for
+its own fences (the pre-spawn tamper check and the post-run quarantine): the recorder gets the ids,
+never the hashes. The recorder takes the batches oldest first and completes each one, steps 1 through
+6 and its fence, before opening the next, so a crash mid-list leaves every earlier batch fully
+committed. Per batch it:
 1. Reads block `B`. **Stale-review guard first, judged PER ENTRY:** a stamped round or
    entry-set hash that no longer matches the live WWB means the page moved and triggers a per-entry
    check, never a batch rejection. An entry is stale only when its own content changed since the
