@@ -48,10 +48,9 @@ export function WwbPane({
   return (
     <div data-testid="wwb-pane">
       <p className="eyebrow mb-1">What&rsquo;s Worth Building</p>
-      <p className="mb-6 text-[0.8125rem] text-ink-faint">
-        What to build and what not to, every reason carrying a receipt to the evidence.
-        {wwb.updated ? ` Updated ${wwb.updated}.` : ""}
-      </p>
+      {wwb.updated ? (
+        <p className="mb-6 text-[0.8125rem] text-ink-faint">Updated {wwb.updated}.</p>
+      ) : null}
 
       <WwbTabs
         wwb={wwb}
