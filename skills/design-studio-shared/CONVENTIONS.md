@@ -767,7 +767,10 @@ Eight `##` sections in three tiers, in this reading order:
   writes (framing-departure, directions-pick, route-call). Each entry opens with an `ask:` labeled
   line: ONE plain sentence naming exactly what the human is being asked to decide and what a yes
   would take (the canvas leads with it and folds the rest of the case behind a toggle, so the ask is
-  never buried). Below it the entry carries the candidate text
+  never buried). A directions pick additionally carries an `options:` list, one line per drafted
+  option (`  - A: <one plain line>`): the canvas renders each option as a one-click choice, and the
+  click IS the pick (no typing; the chosen option's own line is the quotable span). Below these the
+  entry carries the candidate text
   **verbatim** (its both-sides material and reframe-test legs intact), a `supersedes_if_taken:` target,
   a `blocks:` line, and receipts. A decision only the human can make.
 - `## Questions for you`: rendered straight from the research-exhausted L-entries' `ask:` fields plus
@@ -824,7 +827,9 @@ three machine-parseable lists:
 - `<!-- dispositions -->`: one line per triaged candidate, `- W1: build-now, "her words"` (optional
   `unblocks:` on a backlog ruling).
 - `<!-- rulings -->`: one line per 🔴 ruled, naming the target (framing / directions / route), the
-  disposition, her words, and the supersede target.
+  disposition, her words, and the supersede target. A directions pick records as
+  `- <id>: pick, "<label>: <the chosen option's text>"`: the option text rode the click, so the
+  block carries the quotable span without any typing.
 - `<!-- answers -->`: one line per answered question, `- L7: "..."`. Once the recorder ingests a
 block it appends `<!-- review:B:done -->` right after the block's end marker; a block with no done
 marker (persisted while another run was live) is a queued batch. At loop entry the controller drains

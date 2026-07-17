@@ -30,6 +30,9 @@ Both sides: ruling framing-first re-scopes the whole Build-now set against the r
 ### 0042: Directions pick, where the export lives
 kind: directions-pick
 blocks: build now
+options:
+  - A: Export lives on each card
+  - B: One export tray for the whole board
 receipts: [[0009 refined-direction|0009]]
 
 > Option A: export lives on each card. Option B: one export tray for the whole board.

@@ -883,7 +883,7 @@ test("a parked ruling leads with its ask; the full case stays folded until asked
   await expect(card.getByTestId("ruling-candidate")).toHaveCount(0);
 });
 
-test("a directions pick asks for words: no accept button, Record pick posts a reshape ruling", async ({ page }) => {
+test("a directions pick renders its options as one-click choices: no accept, no typing", async ({ page }) => {
   let captured: any = null; // eslint-disable-line @typescript-eslint/no-explicit-any
   await page.route("**/api/projects/review", async (route) => {
     captured = route.request().postDataJSON();
@@ -896,15 +896,15 @@ test("a directions pick asks for words: no accept button, Record pick posts a re
   await page.goto("/canvas/fixture-project?runs=1");
   const pick = page.getByTestId("wwb-ruling").filter({ hasText: "where the export lives" });
   await expect(pick).toBeVisible();
-  // No single proposal to accept: the fallback ask says so, and accept is absent.
+  // No single proposal to accept, and nothing to type: the drafted options are
+  // the buttons, and the click is the ruling.
   await expect(pick.getByTestId("ruling-ask")).toContainText("pick between drafted options");
   await expect(pick.getByTestId("ruling-accept")).toHaveCount(0);
-  const record = pick.getByTestId("ruling-reshape");
-  await expect(record).toBeDisabled();
-  await pick.getByTestId("ruling-pick-words").fill("Option B: one export tray.");
-  await record.click();
+  await expect(pick.locator("textarea")).toHaveCount(0);
+  await expect(pick.getByTestId("ruling-pick-A")).toContainText("Export lives on each card");
+  await pick.getByTestId("ruling-pick-B").click();
   await expect(pick.getByTestId("ruling-recorded")).toContainText("your pick");
-  expect(captured.ruling.disposition).toBe("reshape");
-  expect(captured.ruling.words).toBe("Option B: one export tray.");
+  expect(captured.ruling.disposition).toBe("pick");
+  expect(captured.ruling.words).toBe("B: One export tray for the whole board");
   expect(captured.ruling.confirmed).toBe(true);
 });

@@ -75,7 +75,7 @@ export async function getLedger(slug: string): Promise<LedgerModel | null> {
 
 /** The optimistic review overlay, exported for direct tests. */
 export function reviewOverlay(raw: string): {
-  rulings: Record<string, "accept" | "reject" | "reshape">;
+  rulings: Record<string, "accept" | "reject" | "reshape" | "pick">;
   answers: Record<string, string>;
 } {
   return { rulings: parseRecordedRulings(raw), answers: parseRecordedAnswers(raw) };
@@ -87,11 +87,13 @@ export function reviewOverlay(raw: string): {
  * from these until research re-scopes the file, so hitting refresh right after
  * Record ruling still shows the ruling as recorded.
  */
-function parseRecordedRulings(body: string): Record<string, "accept" | "reject" | "reshape"> {
-  const out: Record<string, "accept" | "reject" | "reshape"> = {};
+function parseRecordedRulings(
+  body: string,
+): Record<string, "accept" | "reject" | "reshape" | "pick"> {
+  const out: Record<string, "accept" | "reject" | "reshape" | "pick"> = {};
   for (const block of reviewBlocks(body)) {
-    for (const m of block.matchAll(/^\s*-\s+(\S+):\s+(accept|reject|reshape)\b/gim)) {
-      out[m[1]] = m[2].toLowerCase() as "accept" | "reject" | "reshape";
+    for (const m of block.matchAll(/^\s*-\s+(\S+):\s+(accept|reject|reshape|pick)\b/gim)) {
+      out[m[1]] = m[2].toLowerCase() as "accept" | "reject" | "reshape" | "pick";
     }
   }
   return out;

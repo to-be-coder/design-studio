@@ -243,7 +243,9 @@ Batches that say nothing new never reach you: the controller closes pure duplica
    a directions pick, or a route call, each `status: decided`, `authored_by: user`, `review_batch: B`,
    citing block B. Quote her typed words when present; an accept or reject with no words quotes the
    block's own ruling line, marked "chosen by click; no words typed" (the candidate was fully written
-   and both sides were in front of her; the click is the verdict). A `reshape` always requires her
+   and both sides were in front of her; the click is the verdict). A `pick` ruling chooses one drafted
+   option: the block's line carries the chosen option's text verbatim, so quote that line the same way
+   (chosen by click) and record the named option as the verdict. A `reshape` always requires her
    typed words; a word-less reshape is refused, never invented. Only the 🔴s she actually ruled in the
    block; the rest stay parked (`proposed`).
 5. **Fold the answers into the ledger.** For each `- L<N>: "..."` in the block's `<!-- answers -->`

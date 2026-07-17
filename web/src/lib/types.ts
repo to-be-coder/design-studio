@@ -191,7 +191,7 @@ export interface LedgerModel {
    * id). A parked card reads as ruled from these until research re-scopes the
    * WWB file, so a recorded ruling survives a page refresh.
    */
-  recordedRulings: Record<string, "accept" | "reject" | "reshape">;
+  recordedRulings: Record<string, "accept" | "reject" | "reshape" | "pick">;
   /** Answers already recorded in the Review log, id → answer text (same idea). */
   recordedAnswers: Record<string, string>;
 }
@@ -259,6 +259,8 @@ export interface WwbParked {
   title: string;
   /** One plain sentence naming what the human is being asked to decide. */
   ask: string | null;
+  /** A directions pick's drafted options; each renders as a one-click choice. */
+  options: { label: string; text: string }[];
   /** The candidate blockquote, verbatim: the pull-quote, never re-summarized. */
   candidate: string;
   /** The decision id a ruling would supersede, or null. */
@@ -273,7 +275,7 @@ export interface WwbParked {
    * Review log, or null while it still awaits the human. Recorded entries
    * render as done and drop out of the needs-you count.
    */
-  recorded: "accept" | "reject" | "reshape" | null;
+  recorded: "accept" | "reject" | "reshape" | "pick" | null;
 }
 
 export interface WwbModel {
