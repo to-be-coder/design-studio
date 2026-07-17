@@ -441,7 +441,7 @@ async function parseQuestions(
   );
 }
 
-const PARKED_LABELS = new Set(["kind", "supersedes", "supersedes_if_taken", "blocks", "receipts"]);
+const PARKED_LABELS = new Set(["kind", "supersedes", "supersedes_if_taken", "blocks", "receipts", "ask"]);
 
 /** Parse the `## Parked decisions` tier: the verbatim candidate + both-sides body. */
 async function parseParked(
@@ -457,6 +457,7 @@ async function parseParked(
       let kind: ParkedKind = "other";
       let supersedes: string | null = null;
       let blocks: string | null = null;
+      let ask: string | null = null;
       const quoteLines: string[] = [];
       const body: string[] = [];
       for (const line of g.lines) {
@@ -466,6 +467,7 @@ async function parseParked(
           else if (lab.key === "supersedes" || lab.key === "supersedes_if_taken")
             supersedes = stripWiki(unquote(lab.value)) || null;
           else if (lab.key === "blocks") blocks = lab.value || null;
+          else if (lab.key === "ask") ask = unquote(lab.value) || null;
           continue;
         }
         const bq = line.match(/^\s*>\s?(.*)$/);
@@ -487,6 +489,7 @@ async function parseParked(
         id,
         kind,
         title,
+        ask,
         candidate: quoteLines.join(" "),
         supersedes,
         blocks,

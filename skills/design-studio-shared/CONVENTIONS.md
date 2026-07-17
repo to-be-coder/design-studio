@@ -764,7 +764,10 @@ Eight `##` sections in three tiers, in this reading order:
 
 **Tier 1, needs your ruling.**
 - `## Parked decisions`: one entry per live 🔴, rendered from the `proposed` 🔴 decisions research
-  writes (framing-departure, directions-pick, route-call). Each entry carries the candidate text
+  writes (framing-departure, directions-pick, route-call). Each entry opens with an `ask:` labeled
+  line: ONE plain sentence naming exactly what the human is being asked to decide and what a yes
+  would take (the canvas leads with it and folds the rest of the case behind a toggle, so the ask is
+  never buried). Below it the entry carries the candidate text
   **verbatim** (its both-sides material and reframe-test legs intact), a `supersedes_if_taken:` target,
   a `blocks:` line, and receipts. A decision only the human can make.
 - `## Questions for you`: rendered straight from the research-exhausted L-entries' `ask:` fields plus
@@ -790,8 +793,8 @@ Eight `##` sections in three tiers, in this reading order:
 under Proposed / Build now / Backlog / Don't build, carrying its `lean`, receipts, and marks as
 labeled lines; Build now adds `ruled_by:` and `in_their_words:`, Backlog adds `unblocks:`. A question
 is an H3 `### L<N>: <ask>` under Questions for you. A parked decision is an H3 naming its decision id
-under Parked decisions. W-ids are the sticky identity from the recommendation's Candidates table
-(decision-log section above).
+under Parked decisions, its `ask:` line first. W-ids are the sticky identity from the recommendation's
+Candidates table (decision-log section above).
 
 **Plain language in Tier 1 (hard rule).** Everything under Parked decisions, Questions for you, and
 Proposed is written so a client could read it cold: everyday words, short sentences, what it means

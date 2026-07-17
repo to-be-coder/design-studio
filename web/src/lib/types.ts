@@ -257,6 +257,8 @@ export interface WwbParked {
   id: string;
   kind: ParkedKind;
   title: string;
+  /** One plain sentence naming what the human is being asked to decide. */
+  ask: string | null;
   /** The candidate blockquote, verbatim: the pull-quote, never re-summarized. */
   candidate: string;
   /** The decision id a ruling would supersede, or null. */

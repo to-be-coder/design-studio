@@ -753,6 +753,13 @@ function RulingCard({
   onFocusReceipt?: (docKey: string) => void;
   onPick: (d: "accept" | "reject") => void;
 }) {
+  // The card leads with the ask and the buttons; the full case (the proposal's
+  // own words, both sides, receipts) stays folded until asked for.
+  const [caseOpen, setCaseOpen] = useState(false);
+  const hasCase = !!parked.candidate || parked.bodyBlocks.length > 0 || parked.receipts.length > 0;
+  // The supersedes value may carry a trailing note ("(the loop's own earlier
+  // proposal)"); the stakes line wants just the decision id.
+  const supersededId = parked.supersedes?.match(/\b\d{3,4}\b/)?.[0] ?? null;
   return (
     <article
       data-testid="wwb-ruling"
@@ -764,30 +771,51 @@ function RulingCard({
         <span className="eyebrow">{parked.kind.replace(/-/g, " ")}</span>
       </div>
 
-      {parked.candidate ? (
-        <blockquote className="my-3 rounded-inset bg-paper-raised px-5 py-3 font-serif text-[1.2rem] italic leading-snug text-ink" data-testid="ruling-candidate">
-          <span aria-hidden className="mr-1 text-ink-faint">&ldquo;</span>
-          {parked.candidate}
-          <span aria-hidden className="ml-1 text-ink-faint">&rdquo;</span>
-        </blockquote>
+      {parked.ask ? (
+        <p className="mb-3 max-w-[34rem] text-[0.9375rem] text-ink" data-testid="ruling-ask">
+          {parked.ask}
+        </p>
       ) : null}
 
-      {parked.supersedes || parked.blocks ? (
+      {supersededId || parked.blocks ? (
         <div className="mb-3 space-y-1 text-[0.8125rem] text-ink-muted" data-testid="ruling-stakes">
-          {parked.supersedes ? <p>Taking this replaces decision {parked.supersedes.replace(/^Decisions\//, "").split(" ")[0]}.</p> : null}
+          {supersededId ? <p>Taking this replaces decision {supersededId}.</p> : null}
           {parked.blocks ? <p>Waiting on this: {parked.blocks}</p> : null}
         </div>
       ) : null}
 
-      {parked.bodyBlocks.length ? (
-        <div className="mb-3 max-w-[34rem] text-[0.9375rem]">
-          <Reading blocks={parked.bodyBlocks} />
-        </div>
-      ) : null}
-
-      {parked.receipts.length ? (
+      {hasCase ? (
         <div className="mb-3">
-          <ReceiptLinks receipts={parked.receipts} slug={slug} onFocus={onFocusReceipt} />
+          <button
+            type="button"
+            data-testid="ruling-case-toggle"
+            aria-expanded={caseOpen}
+            onClick={() => setCaseOpen((v) => !v)}
+            className="rounded-pill border border-rule px-3 py-1 text-[0.8125rem] font-medium text-ink-muted transition-colors"
+          >
+            {caseOpen ? "Hide the full case" : "Show the full case"}
+          </button>
+          {caseOpen ? (
+            <div className="mt-3">
+              {parked.candidate ? (
+                <blockquote className="my-3 rounded-inset bg-paper-raised px-5 py-3 font-serif text-[1.2rem] italic leading-snug text-ink" data-testid="ruling-candidate">
+                  <span aria-hidden className="mr-1 text-ink-faint">&ldquo;</span>
+                  {parked.candidate}
+                  <span aria-hidden className="ml-1 text-ink-faint">&rdquo;</span>
+                </blockquote>
+              ) : null}
+              {parked.bodyBlocks.length ? (
+                <div className="mb-3 max-w-[34rem] text-[0.9375rem]">
+                  <Reading blocks={parked.bodyBlocks} />
+                </div>
+              ) : null}
+              {parked.receipts.length ? (
+                <div className="mb-3">
+                  <ReceiptLinks receipts={parked.receipts} slug={slug} onFocus={onFocusReceipt} />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -801,6 +829,9 @@ function RulingCard({
       ) : interactive ? (
         <>
             {/* One click IS the ruling: it posts the moment you choose. */}
+            <p className="mb-2 text-[0.8125rem] text-ink-muted">
+              One click records it: accept takes the proposal as written, reject turns it down.
+            </p>
             <div className="mb-1 grid grid-cols-2 gap-2">
               {(["accept", "reject"] as const).map((d) => (
                 <button

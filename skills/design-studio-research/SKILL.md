@@ -155,8 +155,9 @@ anatomy with research's craft filled in. Every round starts at step 1, including
 5. **Recompile the renders.** Regenerate wholesale from the ledger plus `Decisions/`:
    - **`What's Worth Building.md`** (v2, the single review surface, exactly per CONVENTIONS' contract):
      the eight tiered sections in reading order. Tier 1: `## Parked decisions` (one entry per live
-     `proposed` 🔴 decision, candidate verbatim with both sides + reframe-test legs,
-     `supersedes_if_taken:`, `blocks:`, receipts), `## Questions for you` (every research-exhausted
+     `proposed` 🔴 decision, opening with an `ask:` line, one plain sentence naming exactly what the
+     human is deciding and what a yes takes; then the candidate verbatim with both sides + reframe-test
+     legs, `supersedes_if_taken:`, `blocks:`, receipts), `## Questions for you` (every research-exhausted
      L-entry's `ask:` + receipts), `## Proposed` (untriaged `build`-lean candidates as `### W<N>:`
      entries with receipts + ASSUMPTION marks). **Write Tier 1 prose in everyday language** (the
      CONVENTIONS plain-language hard rule): what it means and what taking or rejecting it changes,

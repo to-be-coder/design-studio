@@ -106,13 +106,15 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await expect(escalated.locator('[data-ledger="L1"]')).toBeVisible();
     await expect(escalated.locator('[data-ledger="L3"]')).toBeVisible();
 
-    // L1 reads as an escalated, load-bearing assumption with its ask + attempts +
-    // a receipt link, and carries the "Needs you" state word (never colour alone).
+    // L1 is collapsed by default while its title and state stay visible.
+    // Opening it reveals the metadata, ask, evidence, and receipt links.
     const l1 = page.locator("#ledger-L1");
-    await expect(l1.getByTestId("ledger-ask")).toBeVisible();
     await expect(l1).toContainText(/Needs you/i);
+    await expect(page.getByTestId("ledger-content-L1")).toBeHidden();
+    await page.getByTestId("ledger-trigger-L1").click();
     await expect(l1).toContainText(/2 attempts/);
     await expect(l1.getByText("Assumption", { exact: true })).toBeVisible();
+    await expect(l1.getByTestId("ledger-ask")).toBeVisible();
     await expect(l1.getByTestId("receipt-link").first()).toBeVisible();
 
     // A verified known carries its grade; the retired entry recedes but stays.
@@ -864,4 +866,18 @@ test.describe("focus mode — one board per sidebar item", () => {
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
+});
+
+test("a parked ruling leads with its ask; the full case stays folded until asked for", async ({ page }) => {
+  await page.goto("/canvas/fixture-project");
+  const ruling = page.getByTestId("wwb-ruling");
+  await expect(ruling).toBeVisible();
+  // The ask line is the card's lead, always visible.
+  await expect(page.getByTestId("ruling-ask")).toContainText("Do we settle the problem framing");
+  // The verbatim candidate is folded away until the toggle opens the case.
+  await expect(page.getByTestId("ruling-candidate")).toHaveCount(0);
+  await page.getByTestId("ruling-case-toggle").click();
+  await expect(page.getByTestId("ruling-candidate")).toContainText("settle what problem we are solving");
+  await page.getByTestId("ruling-case-toggle").click();
+  await expect(page.getByTestId("ruling-candidate")).toHaveCount(0);
 });
