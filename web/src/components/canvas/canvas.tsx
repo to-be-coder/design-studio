@@ -21,7 +21,7 @@ import { componentBaseNames } from "@/lib/tokens";
 export type StreamFilter = "all" | "live" | "scaffold";
 
 /** Stages with an on-demand "Run" control on their board (must match the runner). */
-const RUNNABLE_STAGES = new Set(["research"]);
+const RUNNABLE_STAGES = new Set(["research", "structure"]);
 
 /** Doc-mode focuses render off the canvas as a reading pane, not a spatial board. */
 const DOC_FOCUSES = new Set(["debrief", "research", "wwb", "ledger", "agenda", "decision-stream"]);
@@ -585,6 +585,14 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
 
   const componentNames = useMemo(() => componentBaseNames(model.tokens), [model.tokens]);
 
+  // Does the project have any structure content yet? The model already knows:
+  // the structure stage's cards are empty exactly when 03 Structure.md is
+  // absent, so the empty board's centered call-to-action derives from it.
+  const hasStructure = useMemo(
+    () => (model.stages.find((s) => s.stage === "structure")?.cards.length ?? 0) > 0,
+    [model.stages],
+  );
+
   // Debrief and research (prose stages), the project root docs (What's Worth
   // Building, the ledger, the agenda), and the decision stream read as documents,
   // not spatial boards. In doc mode we replace the pannable viewport (and hide the
@@ -706,6 +714,44 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
             />
           </div>
         )}
+
+        {/* The empty Structure board's call-to-action, dead middle of the board
+            area: one press drafts 03 Structure.md headlessly. The layer itself
+            passes pointer events through (panning still works everywhere); only
+            the centered block is interactive. Gone once structure content
+            exists; read-only line when runs are off. */}
+        {!docMode && focused === "structure" && !hasStructure ? (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+            <div
+              className="pointer-events-auto flex max-w-[26rem] flex-col items-center gap-4 px-6 text-center"
+              data-testid="structure-cta"
+            >
+              <p className="text-[0.9375rem] leading-relaxed text-ink-muted">
+                No structure yet. Draft the flows and screens from what you confirmed.
+              </p>
+              {runsEnabled || reviewOverride ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => runStage("structure")}
+                    disabled={generatingStage === "structure"}
+                    className="rounded-inset bg-accent px-5 py-2.5 text-[0.875rem] font-semibold text-accent-ink transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    data-testid="structure-cta-run"
+                  >
+                    {generatingStage === "structure" ? "Drafting structure…" : "Create structure"}
+                  </button>
+                  {runError ? (
+                    <span className="text-[0.75rem] text-unverified">{runError}</span>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-[0.8125rem] text-ink-muted" data-testid="structure-cta-readonly">
+                  Run from Claude Code: <span className="font-mono">/design-studio-structure</span>
+                </p>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {focused === "build" && model.prototype.interactive && model.prototype.hasTokens ? (
           <TokensDrawer tokens={model.tokens} />

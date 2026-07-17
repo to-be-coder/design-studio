@@ -8,15 +8,17 @@ import {
   isRunnableStage,
   researchLoopLive,
   startResearchLoop,
+  startStructureDraft,
 } from "@/lib/debrief-runner";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Run a stage's skill headless for a project (the board's "Run <stage>"
- * control). Only `research` is runnable, and it starts the spawn-per-round
- * Understand loop. Same opt-in gate as the debrief autorun: spawning a real
- * agent that writes the vault is never on by default. A live loop 409s.
+ * control). `research` starts the spawn-per-round Understand loop; `structure`
+ * fires one drafting pass of 03 Structure.md. Same opt-in gate as the debrief
+ * autorun: spawning a real agent that writes the vault is never on by default.
+ * A live research loop 409s either request (one vault writer at a time).
  */
 export async function POST(req: Request) {
   if (!autorunEnabled()) {
@@ -56,6 +58,17 @@ export async function POST(req: Request) {
     await fs.access(dir);
   } catch {
     return NextResponse.json({ error: `No project "${slug}".` }, { status: 404 });
+  }
+
+  if (stage === "structure") {
+    if (await researchLoopLive(slug, dir)) {
+      return NextResponse.json(
+        { error: "Research is still running. The structure draft can start once it finishes." },
+        { status: 409 },
+      );
+    }
+    startStructureDraft({ slug, vaultRoot: root, projectDir: dir });
+    return NextResponse.json({ slug, stage, running: true }, { status: 202 });
   }
 
   if (await researchLoopLive(slug, dir)) {

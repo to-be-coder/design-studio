@@ -6,6 +6,9 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **The empty Structure board grows a Create-structure button.** Dead middle of the board: one
+  press drafts the flows and screens from the confirmed Build-now set, as a draft you edit. It
+  waits its turn while research runs, and with runs off it shows the command to run instead.
 - **Home-page projects are individual cards.** The shared border around the project list is gone;
   each project now has its own bordered paper surface with clear space between cards.
 - **A clicked verdict survives a refresh.** Candidate verdicts already sat safely in the review
