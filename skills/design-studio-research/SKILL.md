@@ -166,7 +166,13 @@ anatomy with research's craft filled in. Every round starts at step 1, including
      entries with receipts + ASSUMPTION marks). Every Proposed entry and every `dont-build`-lean card
      opens with `what:` / `for:` / `against:`, one plain sentence each (the exact feature, the
      strongest reason for, the strongest reason against); receipt-verify fails a reviewable candidate
-     missing any of the three, so the skim layer is contract, not courtesy. **Write Tier 1 prose in everyday language** (the
+     missing any of the three, so the skim layer is contract, not courtesy. **Each of the three lines
+     stands completely alone.** A reader who reads only that one line follows it cold: no pronoun
+     pointing at another line (never open with "They", "It", "That", "These"; receipt-verify fails
+     those), no reusing the candidate title's phrasing, no "X rather than Y" constructions. Say what
+     the user would see or do, in concrete words: "the tool reads which part of the image an edit
+     touches" beats "serve the direction of each edit". Numbers come with their meaning in the same
+     sentence ("in the logs, 4 of 5 edits widen and narrow at the same time"), never bare. **Write Tier 1 prose in everyday language** (the
      CONVENTIONS plain-language hard rule): what it means and what taking or rejecting it changes,
      in words a client could read cold; the research vocabulary stays in the decision files and the
      receipts. Tier 2: `## Build now` (human-confirmed ONLY, from the
