@@ -1033,7 +1033,7 @@ function ProposedEntry({
               {entry.what}
             </p>
           ) : null}
-          <div className="mb-2 space-y-1 text-[0.8125rem] text-ink-muted">
+          <div className="mb-2 max-w-[34rem] space-y-1 text-[0.9375rem] text-ink">
             {entry.forLine ? (
               <p data-testid="entry-for">
                 <span className="font-semibold">For:</span> {entry.forLine}

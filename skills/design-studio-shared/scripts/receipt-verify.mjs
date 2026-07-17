@@ -362,8 +362,15 @@ async function main() {
           const title = entry.split("\n", 1)[0].trim();
           if (secName === "Don't build" && !/proposed-by-AI/i.test(entry)) continue;
           for (const need of ["what", "for", "against"]) {
-            if (!new RegExp(`^${need}:\\s*\\S`, "m").test(entry))
+            const m = entry.match(new RegExp(`^${need}:\\s*(\\S.*)$`, "m"));
+            if (!m) {
               violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `candidate lacks a one-line ${need}: ${title.slice(0, 80)}`);
+              continue;
+            }
+            // Each summary line must stand alone: an opening pronoun points at
+            // another line the skimming reader did not read.
+            if (/^(they|it|that|these|those)\b/i.test(m[1].trim()))
+              violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `${need}: line leans on another line (opens with a pronoun): ${m[1].trim().slice(0, 80)}`);
           }
         }
       }

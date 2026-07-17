@@ -6,6 +6,12 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **Home-page projects are individual cards.** The shared border around the project list is gone;
+  each project now has its own bordered paper surface with clear space between cards.
+- **Summary lines stand alone, in one color.** A candidate's what / for / against sentences must
+  each read cold, with no pronoun pointing at another line and no coined phrases; the verifier
+  fails a leaning line. The card also stops dimming For and Against below the what line: one
+  reading color for the whole summary.
 - **The side nav no longer shows a running dot on the research row.** While a headless draft was
   generating, the row used to pulse a dot. That dot is gone; the live signal still shows in the
   progress banner in the main pane and in the sidebar's status line.
