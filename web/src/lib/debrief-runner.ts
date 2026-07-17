@@ -339,18 +339,31 @@ async function runReview(ctx: LoopCtx, review: ReviewIngest): Promise<void> {
 
   let errored = false;
   try {
-    let code = await spawnRecorder({ slug, vaultRoot, projectDir, batchId: review.batchId });
-    if (code !== 0) {
-      code = await spawnRecorder({ slug, vaultRoot, projectDir, batchId: review.batchId, retry: true });
+    // Tamper fence, checked BEFORE the spawn: between the app's write (or the
+    // drain's pickup) and this moment, nothing legitimate touches the block, so
+    // a mismatch here is real tampering and nothing spawns. After the spawn the
+    // recorder legitimately rewrites the ledger (folding answers, re-rendering),
+    // so a post-run content hash would quarantine the recorder's own valid work
+    // (it did, twice, on forma).
+    const blockNow = await reviewBlockHash(projectDir, review.batchId);
+    if (blockNow == null || (review.blockHash && blockNow !== review.blockHash)) {
+      const log = createWriteStream(path.join(projectDir, `.review-record.${review.batchId}.log`), { flags: "a" });
+      log.write(`\n[tamper fence] block ${review.batchId} ${blockNow == null ? "missing" : "hash mismatch"}; refusing to spawn.\n`);
+      log.end();
+      errored = true;
+    } else {
+      let code = await spawnRecorder({ slug, vaultRoot, projectDir, batchId: review.batchId });
+      if (code !== 0) {
+        code = await spawnRecorder({ slug, vaultRoot, projectDir, batchId: review.batchId, retry: true });
+      }
+      // 🔴 integrity: a headless recorder may author authored_by: user / decided
+      // ONLY for decisions citing THIS authorized batch (the content-hash check
+      // already ran, pre-spawn).
+      await quarantineHeadlessVerdicts(projectDir, invocationStart, 0, {
+        exemptBatchId: review.batchId,
+      });
+      errored = code !== 0;
     }
-    // 🔴 integrity: a headless recorder may author authored_by: user / decided
-    // ONLY for decisions citing THIS authorized batch, and only when the block
-    // still hashes to what the controller captured.
-    await quarantineHeadlessVerdicts(projectDir, invocationStart, 0, {
-      exemptBatchId: review.batchId,
-      blockHash: review.blockHash,
-    });
-    errored = code !== 0;
   } finally {
     registry.set(slug, { stage: "research", state: errored ? "error" : "done", round: registry.get(slug)?.round });
     await removeLock(projectDir);
@@ -552,10 +565,13 @@ async function reviewBlockHash(projectDir: string, batchId: string): Promise<str
     return null;
   }
   const id = batchId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`<!--\\s*review:${id}:begin\\s*-->[\\s\\S]*?<!--\\s*review:${id}:end\\s*-->`);
+  // Contract convention (receipt-verify.mjs + the drain): the INNER text between
+  // the begin/end markers, whitespace-trimmed. One convention everywhere; the
+  // full-block variant falsely flagged every drained batch as tampered.
+  const re = new RegExp(`<!--\\s*review:${id}:begin\\s*-->([\\s\\S]*?)<!--\\s*review:${id}:end\\s*-->`);
   const m = raw.match(re);
   if (!m) return null;
-  return createHash("sha256").update(m[0]).digest("hex");
+  return createHash("sha256").update(m[1].trim()).digest("hex");
 }
 
 // ── The `.loop.lock` (cross-process single-flight + crash resume) ─────────────
