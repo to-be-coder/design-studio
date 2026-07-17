@@ -918,10 +918,12 @@ function ProposedEntry({
         <div className="mt-3">
           {/* Accept and Don't build record on the click. Backlog opens its
               optional note first, then records with its own button. */}
+          {/* On a recommended cut, "Accept" would be ambiguous (accept the card,
+              or accept the cut?), so the buttons say the action itself. */}
           <div className="flex flex-wrap gap-2" role="group" aria-label={`Verdict for ${entry.title}`}>
-            <VerdictButton label={busy ? "Recording…" : "Accept"} verdict="build-now" testid="verdict-build-now" state={state} disabled={busy} onVerdict={onVerdict} />
+            <VerdictButton label={busy ? "Recording…" : cutLean ? "Build it anyway" : "Accept"} verdict="build-now" testid="verdict-build-now" state={state} disabled={busy} onVerdict={onVerdict} />
             <VerdictButton label="Backlog" verdict="backlog" testid="verdict-backlog" state={state} disabled={busy} onVerdict={onVerdict} />
-            <VerdictButton label={busy ? "Recording…" : "Don't build"} verdict="dont-build" testid="verdict-dont-build" state={state} disabled={busy} onVerdict={onVerdict} />
+            <VerdictButton label={busy ? "Recording…" : cutLean ? "Agree, don't build" : "Don't build"} verdict="dont-build" testid="verdict-dont-build" state={state} disabled={busy} onVerdict={onVerdict} />
           </div>
           {!state && error ? <p className="mt-2 text-[0.8125rem] text-unverified">{error}</p> : null}
           {state?.verdict === "backlog" ? (
