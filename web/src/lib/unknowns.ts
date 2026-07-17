@@ -73,6 +73,14 @@ export async function getLedger(slug: string): Promise<LedgerModel | null> {
   };
 }
 
+/** The optimistic review overlay, exported for direct tests. */
+export function reviewOverlay(raw: string): {
+  rulings: Record<string, "accept" | "reject" | "reshape">;
+  answers: Record<string, string>;
+} {
+  return { rulings: parseRecordedRulings(raw), answers: parseRecordedAnswers(raw) };
+}
+
 /**
  * Rulings already written into the ledger's Review log, id → disposition (a
  * later block wins over an earlier one). The parked card in WWB reads as ruled
@@ -107,7 +115,14 @@ function parseRecordedAnswers(body: string): Record<string, string> {
 }
 
 function reviewBlocks(body: string): string[] {
-  return body.match(/<!-- review:[^:]+:begin -->[\s\S]*?<!-- review:[^:]+:end -->/g) ?? [];
+  // Unprocessed blocks only. Once a block carries its done marker the recorder
+  // has spoken and the render is the authority on what is still open; a ruling
+  // the recorder refused must not read as recorded forever.
+  const out: string[] = [];
+  for (const m of body.matchAll(/<!-- review:([^:]+):begin -->[\s\S]*?<!-- review:\1:end -->/g)) {
+    if (!body.includes(`<!-- review:${m[1]}:done -->`)) out.push(m[0]);
+  }
+  return out;
 }
 
 const LABELS = new Set([

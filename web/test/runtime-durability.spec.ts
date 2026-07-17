@@ -444,3 +444,40 @@ test.describe("fence-change refetch", () => {
     expect(refetches).toBeLessThanOrEqual(3);
   });
 });
+
+import { reviewOverlay } from "../src/lib/unknowns";
+
+test.describe("review overlay truth rule", () => {
+  const parked = (id: string, blocks: string[]) =>
+    [
+      "## Review log",
+      "",
+      ...blocks,
+      "",
+    ].join("\n");
+  const block = (b: number, lines: string[], done: boolean) =>
+    [
+      `<!-- review:${b}:begin -->`,
+      ...lines,
+      `<!-- review:${b}:end -->`,
+      ...(done ? [`<!-- review:${b}:done -->`] : []),
+    ].join("\n");
+
+  test("an unprocessed block's ruling and answer keep showing as recorded", () => {
+    const raw = parked("0010", [
+      block(4, ["- rulings:", "  - 0010: accept", "- answers:", '  - L7: "yes"'], false),
+    ]);
+    const overlay = reviewOverlay(raw);
+    expect(overlay.rulings["0010"]).toBe("accept");
+    expect(overlay.answers["L7"]).toBe("yes");
+  });
+
+  test("a done-marked block stops overlaying: the render is the authority after processing", () => {
+    const raw = parked("0010", [
+      block(4, ["- rulings:", "  - 0010: accept", "- answers:", '  - L7: "yes"'], true),
+    ]);
+    const overlay = reviewOverlay(raw);
+    expect(overlay.rulings["0010"]).toBeUndefined();
+    expect(overlay.answers["L7"]).toBeUndefined();
+  });
+});
