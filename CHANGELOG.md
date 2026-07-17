@@ -6,6 +6,9 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **The side nav no longer shows a running dot on the research row.** While a headless draft was
+  generating, the row used to pulse a dot. That dot is gone; the live signal still shows in the
+  progress banner in the main pane and in the sidebar's status line.
 - **Candidate cards lead with the feature, not the essay.** Every reviewable card in Build
   candidates now opens with three one-line summaries the machine must write: what exactly would be
   built, the strongest reason for, and the strongest reason against. The receipted evidence folds

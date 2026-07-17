@@ -6,8 +6,8 @@ import { useEffect, useRef, useState } from "react";
  * Add input to a project, anytime (decision 0036: every submission is another
  * brief). A small chrome button opens a modal in the New-project idiom (an
  * optional title + a textarea), posts the text to /api/projects/input, and on
- * success bumps the status poll via onRunStarted so the sidebar dot picks the
- * research loop up. The app writes the text verbatim into the project's research
+ * success bumps the status poll via onRunStarted so it picks the research loop
+ * up. The app writes the text verbatim into the project's research
  * inbox; research sorts it into the ledger on the round it runs.
  */
 export function AddInputButton({
