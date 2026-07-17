@@ -145,13 +145,14 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await expect(proposed.getByTestId("wwb-assumption").first()).toBeVisible();
     await expect(proposed.getByTestId("receipt-link").first()).toBeVisible();
 
-    // Rulings tab: the standing tiers.
-    await page.getByTestId("wwb-tab-rulings").click();
+    // Build input tab: the standing tiers, the register, the board rows, and
+    // the blocking band, all in one doc. The blocking receipt focuses the
+    // ledger, so it stays the last assertion.
+    await page.getByTestId("wwb-tab-build-input").click();
     await expect(page.getByTestId("wwb-build-now")).toBeVisible();
     await expect(page.getByTestId("wwb-dont-build")).toBeVisible();
-
-    // Context tab: the blocking band links into the ledger, and a receipt focuses it.
-    await page.getByTestId("wwb-tab-context").click();
+    await expect(page.getByTestId("wwb-register")).toBeVisible();
+    await expect(page.getByTestId("wwb-build-reads")).toBeVisible();
     const blockingReceipt = page.getByTestId("wwb-blocking").getByTestId("receipt-link").first();
     await expect(blockingReceipt).toBeVisible();
     await blockingReceipt.click();
@@ -166,8 +167,8 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     const errors = trackConsoleErrors(page);
     await page.goto("/canvas/fixture-project");
 
-    // Build now / Backlog / Don't build all live on the Rulings tab.
-    await page.getByTestId("wwb-tab-rulings").click();
+    // Will be built / Backlog / Don't build all live on the Build input tab.
+    await page.getByTestId("wwb-tab-build-input").click();
 
     // Build now: the Decided pill + the human's verbatim words as a pull-quote.
     const buildNow = page.getByTestId("wwb-build-now");
@@ -298,8 +299,8 @@ test.describe("WWB review band", () => {
     const proposed = page.getByTestId("wwb-proposed");
     await expect(proposed).toBeVisible();
     await expect(proposed).toContainText(/single interrupt signal/i);
-    // The decided half lands in Build now, on the Rulings tab.
-    await page.getByTestId("wwb-tab-rulings").click();
+    // The decided half lands in Will be built, on the Build input tab.
+    await page.getByTestId("wwb-tab-build-input").click();
     await expect(page.getByTestId("wwb-build-now")).toContainText(/one-glance team checkpoint/i);
     expect(errors, errors.join("\n")).toEqual([]);
   });
@@ -332,8 +333,14 @@ test.describe("WWB review band", () => {
     await expect(page.getByTestId("submit-review")).toHaveCount(0);
     await page.getByTestId("verdict-record").first().click();
 
-    // The card confirms in place; the posted payload is exactly one verdict.
-    await expect(page.getByTestId("verdict-recorded")).toContainText(/accepted, moved to will be built/i);
+    // The card leaves Build candidates immediately and files under Build input
+    // as recorded-and-folding-in; the posted payload is exactly one verdict.
+    await expect(page.getByTestId("wwb-proposed").getByTestId("verdict-record")).toHaveCount(0);
+    await page.getByTestId("wwb-tab-build-input").click();
+    const recorded = page.getByTestId("wwb-recorded-session");
+    await expect(recorded).toBeVisible();
+    await expect(recorded.getByTestId("verdict-recorded-pill")).toContainText(/accepted/i);
+    await expect(recorded.getByTestId("verdict-recorded")).toContainText(/folding it in/i);
     expect(captured.verdicts).toHaveLength(1);
     expect(captured.verdicts[0].verdict).toBe("build-now");
     expect(captured.verdicts[0].note).toBe("Ship the checkpoint.");
@@ -405,6 +412,11 @@ test.describe("WWB tabs", () => {
     await expect(page.getByTestId("wwb-tab-needs-you")).toContainText("(3)");
     await expect(page.getByTestId("wwb-tab-proposed")).toContainText("(2)");
 
+    // Three tabs exactly: Decided and Background merged into Build input.
+    await expect(page.getByTestId("wwb-tab-build-input")).toBeVisible();
+    await expect(page.getByTestId("wwb-tab-rulings")).toHaveCount(0);
+    await expect(page.getByTestId("wwb-tab-context")).toHaveCount(0);
+
     // Default tab: fixture-project has a parked 🔴, so it lands on Needs you.
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-ruling")).toBeVisible();
@@ -429,8 +441,8 @@ test.describe("WWB tabs", () => {
     await expect(build).toHaveAttribute("aria-pressed", "true");
     await page.getByTestId("verdict-note").first().fill("Ship the cheap early signal.");
 
-    // Switch away (Rulings) and back: the panel only hides, so the selection + note survive.
-    await page.getByTestId("wwb-tab-rulings").click();
+    // Switch away (Build input) and back: the panel only hides, so the selection + note survive.
+    await page.getByTestId("wwb-tab-build-input").click();
     await expect(page.getByTestId("wwb-proposed")).toBeHidden();
     await page.getByTestId("wwb-tab-proposed").click();
     await expect(page.getByTestId("verdict-build-now").first()).toHaveAttribute("aria-pressed", "true");

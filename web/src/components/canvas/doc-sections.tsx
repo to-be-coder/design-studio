@@ -82,6 +82,7 @@ function wwbSection(model: BoardModel, ctx?: DocCtx): DocSection[] {
   const body = model.wwb ? (
     <WwbPane
       wwb={model.wwb}
+      assumptions={model.assumptions}
       slug={model.project.slug}
       runsEnabled={ctx?.runsEnabled}
       onFocusReceipt={ctx?.onFocusReceipt}
