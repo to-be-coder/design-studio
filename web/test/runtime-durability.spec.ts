@@ -211,6 +211,9 @@ const path = require("node:path");
 (async () => {
   const prompt = process.argv[process.argv.length - 1];
   fs.appendFileSync(process.env.CLAUDE_STUB_LOG, JSON.stringify({ prompt }) + "\\n");
+  const failFirst = Number(process.env.CLAUDE_STUB_FAIL_FIRST || 0);
+  const calls = fs.readFileSync(process.env.CLAUDE_STUB_LOG, "utf8").trim().split("\\n").filter(Boolean).length;
+  if (calls <= failFirst) process.exit(1);
   await new Promise((r) => setTimeout(r, 400));
   const projectDir = process.env.CLAUDE_STUB_PROJECT;
   const dash = path.join(projectDir, "00 Dashboard.md");
@@ -479,5 +482,30 @@ test.describe("review overlay truth rule", () => {
     const overlay = reviewOverlay(raw);
     expect(overlay.rulings["0010"]).toBeUndefined();
     expect(overlay.answers["L7"]).toBeUndefined();
+  });
+});
+
+test.describe("spawn backoff", () => {
+  test("a spawn that fails twice still completes: backoff retries ride out the storm", async () => {
+    const { vaultRoot, projectDir, slug } = await makeProject([]);
+    const { bin, logFile } = await makeStub(vaultRoot);
+    process.env.CLAUDE_BIN = bin;
+    process.env.CLAUDE_STUB_LOG = logFile;
+    process.env.CLAUDE_STUB_PROJECT = projectDir;
+    process.env.CLAUDE_STUB_FAIL_FIRST = "2";
+    process.env.LOOP_SPAWN_RETRY_DELAYS_MS = "0,0";
+    try {
+      await runResearchLoop({ slug, vaultRoot, projectDir });
+      await expect.poll(async () => readLoopLock(projectDir), { timeout: 10_000 }).toBeNull();
+      const invocations = await stubInvocations(logFile);
+      expect(invocations).toHaveLength(3);
+      const dash = await fs.readFile(path.join(projectDir, "00 Dashboard.md"), "utf8");
+      expect(dash).toContain("converged-complete");
+    } finally {
+      delete process.env.CLAUDE_BIN;
+      delete process.env.CLAUDE_STUB_FAIL_FIRST;
+      delete process.env.LOOP_SPAWN_RETRY_DELAYS_MS;
+      await fs.rm(vaultRoot, { recursive: true, force: true });
+    }
   });
 });

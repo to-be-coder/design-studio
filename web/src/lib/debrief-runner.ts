@@ -39,6 +39,18 @@ export function autorunEnabled(): boolean {
 }
 
 /**
+ * Backoff between spawn retries. Transient API failures come in storms, so two
+ * immediate attempts tend to die together; waiting rides the storm out, and the
+ * janitor's interval sweep is the backstop if every attempt fails.
+ */
+function spawnRetryDelays(): number[] {
+  const raw = process.env.LOOP_SPAWN_RETRY_DELAYS_MS ?? "30000,120000";
+  return raw.split(",").map((s) => Math.max(0, Number(s.trim()) || 0));
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
  * Stages the canvas can trigger on demand from their board (debrief auto-runs on
  * Create). Only `research` is runnable; structure is `runnable: false` in the
  * schema, so it is copy-command only.
@@ -341,14 +353,16 @@ async function runLoop(ctx: LoopCtx, opts?: ResearchOpts, chained = false): Prom
 
         let code = await spawnRound({ slug, vaultRoot, projectDir, n, answers, onSpawn });
         answers = undefined; // only the first round of an invocation embeds the batch
-        if (code !== 0) {
-          // One retry; a round that fails twice stops the loop with an error and is
-          // NOT counted as progress.
+        for (const delayMs of spawnRetryDelays()) {
+          if (code === 0) break;
+          await sleep(delayMs);
           code = await spawnRound({ slug, vaultRoot, projectDir, n, answers: undefined, retry: true, onSpawn });
-          if (code !== 0) {
-            errored = true;
-            break;
-          }
+        }
+        if (code !== 0) {
+          // Every attempt failed; stop with an error, NOT counted as progress.
+          // The interval sweep resumes the loop once the storm passes.
+          errored = true;
+          break;
         }
 
         // 🔴 integrity: a headless spawn may never author a human verdict. Quarantine
@@ -425,7 +439,9 @@ async function ingestReviewBatches(
     });
   };
   let code = await spawnRecorder({ slug, vaultRoot, projectDir, batches, onSpawn });
-  if (code !== 0) {
+  for (const delayMs of spawnRetryDelays()) {
+    if (code === 0) break;
+    await sleep(delayMs);
     code = await spawnRecorder({ slug, vaultRoot, projectDir, batches, retry: true, onSpawn });
   }
   // 🔴 integrity: a headless recorder may author authored_by: user / decided

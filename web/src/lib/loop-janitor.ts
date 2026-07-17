@@ -20,9 +20,9 @@ import { janitorDecision } from "./loop-decision";
  * cleared; queued review batches and an interrupted `ingested` or `researching`
  * fence resume through the normal loop entry; a project whose old spawn is
  * still alive is left strictly alone until that spawn exits. Terminal fences
- * never auto-resume. Runs once per server process, projects strictly one at a
- * time (never a spawn fan-out at boot), each resume awaited to completion
- * before the next project is even examined.
+ * never auto-resume. Boot runs it once; an interval re-sweep catches loops a
+ * dying spawn stranded mid-run. Projects strictly one at a time (never a spawn
+ * fan-out), each resume awaited to completion before the next is examined.
  *
  * Two switches keep it quiet: DESIGN_STUDIO_NO_RESUME=1 (the e2e kill switch)
  * and the standing DESIGN_STUDIO_AUTORUN_DEBRIEF opt-in every headless spawn
@@ -34,7 +34,23 @@ const g = globalThis as unknown as { __designStudioJanitorRan?: boolean };
 export async function bootJanitor(): Promise<void> {
   if (g.__designStudioJanitorRan) return;
   g.__designStudioJanitorRan = true;
+  return sweepJanitor();
+}
 
+let sweepInFlight = false;
+
+/** The same sweep, callable on an interval; never overlaps itself. */
+export async function sweepJanitor(): Promise<void> {
+  if (sweepInFlight) return;
+  sweepInFlight = true;
+  try {
+    await runSweep();
+  } finally {
+    sweepInFlight = false;
+  }
+}
+
+async function runSweep(): Promise<void> {
   // `next build` bootstraps server instances for prerendering; resuming loops
   // belongs to a real serving process only.
   if (process.env.NEXT_PHASE === "phase-production-build") return;
