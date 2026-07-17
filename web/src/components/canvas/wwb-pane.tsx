@@ -410,11 +410,6 @@ function WwbTabs({
           </EmptyTab>
         ) : (
           <>
-            {rulingFirst && counts.proposed > 0 ? (
-              <p className="mb-3 text-[0.8125rem] italic text-ink-muted" data-testid="proposed-rescope-note">
-                These re-scope after you rule the framing.
-              </p>
-            ) : null}
             <ul className="space-y-4" data-testid="wwb-proposed">
               {[...pendingProposed, ...pendingCuts].map((e) => (
                 <ProposedEntry
@@ -422,7 +417,7 @@ function WwbTabs({
                   entry={e}
                   slug={slug}
                   onFocusReceipt={onFocusReceipt}
-                  triage={runsEnabled && !rulingFirst}
+                  triage={runsEnabled}
                   state={verdicts[e.id]}
                   busy={verdictBusy === e.id}
                   recorded={null}
@@ -773,8 +768,10 @@ function RulingCard({
   const [caseOpen, setCaseOpen] = useState(false);
   const hasCase = !!parked.candidate || parked.bodyBlocks.length > 0 || parked.receipts.length > 0;
   // A directions pick has no single proposal to accept (the recorder refuses a
-  // bare accept on one); the card asks for the pick in the human's own words.
-  const isPick = parked.kind === "directions-pick";
+  // bare accept on one). Options on the entry mean it IS a pick, whatever the
+  // kind line says (a render that forgot its kind must not regrow a dead
+  // accept button).
+  const isPick = parked.kind === "directions-pick" || parked.options.length > 0;
   // Renders without an ask: line (written before the contract required one)
   // still get a plain explanation of what kind of decision this is.
   const FALLBACK_ASK: Record<string, string> = {
