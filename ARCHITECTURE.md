@@ -52,8 +52,11 @@ Every skill resolves the project in this order: **(1)** a project named in your 
 skill offers to run `design-studio-setup` or accepts a path you state — it never hard-blocks.
 
 The `web/` dashboard resolves the same vault, checking `DESIGN_STUDIO_VAULT` in the environment
-first, then falling back to `~/.design-studio-vault`. It opens the vault **read-only** and never
-writes to it.
+first, then falling back to `~/.design-studio-vault`. It renders what the skills wrote, and it writes
+the vault in exactly three bounded places: the review block it appends when you record a verdict or an
+answer, the input file it drops into `02 Research/_inbox/` when you add material, and the done marker
+its loop controller appends to close a review batch that says nothing new. It never writes a render, a
+decision, or any machine section.
 
 ---
 
@@ -196,8 +199,10 @@ thinking — name a trade-off, point out a fourth framing — but it may not han
 
 This is the whole thesis. A skill that drafts the answer "to save time" isn't saving you anything;
 it's substituting the average of everything it has read for your point of view, which was the only
-part of the stage with value. A button cannot run a ritual — which is also why the dashboard
-renders the pipeline read-only, with nothing to click that would run a skill on your behalf.
+part of the stage with value. A button cannot run a ritual. The dashboard's buttons transcribe: a
+click lands verbatim in the ledger's Review log, and a headless recorder carries it into `Decisions/`
+under the headless-verdict law (a click is a verdict, vault decision 0037). Nothing on the dashboard
+invents a verdict on your behalf.
 
 ### The membrane — one way into the wiki
 
@@ -250,6 +255,28 @@ Two invariants a contributor must not break:
   from it, never the other way round. A raw hex or `oklch()` literal in a component is a defect.
 
 After any change under `web/`, both `npx tsc --noEmit` and `npm run build` must pass. CI runs both.
+
+### The loop runtime
+
+The loop controller lives inside the dev server. Three files beside each project's markdown keep it
+honest, all dotfiles Obsidian ignores:
+
+- `.loop.lock`: the single-flight lock. One run per project. It holds the controller pid, the current
+  spawn's pid, the round, and the start time. Two writers on one ledger is the unforgivable state;
+  this file is what prevents it.
+- `.loop-progress`: the heartbeat. What is running (a recorder batch or a research round) and since
+  when. The banner renders it with elapsed time, and the review page refetches when the fence moves,
+  so a twenty-minute spawn looks like work instead of looking broken.
+- `.loop-validator.log`: what the post-run validator quarantined and why.
+
+On boot the server checks every project before taking new work: a dead run's stale lock is cleared,
+queued review batches and an interrupted `ingested` or `researching` fence resume on their own, and a
+project whose old spawn is still alive is left alone until that spawn exits (it may still be writing).
+Terminal fences never auto-resume. Draining the queue, the controller closes pure-duplicate batches
+itself (the third bounded write: one done marker) and hands everything else to a single recorder
+invocation, oldest first; after any clean ingestion it always chains a fresh research invocation. All
+of this is vault decision 0038: the files were always right, and the promises now live where a restart
+cannot kill them.
 
 ---
 

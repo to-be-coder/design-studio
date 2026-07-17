@@ -670,8 +670,10 @@ Every research round, in order:
 2. **Intake.** Ingest `_inbox/` and any pending anchored human-answer batch (see file discipline
    below). A headless run reads the answer batch embedded in its own prompt; the app never writes the
    vault.
-3. **Attempt every open unknown.** Batched sub-agent moves; the pressure-test rides the riskiest
-   load-bearing entry. Sub-agents return findings, only the main thread writes.
+3. **Attempt every open unknown.** The default shape is one read-only investigator per open unknown,
+   run in parallel a few at a time ([[0038 the-loop-survives-restarts-and-shows-its-work]]); the
+   pressure-test rides the riskiest load-bearing entry. Sub-agents return findings, only the main
+   thread writes and grades.
 4. **Grade and record.** Mint Knowns from receipted evidence, latch exhausted unknowns, spawn new
    unknowns with `spawned_by` lineage. Run `receipt-verify.mjs`; any `verified`/`partial` without a
    conforming receipt downgrades and is marked `assumption: true`.
@@ -728,11 +730,13 @@ legacy free-prose lines are read tolerantly too.
 - **Human-append:** answers and rulings arrive as anchored blocks in the ledger's Review log region,
   never as an in-place edit of a projection. `debrief` writes an interactive `<!-- answers:B -->`
   batch when it ingests a meeting's answers, or one rides embedded in a headless `research` prompt.
-  The web app has **two bounded write exceptions**, both transcription and never authorship: (1) it may
+  The web app has **three bounded write exceptions**, none of them authorship: (1) it may
   append a `<!-- review:B -->` block to the ledger's Review log region, transcribing the human's own
-  typed words as the durable receipt every verdict cites; and (2) it may write a verbatim,
-  provenance-headed input file into `02 Research/_inbox/` (the always-open door, "Fed-in input" below).
-  Neither may ever write a render, a decision, or any machine section. The recorder reads the review
+  typed words as the durable receipt every verdict cites; (2) it may write a verbatim,
+  provenance-headed input file into `02 Research/_inbox/` (the always-open door, "Fed-in input" below);
+  and (3) its loop controller may append the `<!-- review:B:done -->` marker that closes a
+  pure-duplicate review batch (definition in the review protocol), bookkeeping where the first two are
+  transcription. None may ever write a render, a decision, or any machine section. The recorder reads the review
   block and re-renders; the human never edits a projection in place. Full mechanics in "The review
   protocol" and "Fed-in input (the always-open door)" below.
 
@@ -820,10 +824,20 @@ three machine-parseable lists:
   disposition, her words, and the supersede target.
 - `<!-- answers -->`: one line per answered question, `- L7: "..."`. Once the recorder ingests a
 block it appends `<!-- review:B:done -->` right after the block's end marker; a block with no done
-marker (persisted while another run was live) is a queued batch, and the controller drains queued
-batches oldest-first before starting any research round.
+marker (persisted while another run was live) is a queued batch. At loop entry the controller drains
+the queue oldest-first: a pure duplicate closes on the spot with no spawn ("Pure duplicates" below),
+and every batch still open after that sweep goes to ONE recorder invocation, before any research round
+starts.
 
 Each block also stamps the WWB `round` and the entry-set hash it reviewed (the stale-review guard).
+
+**Pure duplicates close without a recorder** ([[0038 the-loop-survives-restarts-and-shows-its-work]]).
+A queued batch is a pure duplicate only when its block carries dispositions alone (no answers, no typed
+words, no reshape) and every verdict in it matches the newest recorded verdict for that same W id. Such
+a batch says nothing new, so the controller appends its `<!-- review:B:done -->` marker itself and
+never spawns for it. That marker append is the app's third bounded vault write, bookkeeping beside the
+two transcription writes, and it may never grow past the one marker line. A batch carrying an answer,
+typed words, an unknown W id, or a differing verdict always gets the recorder.
 
 **The review block, a bounded app-write.** The web app may append a review block to the Review log
 region and nothing else. It transcribes the human's own typed words; it is the durable receipt every
@@ -832,8 +846,10 @@ door)" above.) The interactive Claude-session path (the two-turn 🔴 ritual) is
 block.
 
 **The recorder.** `design-studio-debrief`'s review-ingestion mode (its own numbered section in that
-skill), headless-runnable. The controller spawns it with the authorized batch id `B` and the block's
-content hash passed **out of band** (process args, never via the vault). It:
+skill), headless-runnable. The controller spawns it with one or more authorized batch ids, each with
+its block's content hash, passed **out of band** (process args, never via the vault); the recorder
+takes the batches oldest first and completes each one, steps 1 through 6 and its fence, before opening
+the next, so a crash mid-list leaves every earlier batch fully committed. Per batch it:
 1. Reads block `B`. **Stale-review guard first, judged PER ENTRY:** a stamped round or
    entry-set hash that no longer matches the live WWB means the page moved and triggers a per-entry
    check, never a batch rejection. An entry is stale only when its own content changed since the
@@ -856,6 +872,10 @@ the block does not exist. A re-run is idempotent: skip any decision already carr
 
 **Loop interplay.** The app persists a review block immediately, even mid-round, but the recorder is
 gated behind the loop's single-flight lock (queued until the loop settles at a terminal state). The
+controller also picks up unfinished work when the server starts
+([[0038 the-loop-survives-restarts-and-shows-its-work]]): a queued batch, or an `ingested` or
+`researching` fence a dead run left behind, resumes on its own; terminal fences never auto-resume, and
+a still-live spawn from an old run blocks resume until it exits (one writer at a time). The
 controller ALWAYS chains a fresh research invocation after a clean `debrief: ingested` fence, whatever
 the batch contained ([[0036 one-continuous-cycle]]): a verdicts-only batch that adds no answers simply
 converges again in one cheap round, since exhausted questions are not re-attempted. Review ingestion is

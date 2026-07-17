@@ -80,7 +80,7 @@ anatomy with research's craft filled in. Every round starts at step 1, including
    there. Two kinds of file land there: material pasted straight into chat, written to a file in
    `_inbox/` *before* it is used (fed-in data becomes a file before it becomes evidence), and
    **app-written input files** the web app dropped there from a project's Add-input affordance (a
-   verbatim, provenance-headed file, one of the app's two bounded vault writes,
+   verbatim, provenance-headed file, one of the app's three bounded vault writes,
    [[0036 one-continuous-cycle]]). Both carry a provenance header. Once read, move each item out of
    `_inbox/`, into the sweep file it feeds (`Company.md` / `Pain.md` / `Standards.md` / `Landscape.md`),
    or as its own dated note in `02 Research/`, carrying that provenance forward (source, date fed in,
@@ -88,7 +88,8 @@ anatomy with research's craft filled in. Every round starts at step 1, including
    block in the ledger (written by `debrief`), or, when this run is headless, the answer batch
    **embedded in the spawn prompt**. Each answer resolves the unknown it targets to `answered`, records
    its `answered_by`, and may mint child unknowns with `spawned_by` lineage. The app writes the vault
-   only through its two bounded exceptions (the review block and these input files); only this run
+   only through its three bounded exceptions (the review block, these input files, and the
+   controller's done marker on a pure-duplicate review batch); only this run
    writes renders, decisions, and machine sections.
 
    **Wiki first:** before researching, check `Studio Wiki/` for standard/pattern pages that already
@@ -96,8 +97,13 @@ anatomy with research's craft filled in. Every round starts at step 1, including
    research only the gaps.
 
 3. **Attempt every open unknown.** This is the round's work, and the sweeps and the pressure-test are
-   how it gets done. Spawn sub-agents (they return findings, they never touch disk); batch them so
-   every `open` unknown gets an attempt this round, not just the convenient ones. The four desk sweeps
+   how it gets done. Spawn sub-agents (they return findings, they never touch disk). The default shape
+   is **one read-only investigator per open unknown, run in parallel** about four at a time
+   ([[0038 the-loop-survives-restarts-and-shows-its-work]]), each handed its one question, the entry's
+   current state, and where the last attempt died, so every `open` unknown gets its own full attempt
+   this round, not just the convenient ones. An investigator returns findings with source links and
+   candidate quote spans; before grading anything in, check every span against its target (a span that
+   does not occur verbatim in the target is not a receipt). The four desk sweeps
    run in parallel and feed most unknowns:
    1. **Product / company spine**: who builds this, their strategy, public language to echo later.
       Feeds the **migration flag** (current users, data, integrations). Writes `02 Research/Company.md`.
