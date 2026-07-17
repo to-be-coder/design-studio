@@ -920,7 +920,7 @@ function ProposedEntry({
               optional note first, then records with its own button. */}
           {/* On a recommended cut, "Accept" would be ambiguous (accept the card,
               or accept the cut?), so the buttons say the action itself. */}
-          <div className="flex flex-wrap gap-2" role="group" aria-label={`Verdict for ${entry.title}`}>
+          <div className="grid grid-cols-3 gap-2" role="group" aria-label={`Verdict for ${entry.title}`}>
             <VerdictButton label={busy ? "Recording…" : cutLean ? "Build it anyway" : "Accept"} verdict="build-now" testid="verdict-build-now" state={state} disabled={busy} onVerdict={onVerdict} />
             <VerdictButton label="Backlog" verdict="backlog" testid="verdict-backlog" state={state} disabled={busy} onVerdict={onVerdict} />
             <VerdictButton label={busy ? "Recording…" : cutLean ? "Agree, don't build" : "Don't build"} verdict="dont-build" testid="verdict-dont-build" state={state} disabled={busy} onVerdict={onVerdict} />
@@ -986,7 +986,7 @@ function VerdictButton({
       data-testid={testid}
       aria-pressed={active}
       onClick={() => onVerdict(active ? null : verdict)}
-      className="rounded-pill border px-3 py-1 text-[0.8125rem] font-semibold transition-colors"
+      className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
       style={
         active
           ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
