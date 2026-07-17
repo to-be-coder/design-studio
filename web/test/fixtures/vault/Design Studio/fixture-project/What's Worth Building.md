@@ -18,6 +18,7 @@ Awaiting you: 2 to triage, 2 questions, 1 parked call.
 
 ### W7: Rule the framing before scope
 kind: framing-departure
+ask: Do we settle the problem framing before scoping features? Accepting re-scopes Build now around the reframed problem.
 supersedes: 0001
 blocks: build now
 receipts: [[0009 refined-direction|0009]] [[02 Research/Interviews|R2]]

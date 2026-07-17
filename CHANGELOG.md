@@ -6,6 +6,11 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **A parked call leads with its ask.** The Needs-you ruling card was burying its own question
+  under the full case. Each parked entry in What's Worth Building now opens with an `ask:` line (one
+  plain sentence naming the decision and what a yes takes), the canvas leads with it, the accept and
+  reject buttons sit right below it with a one-line explainer, and the proposal's full case (its
+  verbatim words, both sides, receipts) folds behind a "Show the full case" toggle.
 - **The loop survives restarts and shows its work** (vault decision 0038). The state model is
   untouched; the runtime around it grows up. The server now resumes unfinished work when it starts:
   stale locks clear, queued review batches and interrupted loops pick themselves back up, and a
