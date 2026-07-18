@@ -382,4 +382,23 @@ test.describe("Add input: attach a folder", () => {
     }
     expect(errors, errors.join("\n")).toEqual([]);
   });
+
+  test("the drop zone shows, and clicking it opens the folder picker", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-project?runs=1");
+    await page.getByTestId("add-input").click();
+
+    // The drop zone is the primary attach affordance before anything is picked.
+    const zone = page.getByTestId("add-input-dropzone");
+    await expect(zone).toBeVisible();
+
+    // Clicking the zone (its padding, not the inner buttons) opens the hidden
+    // webkitdirectory folder picker. A real drag gesture can't be driven in the
+    // browser here; read-drop.spec.ts unit-tests the flatten logic a drop feeds.
+    const chooser = page.waitForEvent("filechooser");
+    await zone.click({ position: { x: 10, y: 8 } });
+    expect((await chooser).isMultiple()).toBe(true);
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
 });

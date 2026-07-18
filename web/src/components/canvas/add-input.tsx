@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { filesFromDataTransfer, pickedFromInput, type PickedFile } from "@/lib/read-drop";
 
 /**
  * Add input to a project, anytime (decision 0036: every submission is another
@@ -21,7 +22,8 @@ export function AddInputButton({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<PickedFile[]>([]);
+  const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -50,9 +52,15 @@ export function AddInputButton({
   // A common top directory means a whole folder was picked; loose files have
   // none, so we just show the count.
   const commonTop =
-    files.length && files.every((f) => f.webkitRelativePath)
-      ? files[0].webkitRelativePath.split("/")[0]
+    files.length && files.every((f) => f.relPath.includes("/"))
+      ? files[0].relPath.split("/")[0]
       : "";
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    setFiles(await filesFromDataTransfer(e.dataTransfer));
+  };
 
   const close = () => {
     if (busy) return;
@@ -91,7 +99,7 @@ export function AddInputButton({
         fd.append("slug", slug);
         if (title.trim()) fd.append("title", title.trim());
         if (text.trim()) fd.append("text", text);
-        for (const f of files) fd.append("files", f, f.webkitRelativePath || f.name);
+        for (const pf of files) fd.append("files", pf.file, pf.relPath);
         res = await fetch("/api/projects/input", { method: "POST", body: fd });
       } else {
         res = await fetch("/api/projects/input", {
@@ -216,7 +224,7 @@ export function AddInputButton({
                       ref={folderInputRef}
                       type="file"
                       multiple
-                      onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+                      onChange={(e) => setFiles(pickedFromInput(e.target.files))}
                       className="hidden"
                       data-testid="add-input-folder"
                     />
@@ -224,7 +232,7 @@ export function AddInputButton({
                       ref={filesRef}
                       type="file"
                       multiple
-                      onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+                      onChange={(e) => setFiles(pickedFromInput(e.target.files))}
                       className="hidden"
                       data-testid="add-input-files"
                     />
@@ -247,23 +255,48 @@ export function AddInputButton({
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => folderRef.current?.click()}
-                          className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
-                          data-testid="add-input-folder-pick"
-                        >
-                          Attach a folder
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => filesRef.current?.click()}
-                          className="text-[0.8125rem] text-ink-faint underline-offset-2 transition-colors hover:text-ink-muted hover:underline"
-                          data-testid="add-input-files-pick"
-                        >
-                          or pick individual files
-                        </button>
+                      <div
+                        onClick={() => folderRef.current?.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOver(true);
+                        }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={onDrop}
+                        className={`flex flex-col items-center gap-2 rounded-inset border border-dashed px-4 py-6 text-center transition-colors ${
+                          dragOver
+                            ? "border-accent bg-paper-raised"
+                            : "border-rule bg-paper hover:bg-paper-raised"
+                        }`}
+                        data-testid="add-input-dropzone"
+                      >
+                        <p className="text-[0.8125rem] leading-relaxed text-ink-muted">
+                          Drop a folder or files here, or click to choose a folder.
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              folderRef.current?.click();
+                            }}
+                            className="text-[0.8125rem] font-medium text-accent underline-offset-2 hover:underline"
+                            data-testid="add-input-folder-pick"
+                          >
+                            Choose a folder
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              filesRef.current?.click();
+                            }}
+                            className="text-[0.8125rem] text-ink-faint underline-offset-2 transition-colors hover:text-ink-muted hover:underline"
+                            data-testid="add-input-files-pick"
+                          >
+                            or pick individual files
+                          </button>
+                        </div>
                       </div>
                     )}
                     <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-ink-faint">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { filesFromDataTransfer, pickedFromInput, type PickedFile } from "@/lib/read-drop";
 
 /**
  * The dashboard's one write action: a "+" that opens a modal to seed a project
@@ -16,7 +17,8 @@ export function NewProjectButton() {
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [brief, setBrief] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<PickedFile[]>([]);
+  const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ slug: string; name: string; drafting: boolean } | null>(
@@ -47,9 +49,15 @@ export function NewProjectButton() {
   // A common top directory means a whole folder was picked; loose files have
   // none, so we just show the count.
   const commonTop =
-    files.length && files.every((f) => f.webkitRelativePath)
-      ? files[0].webkitRelativePath.split("/")[0]
+    files.length && files.every((f) => f.relPath.includes("/"))
+      ? files[0].relPath.split("/")[0]
       : "";
+
+  const onDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    setFiles(await filesFromDataTransfer(e.dataTransfer));
+  };
 
   const close = () => {
     if (busy) return;
@@ -90,7 +98,7 @@ export function NewProjectButton() {
         fd.append("name", name);
         fd.append("brief", brief);
         if (client.trim()) fd.append("client", client);
-        for (const f of files) fd.append("files", f, f.webkitRelativePath || f.name);
+        for (const pf of files) fd.append("files", pf.file, pf.relPath);
         res = await fetch("/api/projects", { method: "POST", body: fd });
       } else {
         res = await fetch("/api/projects", {
@@ -262,7 +270,7 @@ export function NewProjectButton() {
                       ref={folderInputRef}
                       type="file"
                       multiple
-                      onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+                      onChange={(e) => setFiles(pickedFromInput(e.target.files))}
                       className="hidden"
                       data-testid="new-project-folder"
                     />
@@ -270,7 +278,7 @@ export function NewProjectButton() {
                       ref={filesRef}
                       type="file"
                       multiple
-                      onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+                      onChange={(e) => setFiles(pickedFromInput(e.target.files))}
                       className="hidden"
                       data-testid="new-project-files"
                     />
@@ -293,23 +301,48 @@ export function NewProjectButton() {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => folderRef.current?.click()}
-                          className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
-                          data-testid="new-project-folder-pick"
-                        >
-                          Attach a folder
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => filesRef.current?.click()}
-                          className="text-[0.8125rem] text-ink-faint underline-offset-2 transition-colors hover:text-ink-muted hover:underline"
-                          data-testid="new-project-files-pick"
-                        >
-                          or pick individual files
-                        </button>
+                      <div
+                        onClick={() => folderRef.current?.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOver(true);
+                        }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={onDrop}
+                        className={`flex flex-col items-center gap-2 rounded-inset border border-dashed px-4 py-6 text-center transition-colors ${
+                          dragOver
+                            ? "border-accent bg-paper-raised"
+                            : "border-rule bg-paper hover:bg-paper-raised"
+                        }`}
+                        data-testid="new-project-dropzone"
+                      >
+                        <p className="text-[0.8125rem] leading-relaxed text-ink-muted">
+                          Drop a folder or files here, or click to choose a folder.
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              folderRef.current?.click();
+                            }}
+                            className="text-[0.8125rem] font-medium text-accent underline-offset-2 hover:underline"
+                            data-testid="new-project-folder-pick"
+                          >
+                            Choose a folder
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              filesRef.current?.click();
+                            }}
+                            className="text-[0.8125rem] text-ink-faint underline-offset-2 transition-colors hover:text-ink-muted hover:underline"
+                            data-testid="new-project-files-pick"
+                          >
+                            or pick individual files
+                          </button>
+                        </div>
                       </div>
                     )}
                     <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-ink-faint">
