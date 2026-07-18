@@ -450,6 +450,13 @@ export interface PrototypeInfo {
    */
   repoPresent: boolean;
   /**
+   * The repo's flows.json `source` marker, read fs-side: "structure" (a pristine
+   * skeleton the structure stage owns and can refresh in place) or "build" (build
+   * has taken over the repo). Null when there is no repo or no readable/valid
+   * source. Only a "structure" skeleton is refreshable; "build" is off-limits.
+   */
+  skeletonSource: "structure" | "build" | null;
+  /**
    * The project has a pre-authored `run` command (server-side config), so the
    * canvas can start its dev server itself via the Render control. The command
    * itself NEVER crosses to the client — only this boolean does.

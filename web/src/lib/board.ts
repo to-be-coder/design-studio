@@ -1,3 +1,5 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { cache } from "react";
 import { ROOT_DOCS, STAGES } from "./schema";
 import {
@@ -43,14 +45,16 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
   const { project, dashboardBlocks, dashboardBody, pipeline, decisions, outputsPresent } = detail;
 
   const config = await resolvePrototypeConfig(slug, project.prototypeRepo);
-  const [framing, assumptions, designSystem, tokens, ledger, rootDocs] = await Promise.all([
-    getFraming(slug),
-    getAssumptions(slug),
-    getDesignSystem(slug, config.repo),
-    getDesignTokens(slug, config.repo),
-    getLedger(slug),
-    resolveRootDocs(slug),
-  ]);
+  const [framing, assumptions, designSystem, tokens, ledger, rootDocs, skeletonSource] =
+    await Promise.all([
+      getFraming(slug),
+      getAssumptions(slug),
+      getDesignSystem(slug, config.repo),
+      getDesignTokens(slug, config.repo),
+      getLedger(slug),
+      resolveRootDocs(slug),
+      readSkeletonSource(config.repo),
+    ]);
   // wwb v2 reads the ledger for its questions fallback + evidence-moved check.
   const wwb = await getWwb(slug, ledger);
 
@@ -69,6 +73,9 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
     embeddable: isEmbeddable(config),
     // Structure's presence: the skeleton repo resolved and exists on disk.
     repoPresent: config.repoPresent,
+    // The flows.json source marker: "structure" (a refreshable skeleton) or
+    // "build" (build owns the repo). Read fs-side, null when absent/unreadable.
+    skeletonSource,
     // Client-safe: just whether a run command exists. cmd/cwd stay server-side.
     runnable: !!config.run,
     tokenHome: tokens.home,
@@ -120,6 +127,34 @@ export const getBoard = cache(async (slug: string): Promise<BoardModel | null> =
     ledger,
   };
 });
+
+/**
+ * Read a scaffolded skeleton's flows.json `source` marker fs-side: "structure"
+ * (a pristine skeleton the structure stage owns and can refresh) or "build"
+ * (build has taken over the repo). Returns null when there is no repo, no
+ * readable flows.json, or its source is absent or unrecognized. Never throws: a
+ * missing or malformed manifest degrades to null.
+ */
+async function readSkeletonSource(
+  repo: string | null,
+): Promise<"structure" | "build" | null> {
+  if (!repo) return null;
+  let raw: string;
+  try {
+    raw = await fs.readFile(path.join(repo, "flows.json"), "utf8");
+  } catch {
+    return null; // no repo / no manifest
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null; // malformed json
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+  const source = (parsed as { source?: unknown }).source;
+  return source === "structure" || source === "build" ? source : null;
+}
 
 /**
  * Walk ROOT_DOCS (never a hardcoded set) and record which candidate file each

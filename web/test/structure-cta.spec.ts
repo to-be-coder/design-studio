@@ -6,6 +6,11 @@ import { test, expect, type Page } from "@playwright/test";
  * scaffolds the clickable skeleton headlessly; with runs off it shows the
  * read-only command line instead; a project whose repo is present shows the
  * skeleton frames and no layer at all.
+ *
+ * When the repo IS present, the chrome row grows a "Refresh structure" control,
+ * but only while flows.json is still source "structure" (a pristine skeleton the
+ * stage owns). A repo whose flows.json is source "build" (build has taken over)
+ * shows no refresh affordance at all, even with runs enabled.
  * Hermetic: the run + status routes are intercepted, so nothing real spawns.
  */
 
@@ -100,6 +105,68 @@ test.describe("structure board with a scaffolded repo (/canvas/fixture-project)"
     await expect(page.getByTestId("prototype-frames")).toBeVisible();
     const desktop = page.frameLocator('[data-frame-device="desktop"][data-route=""]');
     await expect(desktop.getByRole("heading", { name: "Overview" })).toBeVisible();
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+
+  test("source structure + runs: the chrome shows a Refresh control and no empty CTA", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+
+    // Post the refresh through the same run route the CTA uses; the status poll
+    // reports a drafting structure pass so the running label can't be raced away.
+    let runBody: unknown = null;
+    await page.route("**/api/projects/run", async (route) => {
+      runBody = route.request().postDataJSON();
+      await route.fulfill({
+        status: 202,
+        contentType: "application/json",
+        body: JSON.stringify({ slug: "fixture-project", stage: "structure", running: true }),
+      });
+    });
+    await page.route("**/api/projects/status*", async (route) => {
+      await route.fulfill({
+        json: runBody
+          ? { stage: "structure", state: "drafting", round: null, fence: null, progress: null }
+          : { stage: null, state: null, fence: null, progress: null },
+      });
+    });
+
+    await page.goto("/canvas/fixture-project?runs=1");
+    await focusStructure(page);
+
+    // The repo is present (flows.json source "structure"), so there is no empty
+    // CTA, and the chrome offers a Refresh control instead of a Run one.
+    await expect(page.getByTestId("structure-cta")).toHaveCount(0);
+    const refresh = page.getByTestId("structure-refresh");
+    await expect(refresh).toHaveText("Refresh structure");
+    await refresh.click();
+
+    // The click posts exactly {slug, stage} to the run route (reuses runStage).
+    await expect.poll(() => runBody).toEqual({ slug: "fixture-project", stage: "structure" });
+
+    // While it regenerates the button reads as refreshing and is disabled.
+    await expect(refresh).toHaveText("Refreshing structure…");
+    await expect(refresh).toBeDisabled();
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+});
+
+test.describe("structure board whose repo build has taken over (/canvas/fixture-build)", () => {
+  test("source build: no refresh affordance and no empty CTA, even with runs on", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-build?runs=1");
+    await focusStructure(page);
+
+    // The repo is present (so no empty CTA), but flows.json is source "build":
+    // build owns the repo, so the board offers no refresh, even with runs on.
+    await expect(page.getByTestId("canvas-viewport")).toBeVisible();
+    await expect(page.getByTestId("structure-cta")).toHaveCount(0);
+    await expect(page.getByTestId("structure-refresh")).toHaveCount(0);
 
     expect(errors, errors.join("\n")).toEqual([]);
   });

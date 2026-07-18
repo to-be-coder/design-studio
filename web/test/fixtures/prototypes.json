@@ -2,6 +2,9 @@
   "fixture-project": {
     "repo": "./prototype"
   },
+  "fixture-build": {
+    "repo": "./prototype-build"
+  },
   "fixture-runnable": {
     "url": "http://127.0.0.1:3197",
     "routes": [],
