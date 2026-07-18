@@ -328,6 +328,38 @@ test.describe("Add input: attach a folder", () => {
     expect(errors, errors.join("\n")).toEqual([]);
   });
 
+  test("attaching loose files (not a folder) shows the count and enables submit", async ({
+    page,
+  }, testInfo) => {
+    // Individual html/css/jsx files, not a directory: the Attach-files input.
+    await fs.mkdir(testInfo.outputDir, { recursive: true });
+    const a = path.join(testInfo.outputDir, "index.html");
+    const b = path.join(testInfo.outputDir, "styles.css");
+    const c = path.join(testInfo.outputDir, "app.jsx");
+    await fs.writeFile(a, "<h1>hi</h1>");
+    await fs.writeFile(b, "body{}");
+    await fs.writeFile(c, "export default () => null;");
+
+    let contentType = "";
+    await page.route("**/api/projects/input", async (route) => {
+      contentType = route.request().headers()["content-type"] ?? "";
+      await route.fulfill({
+        status: 202,
+        contentType: "application/json",
+        body: JSON.stringify({ file: "02 Research/_inbox/x.md", running: true, attached: "attachment" }),
+      });
+    });
+
+    await page.goto("/canvas/fixture-project?runs=1");
+    await page.getByTestId("add-input").click();
+    await page.getByTestId("add-input-files").setInputFiles([a, b, c]);
+    await expect(page.getByTestId("add-input-folder-picked")).toContainText(/3 files/);
+    await expect(page.getByTestId("add-input-submit")).toBeEnabled();
+    await page.getByTestId("add-input-submit").click();
+    await expect(page.getByTestId("add-input-done")).toBeVisible();
+    expect(contentType).toContain("multipart/form-data");
+  });
+
   test("Clear removes the picked folder and disables submit again", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     const folder = path.join(os.tmpdir(), `ds-pick-${Date.now()}`);
