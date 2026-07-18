@@ -1087,7 +1087,7 @@ function structurePrompt({
   targetRepo: string;
 }): string {
   return [
-    "Run the design-studio-structure skill as ONE headless scaffolding pass for an existing project, per its SKILL.md, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation.",
+    "Run the design-studio-structure skill as ONE headless scaffold-or-refresh pass for an existing project, per its SKILL.md, then STOP. No interactive user is available, so do NOT ask questions or wait for confirmation.",
     "",
     `Vault: ${vaultRoot}`,
     `Project slug: ${slug} (folder: Design Studio/${slug}/)`,
@@ -1095,17 +1095,20 @@ function structurePrompt({
     "",
     "Read the skill's ../design-studio-shared/CONVENTIONS.md first, as the skill itself instructs; it now carries The skeleton contract this pass follows.",
     "",
-    "This pass scaffolds the clickable static skeleton prototype repo (bones before skin), not a vault document:",
-    `- Create the repo at EXACTLY the absolute path above (${targetRepo}). Do not invent a different location.`,
+    `Decide the target-path case first (the skill's Preconditions, three ways), then act on ${targetRepo}:`,
+    `- CASE 1, path absent: scaffold a fresh clickable static skeleton prototype repo (bones before skin), git init and make one \`Skeleton scaffold\` commit, and fill prototype_repo in 00 Dashboard.md with that absolute path.`,
+    `- CASE 2, path present AND a PRISTINE skeleton (git working tree clean via \`git -C ${targetRepo} status --porcelain\` empty, AND exactly one commit that is the \`Skeleton scaffold\` via \`git -C ${targetRepo} log --oneline\`, AND ${targetRepo}/flows.json source is "structure"): REFRESH it. Regenerate every skeleton file in place from the CURRENT inputs, add one \`Skeleton re-scaffold\` commit, keep source "structure", and leave prototype_repo as is.`,
+    `- CASE 3, path present but NOT pristine (dirty tree, more than the one scaffold commit, or flows.json source "build"): TOUCH NOTHING inside it. Append ONE dated plain line to 00 Dashboard.md naming the conflict (that ${targetRepo} has work in it, so a refresh would clobber it), and do not scaffold. Stop after the note.`,
+    "",
+    "When you scaffold or refresh (cases 1 and 2), the skeleton contract:",
     "- Derive the screens and flows ONLY from What's Worth Building's Build now set and the recorded picks in Decisions/. Do not scaffold anything from Backlog, Don't build, or Implied but unruled.",
     "- One flat HTML page per screen, with index.html as the entry. Every page repeats the same nav block with REAL working links between the pages, plus visible labeled state stubs (empty, loading, error) and a fidelity badge per screen.",
     '- Exactly ONE screen is at fidelity "full": the confirmed full-depth feature. Every other screen stays a low-fidelity skeleton.',
-    "- Include a tokens.css placeholder and a styles.css that consumes ONLY var() references with fallbacks (no raw color or size literals), a flows.json manifest listing the entry and the screens, and a README.md.",
-    "- git init the repo and make one initial commit.",
-    "- Fill prototype_repo in 00 Dashboard.md with that absolute path. Write NO 03 Structure.md and no other vault artifact.",
-    `- If the target path already exists, touch NOTHING inside it: instead append ONE dated plain line to 00 Dashboard.md naming the conflict (that ${targetRepo} already exists), and do not scaffold.`,
+    "- If the project was given a starter app (a _assets/starter-app/ copy plus a research note saying the project starts from it), MODEL the full-fidelity screen's static markup on the starter's real surface (its controls, main affordances, layout) so the prototype opens looking like the actual product. Keep it static and zero-JS: do NOT copy the starter's React or API code in (that is build's job); note the starter as build's base in the README and flows.json.",
+    "- Include a tokens.css placeholder and a styles.css that consumes ONLY var() references with fallbacks (no raw color or size literals), a flows.json manifest (source \"structure\") listing the entry and the screens, and a README.md.",
+    "- Write NO 03 Structure.md and no other vault artifact.",
     "- It is a scaffold the human edits: propose, never decide. Keep everything supersedable and author no human verdicts.",
-    "- Close with the dashboard stage line, written LAST as the commit fence: `Current stage: structure: scaffolded. Next: design-system.` then STOP. Do not run any other pipeline stage. Do not ask questions.",
+    "- Close with the dashboard stage line, written LAST as the commit fence: `Current stage: structure: scaffolded. Next: design-system.` (use `re-scaffolded` on a refresh). Then STOP. Do not run any other pipeline stage. Do not ask questions.",
   ].join("\n");
 }
 
