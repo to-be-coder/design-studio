@@ -1,4 +1,5 @@
 {
+  "source": "structure",
   "entry": "index.html",
   "screens": [
     { "route": "index.html", "name": "Home", "fidelity": "full" },

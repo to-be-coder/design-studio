@@ -20,9 +20,6 @@ import { componentBaseNames } from "@/lib/tokens";
 
 export type StreamFilter = "all" | "live" | "scaffold";
 
-/** Stages with an on-demand "Run" control on their board (must match the runner). */
-const RUNNABLE_STAGES = new Set(["research", "structure"]);
-
 /** Doc-mode focuses render off the canvas as a reading pane, not a spatial board. */
 const DOC_FOCUSES = new Set(["debrief", "research", "wwb", "ledger", "agenda", "decision-stream"]);
 
@@ -589,6 +586,25 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
   // presence from the prototype repo (the skeleton the skill scaffolds), so the
   // empty board's centered call-to-action shows exactly when that repo is absent.
   const hasStructure = model.prototype.repoPresent;
+  // A present skeleton that structure still owns can be refreshed in place
+  // (regenerated from the latest decisions); once build takes over the repo
+  // (source "build") that affordance goes away, and with no repo the centered
+  // CTA owns the empty state instead.
+  const canRefreshStructure = hasStructure && model.prototype.skeletonSource === "structure";
+
+  // The chrome run/refresh pill for a runnable stage. Research spawns its
+  // headless round as before. Structure's pill becomes a Refresh and shows only
+  // for a still-structure-owned skeleton: with no repo the centered CTA covers
+  // it, and once build owns the repo there is no pill at all (build owns it).
+  const chromeRun: { label: string; busy: string; testId?: string } | null =
+    focused === "research" && runsEnabled
+      ? {
+          label: `Run ${stageName(focused).toLowerCase()}`,
+          busy: `Running ${stageName(focused).toLowerCase()}…`,
+        }
+      : focused === "structure" && canRefreshStructure && (runsEnabled || reviewOverride)
+        ? { label: "Refresh structure", busy: "Refreshing structure…", testId: "structure-refresh" }
+        : null;
 
   // Debrief and research (prose stages), the project root docs (What's Worth
   // Building, the ledger, the agenda), and the decision stream read as documents,
@@ -642,9 +658,11 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
           {runsEnabled || reviewOverride ? (
             <AddInputButton slug={model.project.slug} onRunStarted={onRunStarted} />
           ) : null}
-          {/* A runnable stage's on-demand run control (opt-in) — spawns that
-              stage's skill headless; the sidebar dot pulses on it while it works. */}
-          {RUNNABLE_STAGES.has(focused) && runsEnabled ? (
+          {/* A runnable stage's on-demand control (opt-in): spawns that stage's
+              skill headless; the sidebar dot pulses on it while it works. Research
+              runs; a still-structure-owned skeleton refreshes (build-owned repos
+              show nothing here, and an absent repo defers to the centered CTA). */}
+          {chromeRun ? (
             <>
               {runError ? (
                 <span className="text-[0.75rem] text-unverified">{runError}</span>
@@ -653,11 +671,10 @@ export function Canvas({ model, runsEnabled }: { model: BoardModel; runsEnabled:
                 type="button"
                 onClick={() => runStage(focused)}
                 disabled={generatingStage === focused}
+                data-testid={chromeRun.testId}
                 className="rounded-pill border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {generatingStage === focused
-                  ? `Running ${stageName(focused).toLowerCase()}…`
-                  : `Run ${stageName(focused).toLowerCase()}`}
+                {generatingStage === focused ? chromeRun.busy : chromeRun.label}
               </button>
             </>
           ) : null}

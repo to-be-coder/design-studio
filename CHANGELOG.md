@@ -6,6 +6,11 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **Re-running structure refreshes a pristine skeleton, and leaves a built one alone.** The
+  skeleton repo now carries a source marker. While it is still a pristine skeleton, re-running
+  structure regenerates it from the latest decisions and any starter app you fed in. Once build
+  has taken over that repo, structure refuses to touch it. The Structure board shows a Refresh
+  control only when the skeleton is still refreshable, and nothing once build owns the repo.
 - **The side nav's pulsing dot is back.** The running stage's row pulses again while a headless
   pass works, alongside the top-right progress line, restoring the signal by request.
 - **The canvas type sizes are normalized to one scale.** In the side nav, the small group labels
