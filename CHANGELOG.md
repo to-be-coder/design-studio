@@ -6,6 +6,10 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **You can now drag a folder or files onto the attach area (or click to browse).** The Add-input
+  and New-project boxes have a drop area: drag a whole folder or loose files onto it, or click to
+  choose a folder. This avoids the folder picker greying out individual files, which used to
+  confuse people.
 - **You can attach a folder when adding input or creating a project.** Pick a folder (say, a
   starter app) in the Add-input or New-project box; it is copied into the project's assets, and a
   note pointing at it goes into the research inbox, so research reads it like any other input.
