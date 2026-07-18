@@ -247,7 +247,7 @@ export function AddInputButton({
                         </button>
                       </div>
                     ) : (
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => folderRef.current?.click()}
@@ -259,13 +259,16 @@ export function AddInputButton({
                         <button
                           type="button"
                           onClick={() => filesRef.current?.click()}
-                          className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+                          className="text-[0.8125rem] text-ink-faint underline-offset-2 transition-colors hover:text-ink-muted hover:underline"
                           data-testid="add-input-files-pick"
                         >
-                          Attach files
+                          or pick individual files
                         </button>
                       </div>
                     )}
+                    <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-ink-faint">
+                      A folder brings everything inside it, code files included.
+                    </p>
                   </div>
 
                   {error ? (
