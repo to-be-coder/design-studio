@@ -39,12 +39,20 @@ export function AddInputButton({
     }
   }, []);
 
+  const filesRef = useRef<HTMLInputElement | null>(null);
+
   const clearFolder = () => {
     setFiles([]);
     if (folderRef.current) folderRef.current.value = "";
+    if (filesRef.current) filesRef.current.value = "";
   };
 
-  const folderName = files.length ? files[0].webkitRelativePath.split("/")[0] || files[0].name : "";
+  // A common top directory means a whole folder was picked; loose files have
+  // none, so we just show the count.
+  const commonTop =
+    files.length && files.every((f) => f.webkitRelativePath)
+      ? files[0].webkitRelativePath.split("/")[0]
+      : "";
 
   const close = () => {
     if (busy) return;
@@ -165,7 +173,7 @@ export function AddInputButton({
               <>
                 <h2 className="mb-1 font-serif text-2xl font-semibold text-ink">Add input</h2>
                 <p className="mb-5 text-[0.8125rem] leading-relaxed text-ink-muted">
-                  New context, a design brief, a decision from a call, or a folder to feed in (say, a
+                  New context, a design brief, a decision from a call, or a folder or files to feed in (say, a
                   starter app). It lands in the research inbox verbatim, and research sorts it into
                   the ledger.
                 </p>
@@ -202,7 +210,7 @@ export function AddInputButton({
 
                   <div>
                     <span className="mb-1.5 block text-[0.8125rem] font-medium text-ink-muted">
-                      Folder <span className="text-ink-faint">(optional)</span>
+                      Folder or files <span className="text-ink-faint">(optional)</span>
                     </span>
                     <input
                       ref={folderInputRef}
@@ -212,13 +220,22 @@ export function AddInputButton({
                       className="hidden"
                       data-testid="add-input-folder"
                     />
+                    <input
+                      ref={filesRef}
+                      type="file"
+                      multiple
+                      onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+                      className="hidden"
+                      data-testid="add-input-files"
+                    />
                     {files.length ? (
                       <div
                         className="flex items-center gap-2 rounded-inset border border-rule bg-paper-raised px-3 py-2 text-[0.8125rem] text-ink"
                         data-testid="add-input-folder-picked"
                       >
                         <span className="truncate">
-                          {folderName} ({files.length} file{files.length === 1 ? "" : "s"})
+                          {commonTop ? `${commonTop} ` : ""}({files.length} file
+                          {files.length === 1 ? "" : "s"})
                         </span>
                         <button
                           type="button"
@@ -230,14 +247,24 @@ export function AddInputButton({
                         </button>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => folderRef.current?.click()}
-                        className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
-                        data-testid="add-input-folder-pick"
-                      >
-                        Attach a folder
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => folderRef.current?.click()}
+                          className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+                          data-testid="add-input-folder-pick"
+                        >
+                          Attach a folder
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => filesRef.current?.click()}
+                          className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+                          data-testid="add-input-files-pick"
+                        >
+                          Attach files
+                        </button>
+                      </div>
                     )}
                   </div>
 

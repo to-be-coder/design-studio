@@ -36,12 +36,20 @@ export function NewProjectButton() {
     }
   }, []);
 
+  const filesRef = useRef<HTMLInputElement | null>(null);
+
   const clearFolder = () => {
     setFiles([]);
     if (folderRef.current) folderRef.current.value = "";
+    if (filesRef.current) filesRef.current.value = "";
   };
 
-  const folderName = files.length ? files[0].webkitRelativePath.split("/")[0] || files[0].name : "";
+  // A common top directory means a whole folder was picked; loose files have
+  // none, so we just show the count.
+  const commonTop =
+    files.length && files.every((f) => f.webkitRelativePath)
+      ? files[0].webkitRelativePath.split("/")[0]
+      : "";
 
   const close = () => {
     if (busy) return;
@@ -248,7 +256,7 @@ export function NewProjectButton() {
 
                   <div>
                     <span className="mb-1.5 block text-[0.8125rem] font-medium text-ink-muted">
-                      Folder <span className="text-ink-faint">(optional)</span>
+                      Folder or files <span className="text-ink-faint">(optional)</span>
                     </span>
                     <input
                       ref={folderInputRef}
@@ -258,13 +266,22 @@ export function NewProjectButton() {
                       className="hidden"
                       data-testid="new-project-folder"
                     />
+                    <input
+                      ref={filesRef}
+                      type="file"
+                      multiple
+                      onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+                      className="hidden"
+                      data-testid="new-project-files"
+                    />
                     {files.length ? (
                       <div
                         className="flex items-center gap-2 rounded-inset border border-rule bg-paper-raised px-3 py-2 text-[0.8125rem] text-ink"
                         data-testid="new-project-folder-picked"
                       >
                         <span className="truncate">
-                          {folderName} ({files.length} file{files.length === 1 ? "" : "s"})
+                          {commonTop ? `${commonTop} ` : ""}({files.length} file
+                          {files.length === 1 ? "" : "s"})
                         </span>
                         <button
                           type="button"
@@ -276,14 +293,24 @@ export function NewProjectButton() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => folderRef.current?.click()}
-                        className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
-                        data-testid="new-project-folder-pick"
-                      >
-                        Attach a folder
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => folderRef.current?.click()}
+                          className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+                          data-testid="new-project-folder-pick"
+                        >
+                          Attach a folder
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => filesRef.current?.click()}
+                          className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+                          data-testid="new-project-files-pick"
+                        >
+                          Attach files
+                        </button>
+                      </div>
                     )}
                     <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-ink-faint">
                       A starter app or reference files, copied into the project for research to read.
