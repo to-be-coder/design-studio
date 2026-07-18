@@ -89,7 +89,7 @@ function runSkill(opts: {
    * Controller hand-off: called INSTEAD of marking the stage `done` when the
    * child exits 0. The debrief pass uses it to chain straight into the research
    * loop, so the registry walks debrief → research with no `done` gap the poll
-   * could observe (the run stays live across the hand-off). A non-zero exit still
+   * could observe (the sidebar dot survives the hand-off). A non-zero exit still
    * marks `error` as before.
    */
   onCleanExit?: () => void;
@@ -329,7 +329,7 @@ async function runLoop(ctx: LoopCtx, opts?: ResearchOpts, chained = false): Prom
     // Drain the review queue before any research round: blocks persisted while
     // another run was live (or while the server was down) are picked up here.
     // The registry stays `stage: "research"` for the whole drain so the
-    // existing status poll works unchanged.
+    // existing sidebar dot + status poll work unchanged.
     const pending = await pendingReviewBatches(projectDir);
     if (opts?.review) {
       const scanned = pending.find((b) => b.batchId === opts.review!.batchId);

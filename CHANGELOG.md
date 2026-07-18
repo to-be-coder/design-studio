@@ -6,6 +6,8 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **The side nav's pulsing dot is back.** The running stage's row pulses again while a headless
+  pass works, alongside the top-right progress line, restoring the signal by request.
 - **The canvas type sizes are normalized to one scale.** In the side nav, the small group labels
   (Project, Understand, Build, Decisions) now read dim above the brighter navigation rows. In the
   board's right reading pane, the section labels settle at one size and the body, cards, asks, and
