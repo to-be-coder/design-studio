@@ -1,6 +1,6 @@
 ---
 name: design-studio-structure
-description: Scaffold the product's bones as a clickable skeleton app, not a document. From the accepted recommendation and What's Worth Building's Build now set, it creates the prototype repo (static stub screens wired with real navigation, one page per screen, states stubbed visibly) plus a flows.json manifest, so you walk the flows instead of reading them. design-system and build work in the same repo from here on. 🟡 draft the user edits; supersedable like everything else, since nothing locks before production. Creates ~/dev/<slug>-prototype and writes no vault page. Third stage of the design-studio pipeline.
+description: Scaffold the product's bones as a clickable skeleton app, not a document. From the accepted recommendation and What's Worth Building's Build now set, it creates the prototype repo (static stub screens wired with real navigation, one page per screen, states stubbed visibly) plus a flows.json manifest, so you walk the flows instead of reading them. design-system and build work in the same repo from here on. Re-running refreshes a still-pristine skeleton (regenerating it from the latest decisions) and refuses to clobber one build has taken over. 🟡 draft the user edits; supersedable like everything else, since nothing locks before production. Creates ~/dev/<slug>-prototype and writes no vault page. Third stage of the design-studio pipeline.
 ---
 
 # design-studio-structure
@@ -37,11 +37,24 @@ with it (build keeps routes and flows.json current once it takes over).
   the anchor.
 - **Empty Build now?** Warn: no human-confirmed entries; the candidates in What's Worth Building
   want triage first. Warn, never block.
-- **Target path taken?** The repo goes to `~/dev/<slug>-prototype` (or the exact path a headless
-  spawn passes in). If that path already exists, TOUCH NOTHING: do not write into it, do not set
-  `prototype_repo`, and append one dated plain line to `00 Dashboard.md` naming the conflict (for
-  example `- 2026-07-17: structure did not run: ~/dev/forma-prototype already exists; move it or
-  point prototype_repo at it yourself`). Re-runs route through the user.
+- **Target path check, three ways.** The repo goes to `~/dev/<slug>-prototype` (or the exact path a
+  headless spawn passes in). Decide before writing anything:
+  1. **Path absent** -> scaffold fresh (the Process below), the normal create path.
+  2. **Path present AND a pristine skeleton** -> **refresh it**. Pristine means all three hold: the
+     git working tree is clean (`git -C <repo> status --porcelain` empty), there is exactly one
+     commit and it is the skeleton scaffold (`git -C <repo> log --oneline` is a single
+     `Skeleton scaffold` line), and `<repo>/flows.json`'s `source` is `"structure"`. A pristine
+     skeleton is disposable studio scaffolding no later stage has touched, so regenerate every
+     skeleton file from the CURRENT inputs (the latest Build now set, all decisions, any fed-in
+     starter app), commit `Skeleton re-scaffold`, and keep `source: "structure"`. Leave
+     `prototype_repo` as is (it already points here).
+  3. **Path present but NOT pristine** (dirty tree, more than the one scaffold commit, or
+     `flows.json` `source: "build"`) -> **TOUCH NOTHING**: `source: "build"` means build owns the
+     repo, and a dirty tree or extra commits mean real work is in flight. Append one dated plain
+     line to `00 Dashboard.md` naming the conflict (for example `- 2026-07-17: structure did not
+     run: ~/dev/forma-prototype has work in it (source build / uncommitted changes); refresh would
+     clobber it, so nothing was touched`) and stop. Re-scaffolding a repo build owns is the user's
+     explicit call (they move it aside or point `prototype_repo` at a fresh path).
 
 ## Process
 
@@ -69,7 +82,7 @@ with it (build keeps routes and flows.json current once it takes over).
    copy. A flow that answers no rubric question is a candidate cut: surface it, don't quietly keep
    it.
 
-6. **Scaffold the skeleton repo.** Create the repo at the target path and fill it exactly per
+6. **Scaffold (or re-scaffold) the skeleton repo.** Fill the repo at the target path exactly per
    CONVENTIONS' skeleton contract:
    - One flat html file per screen, `index.html` as the entry. Zero JS, zero dependencies,
      relative links only.
@@ -78,20 +91,31 @@ with it (build keeps routes and flows.json current once it takes over).
    - Each page marks itself: `data-screen`, `data-serves` (the W-ids it serves), a visible
      fidelity badge (`data-fidelity="full"` for the one confirmed full-depth screen, `"stub"` for
      the rest), and a visible labeled block per required state (empty, loading, error, edges).
+   - **The full-fidelity screen models a fed-in starter app when one exists.** If the project was
+     given a starter app (a `_assets/starter-app/` copy plus a research note; the owner said "this
+     is where the project starts"), the `full`-fidelity screen's static markup is modeled on the
+     starter's real surface (its controls, its main affordances, its layout) so the prototype opens
+     looking like the actual product, not a generic stub. The skeleton stays static and zero-JS: do
+     NOT copy the starter's runtime code (React, API calls) in; that is build's job, and the
+     README/flows.json note the starter as the base build inherits. No starter fed in: the
+     full-fidelity screen is a plain designed stub like the rest.
    - Every page links `tokens.css` (a placeholder with neutral fallbacks; design-system fills it)
      then `styles.css` (consumes only `var(...)` with fallbacks).
    - `flows.json` at the root: the machine-readable structure (screens, states, serves, fidelity,
-     edges) per the schema in CONVENTIONS. Exactly one screen carries `fidelity: "full"`.
+     edges) per the schema in CONVENTIONS, `source: "structure"`. Exactly one screen carries
+     `fidelity: "full"`.
    - A one-paragraph `README.md` (what this repo is; build replaces the skeleton keeping routes
-     and flows.json), then `git init` and one initial commit, so build's drift diff has a lineage
-     from birth.
+     and flows.json). On a fresh scaffold, `git init` and one `Skeleton scaffold` commit; on a
+     refresh (target-path case 2 above), overwrite the files in place and add one
+     `Skeleton re-scaffold` commit, so build's drift diff keeps a lineage either way.
    Write NO `03 Structure.md`: the repo is the structure. That vault slot is retired.
 
 7. **Record and close.** Fill `prototype_repo` in `00 Dashboard.md` with the repo's ABSOLUTE path
-   (never `~`). Where the skeleton makes a real call (a flow chosen over an alternative, a screen
-   cut), record it as a decision entry so the reasoning is kept. Close the dashboard with
-   `Current stage: structure: scaffolded. Next: design-system.` If a flow contradicts something in
-   What's Worth Building, route it back into the loop rather than silently diverging.
+   (never `~`); on a refresh it already points here, leave it. Where the skeleton makes a real call
+   (a flow chosen over an alternative, a screen cut), record it as a decision entry so the reasoning
+   is kept. Close the dashboard with `Current stage: structure: scaffolded. Next: design-system.`
+   (`re-scaffolded` on a refresh). If a flow contradicts something in What's Worth Building, route
+   it back into the loop rather than silently diverging.
 
    **At close, run the utility check** ([[0030 utilities-push-dont-pull]]): refresh the
    harvest-debt standing line on `00 Dashboard.md`; offer a `design-studio-harvest` crossing if

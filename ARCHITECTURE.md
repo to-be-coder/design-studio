@@ -98,7 +98,11 @@ The **clickable prototype is never in the vault.** It's a separate code repo, cr
 structure stage at `~/dev/<slug>-prototype` as the clickable skeleton it scaffolds (one static stub
 page per screen, wired with real links, plus a `flows.json` manifest; vault decision 0039).
 `00 Dashboard.md` records its absolute path in the `prototype_repo` frontmatter field, and
-design-system and build work in that same repo from then on.
+design-system and build work in that same repo from then on. Re-running structure **refreshes** a
+still-pristine skeleton (git tree clean, only the scaffold commit, `flows.json` `source: structure`)
+by regenerating it from the latest decisions; once design-system or build has touched the repo
+(`source: build`, or extra commits) a re-run refuses so their work is never clobbered (vault
+decision 0040).
 
 ---
 
