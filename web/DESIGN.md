@@ -53,6 +53,12 @@ typography:
   small:    { family: "sans", size: "0.8125rem", weight: 400, leading: "1.5" }
   label:    { family: "sans", size: "0.6875rem", weight: 600, tracking: "0.1em", case: "uppercase" }
   mono:     { family: "mono", size: "0.8125rem", weight: 400 }
+  # Canvas nav + reading-pane scale: four named steps so the chrome reads as one
+  # system (a dim group caption over bright nav rows, pane section labels over body).
+  navLabel:   { family: "sans", size: "0.75rem",  weight: 600, tracking: "0.08em", case: "uppercase" }  # 12px sidebar group header (dim)
+  navRow:     { family: "sans", size: "0.875rem", weight: 400 }                                          # 14px sidebar nav rows (full ink, active keeps accent)
+  panelLabel: { family: "sans", size: "0.875rem", weight: 600, tracking: "0.08em", case: "uppercase" }  # 14px reading-pane section labels + inline For:/Against:
+  panelBody:  { family: "sans", size: "1rem",     weight: 400, leading: "1.6" }                          # 16px reading-pane body, cards, asks, buttons, textareas
 
 spacing:
   base:     "0.25rem"    # 4px base scale
@@ -117,9 +123,9 @@ components:
     textColor:       "{colors.ink}"
     rounded:         "{rounded.pill}"
     typography:      "{typography.small}"
-  navRow:                                 # side nav + document contents rail (files list): resting
+  navRow:                                 # side nav rows: resting at full ink (bright)
     backgroundColor: "transparent"
-    textColor:       "{colors.inkMuted}"
+    textColor:       "{colors.ink}"
     rounded:         "{rounded.inset}"
   navRowHover:                            # the same rows on hover or focus-visible
     backgroundColor: "{colors.paperRaised}"
@@ -187,10 +193,13 @@ kept as the reading alias but points at the same sans stack, so no serif is used
 carries ids and code. The reading scale is deliberate —
 `body` 17px at 1.72 leading on a 34rem measure, a true `artifactH1/H2/H3` hierarchy, and an italic
 `pullQuote` for the **In their words.** voice so the human is visibly distinct from the tool's prose.
-Type is the loud element here; everything else is quiet. Sidebar navigation items are one size:
-0.875rem/14px (the `text-sm` step), across all groups (root docs, stage rows, the decision stream).
-The hero row (What's Worth Building) keeps its active accent color but never a larger size, so the
-index reads as one even list, not a ladder of weights.
+Type is the loud element here; everything else is quiet. The chrome and reading pane resolve to
+four named steps. In the sidebar, a dim uppercase group caption (`navLabel`, 12px, `inkMuted`) sits
+over bright navigation rows (`navRow`, 14px, full `ink`); the active row keeps its `accentWash` plus
+`accent` treatment, never a larger size, so each group reads as one even list. In the reading pane,
+uppercase section labels (`panelLabel`, 14px) caption the pane's own prose and card text
+(`panelBody`, 16px), with the active accent unchanged; rendered artifact and vault documents keep
+the `body` reading size (17px), so a read page stays a read page.
 
 ## Layout
 A vertical **spine** runs down the left — the two phases (Understand / Build) as sections,

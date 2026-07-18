@@ -89,7 +89,7 @@ function wwbSection(model: BoardModel, ctx?: DocCtx): DocSection[] {
       onRunStarted={ctx?.onRunStarted}
     />
   ) : (
-    <p className="text-[0.9375rem] italic text-ink-faint">
+    <p className="text-panel-body italic text-ink-faint">
       Not compiled yet. Research writes What&rsquo;s Worth Building once the loop has evidence.
     </p>
   );
@@ -105,7 +105,7 @@ function ledgerSection(model: BoardModel, ctx: DocCtx | undefined): DocSection[]
       onFocusReceipt={ctx?.onFocusReceipt}
     />
   ) : (
-    <p className="text-[0.9375rem] italic text-ink-faint">
+    <p className="text-panel-body italic text-ink-faint">
       No ledger yet. Debrief seeds the knowns and unknowns; research works them.
     </p>
   );
