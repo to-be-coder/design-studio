@@ -4,6 +4,7 @@ import path from "node:path";
 import { DESIGN_DIR, getVaultRoot, VaultNotConfiguredError } from "@/lib/vault";
 import { HIDDEN_SLUGS } from "@/lib/hidden-projects";
 import { autorunEnabled, researchLoopLive, startResearchLoop } from "@/lib/debrief-runner";
+import { saveAttachment, attachmentInboxNote, type AttachmentFile } from "@/lib/attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,21 @@ function slugify(s: string): string {
 }
 
 /**
+ * The `files` entries of a multipart form as attachment bytes. The client sends
+ * each file with its webkitRelativePath as the filename (so `file.name` holds
+ * the folder-relative path); we fall back to the plain name when it is absent.
+ */
+async function filesFromForm(form: FormData): Promise<AttachmentFile[]> {
+  const out: AttachmentFile[] = [];
+  for (const entry of form.getAll("files")) {
+    if (entry instanceof File) {
+      out.push({ relPath: entry.name || "file", bytes: Buffer.from(await entry.arrayBuffer()) });
+    }
+  }
+  return out;
+}
+
+/**
  * Add input to a project, anytime (decision 0036: any submission is another
  * brief). This is the app's SECOND bounded vault write: it drops the text
  * verbatim as a dated file in the project's `02 Research/_inbox/` (the designed
@@ -47,20 +63,42 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { slug?: unknown; title?: unknown; text?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  // Two shapes: pure JSON (text only, as before) or multipart/form-data (a
+  // folder, optionally with a title and text). A folder alone is valid input.
+  let slug = "";
+  let title = "";
+  let text = "";
+  let attachFiles: AttachmentFile[] = [];
+  const contentType = req.headers.get("content-type") ?? "";
+
+  if (contentType.startsWith("multipart/form-data")) {
+    let form: FormData;
+    try {
+      form = await req.formData();
+    } catch {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+    slug = (form.get("slug") ?? "").toString().trim();
+    title = (form.get("title") ?? "").toString().trim();
+    text = (form.get("text") ?? "").toString().trim();
+    attachFiles = await filesFromForm(form);
+  } else {
+    let body: { slug?: unknown; title?: unknown; text?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+    slug = typeof body.slug === "string" ? body.slug.trim() : "";
+    title = typeof body.title === "string" ? body.title.trim() : "";
+    text = typeof body.text === "string" ? body.text.trim() : "";
   }
 
-  const slug = typeof body.slug === "string" ? body.slug.trim() : "";
   if (!slug || HIDDEN_SLUGS.has(slug)) {
     return NextResponse.json({ error: "A slug is required." }, { status: 400 });
   }
-  const title = typeof body.title === "string" ? body.title.trim() : "";
-  const text = typeof body.text === "string" ? body.text.trim() : "";
-  if (!text) {
+  // Text is required only when no folder was attached.
+  if (!text && attachFiles.length === 0) {
     return NextResponse.json({ error: "Some input text is required." }, { status: 400 });
   }
 
@@ -81,25 +119,49 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `No project "${slug}".` }, { status: 404 });
   }
 
-  // THE SECOND VAULT WRITE: a dated inbox file with a small provenance header +
-  // the text VERBATIM, written atomically (temp + rename). The name dedupes with
+  // A folder, when attached, is copied verbatim into the project's `_assets/`
+  // first (caps + path safety enforced there); the inbox note then points at it.
+  // The copy makes no filesystem changes when a cap is exceeded, so a rejected
+  // attachment is a clean 400.
+  let attached: string | null = null;
+  let content: string;
+  let base: string;
+  if (attachFiles.length > 0) {
+    let saved;
+    try {
+      saved = await saveAttachment(dir, attachFiles, { label: title || "attachment" });
+    } catch (err) {
+      return NextResponse.json({ error: (err as Error).message }, { status: 400 });
+    }
+    attached = saved.assetDir.split("/").pop() ?? null;
+    content = attachmentInboxNote({
+      title: title || undefined,
+      text: text || undefined,
+      assetDir: saved.assetDir,
+      manifest: saved.manifest,
+      skipped: saved.skipped,
+    });
+    base = slugify(title || attached || "attachment") || "attachment";
+  } else {
+    const heading = title ? `# ${title}\n\n` : "";
+    content = `---\ntype: fed-in\ndate: ${new Date().toISOString()}\nsource: canvas\n---\n\n${heading}${text}\n`;
+    base = slugify(title || text) || "input";
+  }
+
+  // THE SECOND VAULT WRITE: a dated inbox file (the text VERBATIM, or the
+  // attachment note), written atomically (temp + rename). The name dedupes with
   // a numeric suffix so two same-day inputs never collide.
   const date = new Date().toISOString().slice(0, 10);
-  const base = slugify(title || text) || "input";
   const inboxDir = path.join(dir, INBOX_DIR);
   let rel: string;
   try {
     await fs.mkdir(inboxDir, { recursive: true });
-    // Dedupe with a numeric suffix so two same-day inputs never collide.
     let name = `${date} ${base}`;
     for (let n = 2; await pathExists(path.join(inboxDir, `${name}.md`)); n++) {
       name = `${date} ${base} ${n}`;
     }
     rel = path.join(INBOX_DIR, `${name}.md`);
     const abs = path.join(inboxDir, `${name}.md`);
-    const heading = title ? `# ${title}\n\n` : "";
-    const content =
-      `---\ntype: fed-in\ndate: ${new Date().toISOString()}\nsource: canvas\n---\n\n${heading}${text}\n`;
     const tmp = `${abs}.tmp-${process.pid}-${Date.now()}`;
     await fs.writeFile(tmp, content, "utf8");
     await fs.rename(tmp, abs);
@@ -113,9 +175,9 @@ export async function POST(req: Request) {
   // A live loop (or recorder): the file is persisted, but do not spawn now. The
   // next research round it runs will sort the inbox in (same policy as review).
   if (await researchLoopLive(slug, dir)) {
-    return NextResponse.json({ file: rel, queued: true }, { status: 202 });
+    return NextResponse.json({ file: rel, queued: true, attached }, { status: 202 });
   }
 
   startResearchLoop({ slug, vaultRoot: root, projectDir: dir });
-  return NextResponse.json({ file: rel, running: true }, { status: 202 });
+  return NextResponse.json({ file: rel, running: true, attached }, { status: 202 });
 }

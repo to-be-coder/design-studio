@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 /**
@@ -16,12 +16,32 @@ export function NewProjectButton() {
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [brief, setBrief] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ slug: string; name: string; drafting: boolean } | null>(
     null,
   );
   const nameRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement | null>(null);
+
+  // The folder attributes are not typed on React inputs, so set them on the
+  // element itself when it mounts (a callback ref, stable across renders).
+  const folderInputRef = useCallback((el: HTMLInputElement | null) => {
+    folderRef.current = el;
+    if (el) {
+      el.setAttribute("webkitdirectory", "");
+      el.setAttribute("directory", "");
+      el.setAttribute("mozdirectory", "");
+    }
+  }, []);
+
+  const clearFolder = () => {
+    setFiles([]);
+    if (folderRef.current) folderRef.current.value = "";
+  };
+
+  const folderName = files.length ? files[0].webkitRelativePath.split("/")[0] || files[0].name : "";
 
   const close = () => {
     if (busy) return;
@@ -31,6 +51,7 @@ export function NewProjectButton() {
     setName("");
     setClient("");
     setBrief("");
+    clearFolder();
     setError(null);
     setCreated(null);
   };
@@ -53,11 +74,23 @@ export function NewProjectButton() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, brief, client }),
-      });
+      // Multipart when a folder is attached (each file carries its
+      // folder-relative path), plain JSON otherwise.
+      let res: Response;
+      if (files.length > 0) {
+        const fd = new FormData();
+        fd.append("name", name);
+        fd.append("brief", brief);
+        if (client.trim()) fd.append("client", client);
+        for (const f of files) fd.append("files", f, f.webkitRelativePath || f.name);
+        res = await fetch("/api/projects", { method: "POST", body: fd });
+      } else {
+        res = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, brief, client }),
+        });
+      }
       const data = (await res.json()) as { slug?: string; drafting?: boolean; error?: string };
       if (!res.ok || !data.slug) {
         setError(data.error ?? "Something went wrong.");
@@ -212,6 +245,50 @@ export function NewProjectButton() {
                       data-testid="new-project-brief"
                     />
                   </label>
+
+                  <div>
+                    <span className="mb-1.5 block text-[0.8125rem] font-medium text-ink-muted">
+                      Folder <span className="text-ink-faint">(optional)</span>
+                    </span>
+                    <input
+                      ref={folderInputRef}
+                      type="file"
+                      multiple
+                      onChange={(e) => setFiles(e.target.files ? Array.from(e.target.files) : [])}
+                      className="hidden"
+                      data-testid="new-project-folder"
+                    />
+                    {files.length ? (
+                      <div
+                        className="flex items-center gap-2 rounded-inset border border-rule bg-paper-raised px-3 py-2 text-[0.8125rem] text-ink"
+                        data-testid="new-project-folder-picked"
+                      >
+                        <span className="truncate">
+                          {folderName} ({files.length} file{files.length === 1 ? "" : "s"})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={clearFolder}
+                          className="ml-auto shrink-0 text-ink-muted transition-colors hover:text-ink"
+                          data-testid="new-project-folder-clear"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => folderRef.current?.click()}
+                        className="rounded-inset border border-rule bg-paper px-3 py-1.5 text-[0.8125rem] text-ink-muted transition-colors hover:text-ink"
+                        data-testid="new-project-folder-pick"
+                      >
+                        Attach a folder
+                      </button>
+                    )}
+                    <p className="mt-1.5 text-[0.8125rem] leading-relaxed text-ink-faint">
+                      A starter app or reference files, copied into the project for research to read.
+                    </p>
+                  </div>
 
                   {error ? (
                     <p className="text-[0.8125rem] text-unverified" data-testid="new-project-error">

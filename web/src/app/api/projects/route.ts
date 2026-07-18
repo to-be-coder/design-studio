@@ -4,16 +4,32 @@ import path from "node:path";
 import { DESIGN_DIR, getVaultRoot, VaultNotConfiguredError } from "@/lib/vault";
 import { HIDDEN_SLUGS } from "@/lib/hidden-projects";
 import { autorunEnabled, startDebriefDraft } from "@/lib/debrief-runner";
+import { saveAttachment, attachmentInboxNote, type AttachmentFile } from "@/lib/attachments";
 
 export const dynamic = "force-dynamic";
 
-/** "Acme — New Onboarding" → "acme-new-onboarding". */
+/** "Acme, New Onboarding" -> "acme-new-onboarding". */
 function slugify(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * The `files` entries of a multipart form as attachment bytes. The client sends
+ * each file with its webkitRelativePath as the filename (so `file.name` holds
+ * the folder-relative path); we fall back to the plain name when it is absent.
+ */
+async function filesFromForm(form: FormData): Promise<AttachmentFile[]> {
+  const out: AttachmentFile[] = [];
+  for (const entry of form.getAll("files")) {
+    if (entry instanceof File) {
+      out.push({ relPath: entry.name || "file", bytes: Buffer.from(await entry.arrayBuffer()) });
+    }
+  }
+  return out;
 }
 
 /**
@@ -24,16 +40,37 @@ function slugify(name: string): string {
  * still the skills' job (research, structure, …); this is just the front door.
  */
 export async function POST(req: Request) {
-  let body: { name?: unknown; brief?: unknown; client?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-  }
+  // Two shapes: pure JSON (as before) or multipart/form-data (the same fields
+  // plus an optional folder). The folder is copied into the new project after
+  // it is scaffolded, before the debrief pass runs.
+  let name = "";
+  let brief = "";
+  let client = "";
+  let attachFiles: AttachmentFile[] = [];
+  const contentType = req.headers.get("content-type") ?? "";
 
-  const name = typeof body.name === "string" ? body.name.trim() : "";
-  const brief = typeof body.brief === "string" ? body.brief.trim() : "";
-  const client = typeof body.client === "string" ? body.client.trim() : "";
+  if (contentType.startsWith("multipart/form-data")) {
+    let form: FormData;
+    try {
+      form = await req.formData();
+    } catch {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+    name = (form.get("name") ?? "").toString().trim();
+    brief = (form.get("brief") ?? "").toString().trim();
+    client = (form.get("client") ?? "").toString().trim();
+    attachFiles = await filesFromForm(form);
+  } else {
+    let body: { name?: unknown; brief?: unknown; client?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
+    name = typeof body.name === "string" ? body.name.trim() : "";
+    brief = typeof body.brief === "string" ? body.brief.trim() : "";
+    client = typeof body.client === "string" ? body.client.trim() : "";
+  }
 
   if (!name) return NextResponse.json({ error: "A project name is required." }, { status: 400 });
   if (!brief) return NextResponse.json({ error: "A first brief is required." }, { status: 400 });
@@ -107,14 +144,41 @@ ${brief}
     );
   }
 
+  // An attached folder is copied into the fresh project's `_assets/`, with a
+  // note in the research inbox pointing at it, BEFORE the debrief pass runs so
+  // it reads the folder like any other fed-in input. A cap violation rolls the
+  // just-created project back so the caller gets a clean 400, not a half project.
+  let attached: string | null = null;
+  if (attachFiles.length > 0) {
+    try {
+      const saved = await saveAttachment(dir, attachFiles, { label: name || "attachment" });
+      attached = saved.assetDir.split("/").pop() ?? null;
+      const note = attachmentInboxNote({
+        assetDir: saved.assetDir,
+        manifest: saved.manifest,
+        skipped: saved.skipped,
+      });
+      const inboxDir = path.join(dir, "02 Research", "_inbox");
+      await fs.mkdir(inboxDir, { recursive: true });
+      const base = (attached ? slugify(attached) : "") || "attachment";
+      const abs = path.join(inboxDir, `${today} ${base}.md`);
+      const tmp = `${abs}.tmp-${process.pid}-${Date.now()}`;
+      await fs.writeFile(tmp, note, "utf8");
+      await fs.rename(tmp, abs);
+    } catch (err) {
+      await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+      return NextResponse.json({ error: (err as Error).message }, { status: 400 });
+    }
+  }
+
   // Opt-in: with the project seeded, fire `design-studio-debrief` round 1 as a
   // headless background pass to draft the framing + clarification agenda. Never
-  // blocks — the project already exists whether or not the draft succeeds.
+  // blocks: the project already exists whether or not the draft succeeds.
   let drafting = false;
   if (autorunEnabled()) {
     startDebriefDraft({ slug, name, brief, client, vaultRoot: root, projectDir: dir });
     drafting = true;
   }
 
-  return NextResponse.json({ slug, drafting }, { status: 201 });
+  return NextResponse.json({ slug, drafting, attached }, { status: 201 });
 }
