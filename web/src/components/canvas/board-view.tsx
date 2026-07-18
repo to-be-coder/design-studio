@@ -200,7 +200,7 @@ function StageRow({
           ) : null
         ) : stage.stage === "build" ? (
           <>
-            <PrototypeFrames prototype={model.prototype} id="prototype-frames-region" />
+            <PrototypeFrames prototype={model.prototype} id="prototype-frames-region" requireBuilt />
             {/* The component board lives with the frames it scans: its instance
                 counts are harvested from the loaded prototype DOMs, so isolating
                 Build keeps frames + inventory together (§ focus mode / §7). */}
