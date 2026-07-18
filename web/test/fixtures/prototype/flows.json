@@ -1,5 +1,5 @@
 {
-  "source": "structure",
+  "source": "build",
   "entry": "index.html",
   "screens": [
     { "route": "index.html", "name": "Home", "fidelity": "full" },

@@ -129,8 +129,23 @@ function groupByDomain(routes: string[]): DomainRow[] {
  *     once the server reports "ready" it hands off to the live frames.
  *   - embeddable (a running url / static repo, nothing to start) → frames now.
  *   - neither → the designed empty state.
+ *
+ * `requireBuilt` is the Build board's gate: the prototype repo exists from the
+ * structure stage on (as a clickable skeleton), but a bare skeleton belongs to
+ * the Structure board, not here. So Build shows the frames only once build owns
+ * the repo (flows.json source "build"); until then it shows the empty state.
  */
-export function PrototypeFrames({ prototype, id }: { prototype: PrototypeInfo; id: string }) {
+export function PrototypeFrames({
+  prototype,
+  id,
+  requireBuilt,
+}: {
+  prototype: PrototypeInfo;
+  id: string;
+  requireBuilt?: boolean;
+}) {
+  if (requireBuilt && prototype.skeletonSource === "structure")
+    return <EmptyState prototype={prototype} id={id} />;
   if (prototype.runnable) return <RunnablePrototype prototype={prototype} id={id} />;
   if (!prototype.embeddable) return <EmptyState prototype={prototype} id={id} />;
   return <FramesView prototype={prototype} id={id} />;
