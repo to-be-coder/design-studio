@@ -47,9 +47,9 @@ export function WwbPane({
 }) {
   return (
     <div data-testid="wwb-pane">
-      <p className="eyebrow mb-1">What&rsquo;s Worth Building</p>
+      <p className="panel-label mb-1">What&rsquo;s Worth Building</p>
       {wwb.updated ? (
-        <p className="mb-6 text-[0.8125rem] text-ink-faint">Updated {wwb.updated}.</p>
+        <p className="mb-6 text-panel-body text-ink-faint">Updated {wwb.updated}.</p>
       ) : null}
 
       <WwbTabs
@@ -376,7 +376,7 @@ function WwbTabs({
             {questionsNeeds.length > 0 ? (
               <>
                 {parkedNeeds.length > 0 ? (
-                  <p className="eyebrow mb-3 mt-6">Questions for you</p>
+                  <p className="panel-label mb-3 mt-6">Questions for you</p>
                 ) : null}
                 <ul className="space-y-4" data-testid="wwb-questions">
                   {questionsNeeds.map((q) => (
@@ -438,7 +438,7 @@ function WwbTabs({
       <TabPanel tabKey="build-input" active={active}>
         {/* One organized doc of everything the build stage reads, so the
             review happens in one place instead of across documents. */}
-        <p className="mb-6 text-[0.8125rem] text-ink-faint">
+        <p className="mb-6 text-panel-body text-ink-faint">
           Everything the build stage reads before it starts, in one place. The
           decision stream stays on its own board.
         </p>
@@ -465,8 +465,8 @@ function WwbTabs({
             {/* 2. The risk register build checks at its door. */}
             {register.length > 0 ? (
               <section className="mb-8" data-testid="wwb-register">
-                <p className="eyebrow mb-1">Checked at the door</p>
-                <p className="mb-3 text-[0.8125rem] text-ink-faint">
+                <p className="panel-label mb-1">Checked at the door</p>
+                <p className="mb-3 text-panel-body text-ink-faint">
                   Build checks this register before starting. An unverified
                   load-bearing assumption goes in as a receipt, not a block.
                 </p>
@@ -480,8 +480,8 @@ function WwbTabs({
             {/* 4. Held back: ruled, and explicitly not going into build. */}
             {wwb.backlog.length > 0 || ruledOut.length > 0 ? (
               <div className="mb-8 border-t border-rule pt-6">
-                <p className="eyebrow mb-1">Held back</p>
-                <p className="mb-4 text-[0.8125rem] text-ink-faint">
+                <p className="panel-label mb-1">Held back</p>
+                <p className="mb-4 text-panel-body text-ink-faint">
                   Ruled, but not going into this build.
                 </p>
                 <Backlog entries={wwb.backlog} slug={slug} onFocusReceipt={onFocusReceipt} />
@@ -492,7 +492,7 @@ function WwbTabs({
             {/* 5. Still open: context that has not been ruled. */}
             {wwb.unruled.length > 0 || wwb.blocking.length > 0 ? (
               <div className="mb-8 border-t border-rule pt-6">
-                <p className="eyebrow mb-4">Still open</p>
+                <p className="panel-label mb-4">Still open</p>
                 <Unruled entries={wwb.unruled} slug={slug} onFocusReceipt={onFocusReceipt} />
                 {wwb.blocking.length ? (
                   <section
@@ -500,10 +500,10 @@ function WwbTabs({
                     data-testid="wwb-blocking"
                     style={{ borderColor: "var(--accent-edge)", background: "var(--accent-wash)" }}
                   >
-                    <p className="eyebrow mb-1" style={{ color: "var(--accent)" }}>
+                    <p className="panel-label mb-1" style={{ color: "var(--accent)" }}>
                       Still being researched
                     </p>
-                    <p className="mb-2 text-[0.8125rem] text-ink-muted">
+                    <p className="mb-2 text-panel-body text-ink-muted">
                       Open questions the loop is still working on. When one gets answered, the idea it was holding back moves tabs.
                     </p>
                     <ReceiptLinks receipts={wwb.blocking} slug={slug} onFocus={onFocusReceipt} />
@@ -518,7 +518,7 @@ function WwbTabs({
               <div className="border-t border-rule pt-6">
                 {parkedFiled.length > 0 ? (
                   <section className="mb-8" data-testid="wwb-filed-rulings">
-                    <p className="eyebrow mb-3">Rulings recorded</p>
+                    <p className="panel-label mb-3">Rulings recorded</p>
                     {parkedFiled.map((p) => (
                       <RulingCard
                         key={p.id}
@@ -538,7 +538,7 @@ function WwbTabs({
                 ) : null}
                 {questionsFiled.length > 0 ? (
                   <section className="mb-8" data-testid="wwb-filed-answers">
-                    <p className="eyebrow mb-3">Answers recorded</p>
+                    <p className="panel-label mb-3">Answers recorded</p>
                     <ul className="space-y-4">
                       {questionsFiled.map((q) => (
                         <QuestionRow
@@ -565,7 +565,7 @@ function WwbTabs({
       </TabPanel>
 
       {isReviewTab && !runsEnabled ? (
-        <p className="mt-6 text-[0.8125rem] text-ink-muted" data-testid="review-readonly">
+        <p className="mt-6 text-panel-body text-ink-muted" data-testid="review-readonly">
           Review runs from Claude Code.
         </p>
       ) : null}
@@ -584,7 +584,7 @@ function WwbTabs({
 function BuildReads({ onFocusReceipt }: { onFocusReceipt?: (docKey: string) => void }) {
   return (
     <section className="mb-8" data-testid="wwb-build-reads">
-      <p className="eyebrow mb-3">Also read by build</p>
+      <p className="panel-label mb-3">Also read by build</p>
       <ul className="space-y-2">
         <BoardRow
           label="Structure"
@@ -616,8 +616,8 @@ function BoardRow({
 }) {
   const body = (
     <>
-      <span className="font-sans text-[0.9375rem] font-semibold text-ink">{label}</span>
-      <span className="text-[0.8125rem] text-ink-muted">{blurb}</span>
+      <span className="font-sans text-panel-body font-semibold text-ink">{label}</span>
+      <span className="text-panel-body text-ink-muted">{blurb}</span>
     </>
   );
   if (!onFocusReceipt) {
@@ -682,7 +682,7 @@ function TabBar({
             tabIndex={isActive ? 0 : -1}
             onClick={() => onSelect(t.key)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className="rounded-pill border px-3 py-1.5 text-[0.8125rem] font-semibold transition-colors"
+            className="rounded-pill border px-3 py-1.5 text-panel-body font-semibold transition-colors"
             style={
               isActive
                 ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
@@ -731,7 +731,7 @@ function TabPanel({
 /** A quiet one-line empty state for a tab with nothing in it. */
 function EmptyTab({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[0.9375rem] italic text-ink-faint" data-testid="wwb-empty">
+    <p className="text-panel-body italic text-ink-faint" data-testid="wwb-empty">
       {children}
     </p>
   );
@@ -793,18 +793,18 @@ function RulingCard({
       className="mb-5 rounded-inset border border-rule bg-paper px-5 py-4"
     >
       <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h4 className="font-sans text-[1rem] font-semibold text-ink">{parked.title}</h4>
-        <span className="eyebrow">{parked.kind.replace(/-/g, " ")}</span>
+        <h4 className="font-sans text-panel-body font-semibold text-ink">{parked.title}</h4>
+        <span className="panel-label">{parked.kind.replace(/-/g, " ")}</span>
       </div>
 
       {ask ? (
-        <p className="mb-3 max-w-[34rem] text-[0.9375rem] text-ink" data-testid="ruling-ask">
+        <p className="mb-3 max-w-[34rem] text-panel-body text-ink" data-testid="ruling-ask">
           {ask}
         </p>
       ) : null}
 
       {supersededId || parked.blocks ? (
-        <div className="mb-3 space-y-1 text-[0.8125rem] text-ink-muted" data-testid="ruling-stakes">
+        <div className="mb-3 space-y-1 text-panel-body text-ink-muted" data-testid="ruling-stakes">
           {supersededId ? <p>Taking this replaces decision {supersededId}.</p> : null}
           {parked.blocks ? <p>Waiting on this: {parked.blocks}</p> : null}
         </div>
@@ -817,7 +817,7 @@ function RulingCard({
             data-testid="ruling-case-toggle"
             aria-expanded={caseOpen}
             onClick={() => setCaseOpen((v) => !v)}
-            className="rounded-pill border border-rule px-3 py-1 text-[0.8125rem] font-medium text-ink-muted transition-colors"
+            className="rounded-pill border border-rule px-3 py-1 text-panel-body font-medium text-ink-muted transition-colors"
           >
             {caseOpen ? "Hide the full case" : "Show the full case"}
           </button>
@@ -831,7 +831,7 @@ function RulingCard({
                 </blockquote>
               ) : null}
               {parked.bodyBlocks.length ? (
-                <div className="mb-3 max-w-[34rem] text-[0.9375rem]">
+                <div className="mb-3 max-w-[34rem] text-panel-body">
                   <Reading blocks={parked.bodyBlocks} />
                 </div>
               ) : null}
@@ -849,14 +849,14 @@ function RulingCard({
         // Read from the ledger's Review log, so it survives a page refresh:
         // the card stays visible as a recorded ruling until research
         // re-scopes What's Worth Building, then clears with the next round.
-        <p className="mt-2 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }} data-testid="ruling-recorded">
+        <p className="mt-2 text-panel-body font-semibold" style={{ color: "var(--accent)" }} data-testid="ruling-recorded">
           Ruling recorded: {recorded === "reshape" || recorded === "pick" ? "your pick" : recorded}.
           Research re-scopes around it, then this card clears.
         </p>
       ) : interactive ? (
         isPick ? (
           <>
-            <p className="mb-2 text-[0.8125rem] text-ink-muted">
+            <p className="mb-2 text-panel-body text-ink-muted">
               {parked.options.length
                 ? "Click the option you pick; that click is the ruling. None of these sends the set back."
                 : "The drafted options live in the full case; they turn into one-click choices after the next research pass. None of these sends the set back."}
@@ -873,7 +873,7 @@ function RulingCard({
                       data-testid={`ruling-pick-${o.label}`}
                       disabled={busy || done}
                       onClick={() => onPick("pick", words)}
-                      className="w-full rounded-inset border px-3 py-2 text-left text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                      className="w-full rounded-inset border px-3 py-2 text-left text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                       style={
                         done
                           ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
@@ -888,7 +888,7 @@ function RulingCard({
               </div>
             ) : null}
             {recordedPicks.length || recorded === "pick" ? (
-              <p className="mb-2 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }} data-testid="pick-recorded">
+              <p className="mb-2 text-panel-body font-semibold" style={{ color: "var(--accent)" }} data-testid="pick-recorded">
                 Recorded: {recordedPicks.map((w) => w.split(":")[0]).join(", ") || "your pick"}. A call
                 with two halves takes two clicks; research folds them in together.
               </p>
@@ -899,7 +899,7 @@ function RulingCard({
               aria-pressed={picked === "reject"}
               disabled={busy}
               onClick={() => onPick("reject")}
-              className="mb-1 w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+              className="mb-1 w-full rounded-inset border px-3 py-2 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               style={
                 picked === "reject"
                   ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
@@ -908,12 +908,12 @@ function RulingCard({
             >
               {busy && picked === "reject" ? "Recording…" : "None of these, send it back"}
             </button>
-            {error ? <p className="mt-1 text-[0.8125rem] text-unverified">{error}</p> : null}
+            {error ? <p className="mt-1 text-panel-body text-unverified">{error}</p> : null}
           </>
         ) : (
           <>
             {/* One click IS the ruling: it posts the moment you choose. */}
-            <p className="mb-2 text-[0.8125rem] text-ink-muted">
+            <p className="mb-2 text-panel-body text-ink-muted">
               One click records it: accept takes the proposal as written, reject turns it down.
             </p>
             <div className="mb-1 grid grid-cols-2 gap-2">
@@ -925,7 +925,7 @@ function RulingCard({
                   aria-pressed={picked === d}
                   disabled={busy}
                   onClick={() => onPick(d)}
-                  className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold capitalize transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-inset border px-3 py-2 text-panel-body font-semibold capitalize transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   style={
                     picked === d
                       ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
@@ -936,7 +936,7 @@ function RulingCard({
                 </button>
               ))}
             </div>
-            {error ? <p className="mt-1 text-[0.8125rem] text-unverified">{error}</p> : null}
+            {error ? <p className="mt-1 text-panel-body text-unverified">{error}</p> : null}
           </>
         )
       ) : null}
@@ -1000,7 +1000,7 @@ function ProposedEntry({
       }}
     >
       <p
-        className="mb-1 text-[0.75rem] font-semibold uppercase tracking-[0.08em]"
+        className="mb-1 text-panel-label font-semibold uppercase tracking-[0.08em]"
         style={{ color: cutLean ? "var(--unverified)" : "var(--verified)" }}
         data-testid="wwb-research-lean"
         data-lean={cutLean ? "dont-build" : "build"}
@@ -1008,17 +1008,17 @@ function ProposedEntry({
         {cutLean ? <>Research recommends: don&rsquo;t build</> : <>Research recommends: build</>}
       </p>
       <div className="mb-2 flex items-start justify-between gap-3">
-        <h4 className="font-sans text-[1rem] font-semibold text-ink">{entry.title}</h4>
+        <h4 className="font-sans text-panel-body font-semibold text-ink">{entry.title}</h4>
         {recorded ? (
           <span
-            className="shrink-0 rounded-pill border border-rule-strong px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+            className="shrink-0 rounded-pill border border-rule-strong px-2 py-0.5 text-panel-label font-semibold uppercase tracking-[0.08em] text-ink-muted"
             data-testid="verdict-recorded-pill"
           >
             Recorded
           </span>
         ) : pending ? (
           <span
-            className="shrink-0 rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
+            className="shrink-0 rounded-pill px-2 py-0.5 text-panel-label font-semibold uppercase tracking-[0.08em]"
             style={{ background: "var(--accent-wash)", color: "var(--accent)" }}
             data-testid="in-this-review"
           >
@@ -1029,19 +1029,19 @@ function ProposedEntry({
       {hasSummary ? (
         <>
           {entry.what ? (
-            <p className="mb-2 max-w-[34rem] text-[0.9375rem] text-ink" data-testid="entry-what">
+            <p className="mb-2 max-w-[34rem] text-panel-body text-ink" data-testid="entry-what">
               {entry.what}
             </p>
           ) : null}
-          <div className="mb-2 max-w-[34rem] space-y-1 text-[0.9375rem] text-ink">
+          <div className="mb-2 max-w-[34rem] space-y-1 text-panel-body text-ink">
             {entry.forLine ? (
               <p data-testid="entry-for">
-                <span className="font-semibold">For:</span> {entry.forLine}
+                <span className="text-panel-label font-semibold">For:</span> {entry.forLine}
               </p>
             ) : null}
             {entry.againstLine ? (
               <p data-testid="entry-against">
-                <span className="font-semibold">Against:</span> {entry.againstLine}
+                <span className="text-panel-label font-semibold">Against:</span> {entry.againstLine}
               </p>
             ) : null}
           </div>
@@ -1050,7 +1050,7 @@ function ProposedEntry({
             data-testid="entry-evidence-toggle"
             aria-expanded={evidenceOpen}
             onClick={() => setEvidenceOpen((v) => !v)}
-            className="mb-1 rounded-pill border border-rule px-3 py-1 text-[0.8125rem] font-medium text-ink-muted transition-colors"
+            className="mb-1 rounded-pill border border-rule px-3 py-1 text-panel-body font-medium text-ink-muted transition-colors"
           >
             {evidenceOpen ? "Hide the evidence" : "Show the evidence"}
           </button>
@@ -1065,7 +1065,7 @@ function ProposedEntry({
       )}
 
       {recorded ? (
-        <p className="mt-3 text-[0.8125rem] text-ink-muted" data-testid="verdict-recorded">
+        <p className="mt-3 text-panel-body text-ink-muted" data-testid="verdict-recorded">
           {recorded === "build-now"
             ? "Accepted, moved to Will be built. Research folds it in on the next pass."
             : `Recorded as ${VERDICT_WORDS[recorded]}. Research folds it in on the next pass.`}
@@ -1081,7 +1081,7 @@ function ProposedEntry({
             <VerdictButton label="Backlog" verdict="backlog" testid="verdict-backlog" state={state} disabled={busy} onVerdict={onVerdict} />
             <VerdictButton label={busy ? "Recording…" : cutLean ? "Agree, don't build" : "Don't build"} verdict="dont-build" testid="verdict-dont-build" state={state} disabled={busy} onVerdict={onVerdict} />
           </div>
-          {!state && error ? <p className="mt-2 text-[0.8125rem] text-unverified">{error}</p> : null}
+          {!state && error ? <p className="mt-2 text-panel-body text-unverified">{error}</p> : null}
           {state?.verdict === "backlog" ? (
             <div className="mt-2 space-y-2">
               <textarea
@@ -1090,7 +1090,7 @@ function ProposedEntry({
                 rows={2}
                 placeholder="In your own words (optional)…"
                 data-testid="verdict-note"
-                className="w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
+                className="w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-panel-body leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
               />
               <input
                 type="text"
@@ -1098,15 +1098,15 @@ function ProposedEntry({
                 onChange={(e) => onPatch({ unblocks: e.target.value })}
                 placeholder="What unblocks it? (optional)"
                 data-testid="verdict-unblocks"
-                className="w-full rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] text-ink outline-none transition-colors focus-visible:border-accent"
+                className="w-full rounded-inset border border-rule bg-paper px-3 py-2 text-panel-body text-ink outline-none transition-colors focus-visible:border-accent"
               />
-              {error ? <p className="text-[0.8125rem] text-unverified">{error}</p> : null}
+              {error ? <p className="text-panel-body text-unverified">{error}</p> : null}
               <button
                 type="button"
                 onClick={onRecord}
                 disabled={busy}
                 data-testid="verdict-record"
-                className="rounded-inset border px-3.5 py-1.5 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-inset border px-3.5 py-1.5 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ borderColor: "var(--accent)", background: "var(--accent-wash)", color: "var(--accent)" }}
               >
                 {busy ? "Recording…" : "Record backlog"}
@@ -1142,7 +1142,7 @@ function VerdictButton({
       data-testid={testid}
       aria-pressed={active}
       onClick={() => onVerdict(active ? null : verdict)}
-      className="w-full rounded-inset border px-3 py-2 text-[0.875rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      className="w-full rounded-inset border px-3 py-2 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
       style={
         active
           ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
@@ -1181,13 +1181,13 @@ function QuestionRow({
   return (
     <li id={`wwb-q-${question.id}`} data-question={question.id} className="rounded-inset border border-rule bg-paper px-4 py-3">
       <div className="flex items-start gap-2">
-        <span className="font-mono text-[0.75rem] text-ink-faint">{question.id}</span>
-        <p className="text-[0.9375rem] font-medium leading-snug text-ink" data-testid="wwb-ask">
+        <span className="font-mono text-panel-label text-ink-faint">{question.id}</span>
+        <p className="text-panel-body font-medium leading-snug text-ink" data-testid="wwb-ask">
           {question.ask}
         </p>
       </div>
       {question.blocks.length ? (
-        <div className="mt-1.5 text-[0.9375rem]">
+        <div className="mt-1.5 text-panel-body">
           <Reading blocks={question.blocks} />
         </div>
       ) : null}
@@ -1200,8 +1200,8 @@ function QuestionRow({
         // Read from the ledger's Review log, so it survives a page refresh:
         // the question reads as answered until research folds it in.
         <div className="mt-3" data-testid={`answer-recorded-${question.id}`}>
-          <p className="text-[0.9375rem] leading-relaxed text-ink-muted">{answered}</p>
-          <p className="mt-1 text-[0.8125rem] font-semibold" style={{ color: "var(--accent)" }}>
+          <p className="text-panel-body leading-relaxed text-ink-muted">{answered}</p>
+          <p className="mt-1 text-panel-body font-semibold" style={{ color: "var(--accent)" }}>
             Answer recorded. Research picks it up, then this clears.
           </p>
         </div>
@@ -1213,15 +1213,15 @@ function QuestionRow({
             rows={2}
             placeholder="Your answer…"
             data-testid={`answer-${question.id}`}
-            className="mt-3 w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-[0.9375rem] leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
+            className="mt-3 w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-panel-body leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
           />
-          {error ? <p className="mt-2 text-[0.8125rem] text-unverified">{error}</p> : null}
+          {error ? <p className="mt-2 text-panel-body text-unverified">{error}</p> : null}
           <button
             type="button"
             onClick={onRecord}
             disabled={!value.trim() || busy}
             data-testid={`answer-record-${question.id}`}
-            className="mt-2 rounded-inset border px-3 py-1 text-[0.8125rem] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-2 rounded-inset border px-3 py-1 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
           >
             {busy ? "Recording…" : "Record answer"}
@@ -1253,14 +1253,14 @@ function BuildNow({
         {entries.map((e) => (
           <li key={e.id} data-testid="wwb-entry" data-entry={e.id} className="rounded-inset border border-rule px-4 py-3">
             <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-              <h4 className="font-sans text-[1rem] font-semibold text-ink">{e.title}</h4>
+              <h4 className="font-sans text-panel-body font-semibold text-ink">{e.title}</h4>
               <span className="flex flex-wrap items-center gap-2">
                 {e.evidenceMoved ? <EvidenceMovedChip /> : null}
                 <DecidedPill />
               </span>
             </div>
             {e.inTheirWords ? <WordsQuote words={e.inTheirWords} /> : null}
-            {e.ruledBy ? <p className="mb-2 text-[0.75rem] text-ink-faint">Ruled by {e.ruledBy}</p> : null}
+            {e.ruledBy ? <p className="mb-2 text-panel-body text-ink-faint">Ruled by {e.ruledBy}</p> : null}
             <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
           </li>
         ))}
@@ -1292,14 +1292,14 @@ function Backlog({
             style={{ background: "var(--paper-raised)", opacity: 0.9 }}
           >
             <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-              <h4 className="font-sans text-[1rem] font-semibold text-ink-muted">{e.title}</h4>
+              <h4 className="font-sans text-panel-body font-semibold text-ink-muted">{e.title}</h4>
               <span className="flex flex-wrap items-center gap-2">
                 {e.evidenceMoved ? <EvidenceMovedChip /> : null}
                 <OutlinePill label="Backlog" testid="wwb-backlog-pill" />
               </span>
             </div>
             {e.unblocks ? (
-              <p className="mb-2 text-[0.8125rem] text-ink-muted">
+              <p className="mb-2 text-panel-body text-ink-muted">
                 <span className="text-ink-faint">Unblocks: </span>
                 {e.unblocks}
               </p>
@@ -1329,7 +1329,7 @@ function DontBuild({
         {entries.map((e) => (
           <li key={e.id} data-testid="wwb-entry" data-entry={e.id} className="rounded-inset border border-rule px-4 py-3">
             <div className="mb-2 flex items-start justify-between gap-3">
-              <h4 className="font-sans text-[1rem] font-semibold text-ink">{e.title}</h4>
+              <h4 className="font-sans text-panel-body font-semibold text-ink">{e.title}</h4>
               <OutlinePill label="Won't build" testid="wwb-wont-build" />
             </div>
             <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
@@ -1355,7 +1355,7 @@ function RecordedThisSession({
   if (entries.length === 0) return null;
   return (
     <section className="mb-8" data-testid="wwb-recorded-session">
-      <p className="eyebrow mb-3">Recorded just now</p>
+      <p className="panel-label mb-3">Recorded just now</p>
       <ul className="space-y-3">
         {entries.map((e) => {
           // A verdict clicked this session, or one queued in the Review log
@@ -1368,10 +1368,10 @@ function RecordedThisSession({
               className="rounded-inset border border-rule bg-paper-raised px-4 py-3"
             >
               <div className="flex items-start justify-between gap-3">
-                <span className="font-sans text-[0.9375rem] font-semibold text-ink">{e.title}</span>
+                <span className="font-sans text-panel-body font-semibold text-ink">{e.title}</span>
                 <OutlinePill label={VERDICT_WORDS[d.verdict]} testid="verdict-recorded-pill" />
               </div>
-              <p className="mt-1 text-[0.8125rem] text-ink-muted">
+              <p className="mt-1 text-panel-body text-ink-muted">
                 {d.queued
                   ? "Recorded and queued behind the current run. Research folds it in when that run ends."
                   : "Recorded. Research is folding it in now; it files here for real when that lands."}
@@ -1397,13 +1397,13 @@ function Unruled({
   return (
     <section className="mb-8" data-testid="wwb-unruled">
       <h3 className="mb-1 font-serif text-[1.25rem] font-semibold text-ink">Part of the full picture, not decided yet</h3>
-      <p className="mb-3 text-[0.8125rem] text-ink-faint">
+      <p className="mb-3 text-panel-body text-ink-faint">
         Things this problem clearly implies that nobody has said yes or no to yet. Listed so the full size of the problem stays visible.
       </p>
       <ul className="space-y-5">
         {entries.map((e) => (
           <li key={e.id} data-testid="wwb-entry" data-entry={e.id} className="rounded-inset border border-rule px-4 py-3">
-            <h4 className="mb-2 font-sans text-[1rem] font-semibold text-ink">{e.title}</h4>
+            <h4 className="mb-2 font-sans text-panel-body font-semibold text-ink">{e.title}</h4>
             <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
           </li>
         ))}
@@ -1427,7 +1427,7 @@ function Reasons({
   return (
     <ul className="space-y-2.5">
       {entry.reasons.map((r, j) => (
-        <li key={j} className="reading text-[0.9375rem] leading-relaxed" data-testid="wwb-reason">
+        <li key={j} className="reading text-panel-body leading-relaxed" data-testid="wwb-reason">
           <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             {r.assumption ? <AssumptionChip /> : null}
             <span className="text-ink">{r.text}</span>
@@ -1453,7 +1453,7 @@ function WordsQuote({ words }: { words: string }) {
       <span aria-hidden className="mr-1 text-ink-faint">&ldquo;</span>
       {words}
       <span aria-hidden className="ml-1 text-ink-faint">&rdquo;</span>
-      <footer className="mt-1.5 text-[0.6875rem] font-semibold uppercase not-italic tracking-[0.1em] text-ink-faint">
+      <footer className="mt-1.5 text-panel-label font-semibold uppercase not-italic tracking-[0.1em] text-ink-faint">
         In their words
       </footer>
     </blockquote>
@@ -1464,7 +1464,7 @@ function WordsQuote({ words }: { words: string }) {
 function DecidedPill() {
   return (
     <span
-      className="shrink-0 rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-paper"
+      className="shrink-0 rounded-pill px-2 py-0.5 text-panel-label font-semibold uppercase tracking-[0.08em] text-paper"
       style={{ background: "var(--ink)" }}
       data-testid="wwb-decided"
     >
@@ -1477,7 +1477,7 @@ function DecidedPill() {
 function OutlinePill({ label, testid }: { label: string; testid: string }) {
   return (
     <span
-      className="shrink-0 rounded-pill border px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+      className="shrink-0 rounded-pill border px-2 py-0.5 text-panel-label font-semibold uppercase tracking-[0.08em] text-ink-muted"
       style={{ borderColor: "var(--rule-strong)" }}
       data-testid={testid}
     >
@@ -1490,7 +1490,7 @@ function OutlinePill({ label, testid }: { label: string; testid: string }) {
 function AssumptionChip() {
   return (
     <span
-      className="shrink-0 rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
+      className="shrink-0 rounded-pill px-2 py-0.5 text-panel-label font-semibold uppercase tracking-[0.08em]"
       style={{ border: "1px solid var(--unverified)", color: "var(--unverified)" }}
       data-testid="wwb-assumption"
     >
@@ -1503,7 +1503,7 @@ function AssumptionChip() {
 function EvidenceMovedChip() {
   return (
     <span
-      className="shrink-0 rounded-pill border px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
+      className="shrink-0 rounded-pill border px-2 py-0.5 text-panel-label font-semibold uppercase tracking-[0.08em]"
       style={{ borderColor: "var(--unverified)", color: "var(--unverified)" }}
       data-testid="wwb-evidence-moved"
     >

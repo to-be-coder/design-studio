@@ -37,6 +37,13 @@
   --radius-card: 0.5rem;
   --radius-inset: 0.35rem;
   --radius-pill: 9999px;
+
+  /* Canvas nav + reading-pane type steps (DESIGN.md typography.navLabel,
+     navRow, panelLabel, panelBody): four named sizes for text-* utilities. */
+  --text-nav-label: 0.75rem;    /* 12px sidebar group header */
+  --text-nav-row: 0.875rem;     /* 14px sidebar nav rows */
+  --text-panel-label: 0.875rem; /* 14px reading-pane section labels + pills */
+  --text-panel-body: 1rem;      /* 16px reading-pane body, cards, buttons, textareas */
 }
 
 /* ── Light (paper) — the canonical theme in DESIGN.md front matter. ───────── */
@@ -172,6 +179,28 @@
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Sidebar group header: the dim 12px caption over the bright nav rows
+   (DESIGN.md typography.navLabel). */
+@utility nav-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Reading-pane section label: the 14px uppercase eyebrow over 16px body
+   (DESIGN.md typography.panelLabel). */
+@utility panel-label {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-muted);
 }

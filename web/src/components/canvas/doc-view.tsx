@@ -72,14 +72,14 @@ export function DocView({
           >
             {current.ownHeading ? null : (
               <div className="mb-4 flex items-center gap-1.5">
-                <p className="eyebrow">{current.label}</p>
+                <p className="panel-label">{current.label}</p>
                 {current.about ? <AboutTip text={current.about} /> : null}
               </div>
             )}
             {current.body}
           </section>
         ) : (
-          <p className="text-[0.9375rem] italic text-ink-faint">Nothing to show here yet.</p>
+          <p className="text-panel-body italic text-ink-faint">Nothing to show here yet.</p>
         )}
       </div>
     </div>
@@ -99,7 +99,7 @@ function AboutTip({ text }: { text: string }) {
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-20 mt-1.5 w-64 rounded-inset border border-rule bg-paper-raised px-3 py-2 text-[0.8125rem] font-normal normal-case leading-relaxed tracking-normal text-ink-muted opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+        className="pointer-events-none absolute left-0 top-full z-20 mt-1.5 w-64 rounded-inset border border-rule bg-paper-raised px-3 py-2 text-panel-body font-normal normal-case leading-relaxed tracking-normal text-ink-muted opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
       >
         {text}
       </span>

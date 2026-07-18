@@ -5,15 +5,15 @@ import type { Autonomy, AssumptionState, LedgerState, StageMarkerState } from "@
  * The shared nav-row treatment — the ONE definition the sidebar index rows and
  * the doc-view contents rail both use, so the two navigations can't drift
  * (DESIGN.md tokens navRow / navRowHover / sidebarRowActive). Resting is
- * transparent with muted text that lifts to ink on hover/focus; the active row
- * is accent-wash + accent text + weight 600 (via {@link navRowActiveStyle}, an
- * inline style so it always beats the hover text class). Sizing and padding are
- * the caller's — this covers only the treatment that must match.
+ * transparent with full-ink (bright) text; the active row is accent-wash +
+ * accent text + weight 600 (via {@link navRowActiveStyle}, an inline style so it
+ * always beats the resting text class). Sizing and padding are the caller's:
+ * this covers only the treatment that must match.
  */
 export function navRowClass(active: boolean): string {
   return active
     ? "rounded-inset transition-colors hover:bg-paper-raised"
-    : "rounded-inset text-ink-muted transition-colors hover:bg-paper-raised hover:text-ink focus-visible:bg-paper-raised";
+    : "rounded-inset text-ink transition-colors hover:bg-paper-raised focus-visible:bg-paper-raised";
 }
 
 /** The active nav row's fill — accent-wash behind accent text, set bold. */

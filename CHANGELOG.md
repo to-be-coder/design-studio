@@ -6,6 +6,10 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **The canvas type sizes are normalized to one scale.** In the side nav, the small group labels
+  (Project, Understand, Build, Decisions) now read dim above the brighter navigation rows. In the
+  board's right reading pane, the section labels settle at one size and the body, cards, asks, and
+  buttons under them at a slightly larger one, so each surface reads as one consistent scale.
 - **The structure stage builds a clickable skeleton, not a write-up.** It used to write a flows
   and screens document. Now it stands up a small clickable prototype instead: one plain page per
   screen, with real links between them, that design-system and build grow from. The Structure

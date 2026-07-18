@@ -198,7 +198,7 @@ export function Sidebar({
         {groups.map((group) => (
           <div key={group} className="mb-2">
             <div className="px-2 py-1">
-              <span className="eyebrow text-ink">{group}</span>
+              <span className="nav-label">{group}</span>
             </div>
             {entries
               .map((e, i) => ({ e, i }))
@@ -219,17 +219,17 @@ export function Sidebar({
                       tabIndex={cursor === i ? 0 : -1}
                       onFocus={() => setCursor(i)}
                       onClick={() => onFocus(e.focusKey)}
-                      // Every sidebar nav row is one size (0.875rem/14px, text-sm)
+                      // Every sidebar nav row is one size (0.875rem/14px, text-nav-row)
                       // across all groups, the hero (WWB) row included; it keeps its
                       // accent only when active (navRowActiveStyle), never a larger size.
-                      className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-[0.875rem] ${navRowClass(active)}`}
+                      className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-nav-row ${navRowClass(active)}`}
                       style={active ? navRowActiveStyle : undefined}
                     >
                       <span className="min-w-0 flex-1 truncate">{e.label}</span>
                       {e.pill != null ? (
                         <span
                           data-testid="review-pill"
-                          className="ml-1 shrink-0 rounded-pill px-1.5 py-0.5 text-[0.6875rem] font-semibold"
+                          className="ml-1 shrink-0 rounded-pill px-1.5 py-0.5 text-nav-label font-semibold"
                           style={{ background: "var(--accent-wash)", color: "var(--accent)" }}
                         >
                           {e.pill}
@@ -253,7 +253,7 @@ export function Sidebar({
                       tabIndex={cursor === i ? 0 : -1}
                       onFocus={() => setCursor(i)}
                       onClick={() => onSelectDoc(e.docKey)}
-                      className={`flex w-full items-center gap-2 py-1.5 pl-8 pr-2 text-left text-[0.8125rem] ${navRowClass(active)}`}
+                      className={`flex w-full items-center gap-2 py-1.5 pl-8 pr-2 text-left text-nav-row ${navRowClass(active)}`}
                       style={active ? navRowActiveStyle : undefined}
                     >
                       <span className="min-w-0 truncate">{e.label}</span>
@@ -280,7 +280,7 @@ export function Sidebar({
                     tabIndex={cursor === i ? 0 : -1}
                     onFocus={() => setCursor(i)}
                     onClick={() => onStageClick(e.focusKey, e.expandable)}
-                    className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-[0.875rem] ${navRowClass(showActive)}`}
+                    className={`flex w-full items-center gap-1.5 px-2 py-1.5 text-left text-nav-row ${navRowClass(showActive)}`}
                     style={showActive ? navRowActiveStyle : undefined}
                   >
                     <span aria-hidden className="w-3 shrink-0 text-ink-faint">
