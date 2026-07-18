@@ -43,6 +43,7 @@ export function Sidebar({
   model,
   focused,
   selectedDoc,
+  generatingStage,
   onFocus,
   onSelectDoc,
   onCollapse,
@@ -51,6 +52,8 @@ export function Sidebar({
   focused: string;
   /** Which document the focused doc-stage is showing; null → its first. */
   selectedDoc: string | null;
+  /** Stage a headless AI draft is generating right now — pulses a dot on its row. */
+  generatingStage: string | null;
   onFocus: (focusKey: string) => void;
   onSelectDoc: (docKey: string) => void;
   onCollapse: () => void;
@@ -287,6 +290,7 @@ export function Sidebar({
                       {e.expandable ? <Chevron open={open} /> : null}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{e.label}</span>
+                    {generatingStage === e.focusKey ? <GeneratingDot /> : null}
                   </button>
                 );
               })}
