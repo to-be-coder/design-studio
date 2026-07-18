@@ -269,9 +269,11 @@ test.describe("home badges", () => {
     const project = page.getByRole("link", { name: /Fixture Project/i });
     await expect(project.getByTestId("home-badge")).toContainText("Review: 5");
 
-    // Fixture Minimal is mid-loop → a quiet "round 2" badge.
+    // Fixture Minimal is mid-loop: no round number and no running indicator on
+    // the card, just its stage.
     const minimal = page.getByRole("link", { name: /Fixture Minimal/i });
-    await expect(minimal.getByTestId("home-badge")).toContainText("round 2");
+    await expect(minimal.getByTestId("home-badge")).toHaveCount(0);
+    await expect(minimal.getByTestId("home-running-dot")).toHaveCount(0);
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
