@@ -90,7 +90,7 @@ test.describe("empty structure board (/canvas/fixture-minimal)", () => {
   });
 });
 
-test.describe("structure board with a scaffolded repo (/canvas/fixture-project)", () => {
+test.describe("structure board with a prototype repo present", () => {
   test("no CTA layer, and the skeleton frames render, when the prototype repo is present", async ({
     page,
   }) => {
@@ -122,7 +122,7 @@ test.describe("structure board with a scaffolded repo (/canvas/fixture-project)"
       await route.fulfill({
         status: 202,
         contentType: "application/json",
-        body: JSON.stringify({ slug: "fixture-project", stage: "structure", running: true }),
+        body: JSON.stringify({ slug: "fixture-build", stage: "structure", running: true }),
       });
     });
     await page.route("**/api/projects/status*", async (route) => {
@@ -133,7 +133,7 @@ test.describe("structure board with a scaffolded repo (/canvas/fixture-project)"
       });
     });
 
-    await page.goto("/canvas/fixture-project?runs=1");
+    await page.goto("/canvas/fixture-build?runs=1");
     await focusStructure(page);
 
     // The repo is present (flows.json source "structure"), so there is no empty
@@ -144,7 +144,7 @@ test.describe("structure board with a scaffolded repo (/canvas/fixture-project)"
     await refresh.click();
 
     // The click posts exactly {slug, stage} to the run route (reuses runStage).
-    await expect.poll(() => runBody).toEqual({ slug: "fixture-project", stage: "structure" });
+    await expect.poll(() => runBody).toEqual({ slug: "fixture-build", stage: "structure" });
 
     // While it regenerates the button reads as refreshing and is disabled.
     await expect(refresh).toHaveText("Refreshing structure…");
@@ -154,12 +154,12 @@ test.describe("structure board with a scaffolded repo (/canvas/fixture-project)"
   });
 });
 
-test.describe("structure board whose repo build has taken over (/canvas/fixture-build)", () => {
+test.describe("structure board whose repo build has taken over (/canvas/fixture-project)", () => {
   test("source build: no refresh affordance and no empty CTA, even with runs on", async ({
     page,
   }) => {
     const errors = trackConsoleErrors(page);
-    await page.goto("/canvas/fixture-build?runs=1");
+    await page.goto("/canvas/fixture-project?runs=1");
     await focusStructure(page);
 
     // The repo is present (so no empty CTA), but flows.json is source "build":
@@ -167,6 +167,21 @@ test.describe("structure board whose repo build has taken over (/canvas/fixture-
     await expect(page.getByTestId("canvas-viewport")).toBeVisible();
     await expect(page.getByTestId("structure-cta")).toHaveCount(0);
     await expect(page.getByTestId("structure-refresh")).toHaveCount(0);
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+
+  // The skeleton is structure's output, not build's: the Build board stays empty
+  // until build owns the repo (source "build"), even though the repo exists.
+  test("a bare skeleton (source structure) shows the empty state on the Build board", async ({
+    page,
+  }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-build");
+    await page.getByTestId("sidebar").getByRole("option", { name: "Build", exact: true }).click();
+
+    await expect(page.getByTestId("prototype-empty")).toBeVisible();
+    await expect(page.getByTestId("prototype-frames")).toHaveCount(0);
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
