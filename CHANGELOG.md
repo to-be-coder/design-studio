@@ -34,6 +34,9 @@ All notable, user-visible changes to the design-studio skills are documented her
   waits its turn while research runs, and with runs off it shows the command to run instead.
 - **Home-page projects are individual cards.** The shared border around the project list is gone;
   each project now has its own bordered paper surface with clear space between cards.
+- **Every home card is the same height.** The quiet "Ready for review" label is gone, and any badge
+  a card still earns (the review pill, or Paused at the round cap) sits beside the stage label on
+  the title row instead of stacking under it, so no card grows taller than its neighbors.
 - **A clicked verdict survives a refresh.** Candidate verdicts already sat safely in the review
   log, but a refresh before the recorder ran brought the card back as if unclicked. The page now
   reads queued verdicts from the log, so a clicked card stays recorded (and out of Build

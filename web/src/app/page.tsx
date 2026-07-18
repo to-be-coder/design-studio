@@ -15,10 +15,11 @@ function stageLabel(stage: string | null): string {
 
 /**
  * The loop badge for a project card, read from its cheaply-parsed status line:
- * accent "Review: N" when items await the human (converged-humans-needed or a
- * parked ruling), a quiet "Ready for review" / "Paused" for the other terminals,
- * and a faint "round N" while it is actively researching. No loop status →
- * nothing.
+ * an accent "Review: N" pill when items await the human (converged-humans-needed
+ * or a parked ruling), a quiet "Paused" when the loop hit its round cap. Nothing
+ * else earns a badge, and the badge sits inline beside the stage label rather
+ * than under it, so no card ever grows a second status row: every card keeps
+ * the same height.
  */
 function LoopBadge({ project }: { project: Project }) {
   const t = project.loopTerminal;
@@ -35,18 +36,10 @@ function LoopBadge({ project }: { project: Project }) {
       </span>
     );
   }
-  if (t === "converged-complete" || t === "capped") {
-    const label = t === "converged-complete" ? "Ready for review" : "Paused";
+  if (t === "capped") {
     return (
-      <span data-testid="home-badge" data-badge={t} className="text-[0.75rem] text-ink-muted">
-        {label}
-      </span>
-    );
-  }
-  if (project.loopRound != null) {
-    return (
-      <span data-testid="home-badge" data-badge="researching" className="font-mono text-[0.75rem] text-ink-faint">
-        round {project.loopRound}
+      <span data-testid="home-badge" data-badge="capped" className="text-[0.75rem] text-ink-muted">
+        Paused
       </span>
     );
   }
@@ -80,26 +73,24 @@ export default async function ProjectsIndex() {
           to start one.
         </p>
       ) : (
-        <ul className="divide-y divide-rule border-y border-rule">
+        <ul className="space-y-3">
           {projects.map((p) => (
             <li key={p.slug}>
               <Link
                 href={`/canvas/${p.slug}`}
-                className="group block rounded-inset px-6 py-6 transition-colors hover:bg-paper-raised/60"
+                className="group flex min-h-20 flex-col justify-between gap-1 rounded-card border border-rule bg-paper px-4 py-3 transition-colors hover:bg-paper-raised/60"
               >
                 <div className="flex items-baseline justify-between gap-4">
                   <h2 className="font-serif text-xl font-semibold text-ink group-hover:text-accent">
                     {shortProjectName(p.name)}
                   </h2>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="eyebrow">{stageLabel(p.stage)}</span>
+                  <div className="flex shrink-0 items-baseline gap-2">
                     <LoopBadge project={p} />
+                    <span className="eyebrow">{stageLabel(p.stage)}</span>
                   </div>
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-ink-faint">
-                  {p.client ? <span className="text-ink-muted">{p.client}</span> : null}
-                  {p.route ? <span>· {p.route} route</span> : null}
-                  {p.status ? <span>· {p.status}</span> : null}
+                <div className="mt-1 text-[0.8125rem] text-ink-muted">
+                  {p.client ? <span>{p.client}</span> : null}
                 </div>
               </Link>
             </li>
