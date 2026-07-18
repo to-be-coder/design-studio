@@ -6,6 +6,9 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **You can attach a folder when adding input or creating a project.** Pick a folder (say, a
+  starter app) in the Add-input or New-project box; it is copied into the project's assets, and a
+  note pointing at it goes into the research inbox, so research reads it like any other input.
 - **Re-running structure refreshes a pristine skeleton, and leaves a built one alone.** The
   skeleton repo now carries a source marker. While it is still a pristine skeleton, re-running
   structure regenerates it from the latest decisions and any starter app you fed in. Once build
