@@ -522,14 +522,17 @@ its hands off).
 
 **The collision rule, three ways** ([[0040 structure-refreshes-a-pristine-skeleton]]). When the
 target path already exists the skill decides before writing:
-- **Pristine skeleton** (git working tree clean, exactly the one `Skeleton scaffold` commit, and
+- **Pristine skeleton** (git working tree clean, every commit is structure's own so
+  `git log --oneline` shows only `Skeleton scaffold` / `Skeleton re-scaffold` lines, and
   `flows.json` `source: "structure"`) -> **refresh**: regenerate every skeleton file from the
   current inputs, commit `Skeleton re-scaffold`, keep `source: "structure"`, leave `prototype_repo`
   as is. A skeleton no later stage has touched is disposable studio scaffolding, so a stale one can
-  be brought current.
-- **Not pristine** (dirty tree, extra commits, or `source: "build"`) -> **touch NOTHING**: append
-  one dated plain line to `00 Dashboard.md` naming the conflict, and stop. Design-system's DESIGN.md
-  or build's real app is never clobbered; re-scaffolding over owned work is the user's explicit call.
+  be brought current, and repeated refreshes stay pristine (each just adds another re-scaffold
+  commit).
+- **Not pristine** (dirty tree, a non-structure commit like design-system's DESIGN.md or a build
+  commit, or `source: "build"`) -> **touch NOTHING**: append one dated plain line to
+  `00 Dashboard.md` naming the conflict, and stop. Design-system's DESIGN.md or build's real app is
+  never clobbered; re-scaffolding over owned work is the user's explicit call.
 
 **Who reads what.** `design-system` reads `flows.json`, walks the pages, authors `<repo>/DESIGN.md`
 and exports `tokens.css` beside it. `build` gates on the repo and `flows.json`, drives the skeleton

@@ -41,15 +41,18 @@ with it (build keeps routes and flows.json current once it takes over).
   headless spawn passes in). Decide before writing anything:
   1. **Path absent** -> scaffold fresh (the Process below), the normal create path.
   2. **Path present AND a pristine skeleton** -> **refresh it**. Pristine means all three hold: the
-     git working tree is clean (`git -C <repo> status --porcelain` empty), there is exactly one
-     commit and it is the skeleton scaffold (`git -C <repo> log --oneline` is a single
-     `Skeleton scaffold` line), and `<repo>/flows.json`'s `source` is `"structure"`. A pristine
+     git working tree is clean (`git -C <repo> status --porcelain` empty), EVERY commit is
+     structure's own (`git -C <repo> log --oneline` shows only `Skeleton scaffold` and
+     `Skeleton re-scaffold` lines, so design-system's DESIGN.md commit, a build commit, or any
+     hand-made commit is absent), and `<repo>/flows.json`'s `source` is `"structure"`. A pristine
      skeleton is disposable studio scaffolding no later stage has touched, so regenerate every
      skeleton file from the CURRENT inputs (the latest Build now set, all decisions, any fed-in
      starter app), commit `Skeleton re-scaffold`, and keep `source: "structure"`. Leave
-     `prototype_repo` as is (it already points here).
-  3. **Path present but NOT pristine** (dirty tree, more than the one scaffold commit, or
-     `flows.json` `source: "build"`) -> **TOUCH NOTHING**: `source: "build"` means build owns the
+     `prototype_repo` as is (it already points here). Repeated refreshes are fine: each adds another
+     `Skeleton re-scaffold` commit and the repo stays pristine.
+  3. **Path present but NOT pristine** (dirty tree, a non-structure commit like design-system's
+     DESIGN.md or a build commit, or `flows.json` `source: "build"`) -> **TOUCH NOTHING**:
+     `source: "build"` means build owns the
      repo, and a dirty tree or extra commits mean real work is in flight. Append one dated plain
      line to `00 Dashboard.md` naming the conflict (for example `- 2026-07-17: structure did not
      run: ~/dev/forma-prototype has work in it (source build / uncommitted changes); refresh would
