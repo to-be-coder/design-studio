@@ -516,11 +516,20 @@ flows force), with designed-placeholder copy. Every page links `tokens.css` then
 the screen serves, `fidelity` is `"full"` or `"stub"`, and `states` lists the non-default states
 the screen must carry), and `edges` (array of `{from, to, label}` screen-id pairs with the user
 action as the label). Skills read this instead of any prose doc; the canvas orders its device
-frames by it.
+frames by it. **`source` is also the ownership signal:** `"structure"` means a pristine skeleton
+structure still owns (refreshable); `"build"` means build has taken the repo over (structure keeps
+its hands off).
 
-**The collision rule.** If the target path already exists, the skill touches NOTHING: no writes
-into it, no `prototype_repo` fill, just one dated plain line appended to `00 Dashboard.md` naming
-the conflict. Re-runs route through the user.
+**The collision rule, three ways** ([[0040 structure-refreshes-a-pristine-skeleton]]). When the
+target path already exists the skill decides before writing:
+- **Pristine skeleton** (git working tree clean, exactly the one `Skeleton scaffold` commit, and
+  `flows.json` `source: "structure"`) -> **refresh**: regenerate every skeleton file from the
+  current inputs, commit `Skeleton re-scaffold`, keep `source: "structure"`, leave `prototype_repo`
+  as is. A skeleton no later stage has touched is disposable studio scaffolding, so a stale one can
+  be brought current.
+- **Not pristine** (dirty tree, extra commits, or `source: "build"`) -> **touch NOTHING**: append
+  one dated plain line to `00 Dashboard.md` naming the conflict, and stop. Design-system's DESIGN.md
+  or build's real app is never clobbered; re-scaffolding over owned work is the user's explicit call.
 
 **Who reads what.** `design-system` reads `flows.json`, walks the pages, authors `<repo>/DESIGN.md`
 and exports `tokens.css` beside it. `build` gates on the repo and `flows.json`, drives the skeleton
