@@ -25,7 +25,7 @@ installing requires a **restart of Claude Code**.
 `skills/design-studio-shared/` rides along in that same glob but is **not a skill** — it has no
 `SKILL.md`, so Claude Code never loads it. It holds `CONVENTIONS.md`, the `DESIGN-SPEC.md` format
 definition, the `starter-wiki/`, and the owned zero-dependency `DESIGN.md` toolchain in `scripts/`
-(lint / export / diff — installed to `~/.claude/skills/design-studio-shared/scripts/`, so the skills
+(lint / source lint / export / diff, installed to `~/.claude/skills/design-studio-shared/scripts/`, so the skills
 run it from any repo, not just this one). Every skill reaches it by the relative path
 `../design-studio-shared/CONVENTIONS.md`. That relative path is why the folders must stay siblings.
 Copy the whole set or none of it.
@@ -259,8 +259,13 @@ Two invariants a contributor must not break:
   editing that file and nothing else.
 - **Every visual value derives from `web/DESIGN.md`.** The tokens in `web/src/app/globals.css` come
   from it, never the other way round. A raw hex or `oklch()` literal in a component is a defect.
+- **Every UI change gets a design-impact classification.** Contract changes update `web/DESIGN.md`
+  in the same change through `design-studio-design-md`. Implementation-only changes state which
+  existing rule they preserve. `npm run design:check` lints the contract and scans component source
+  for token bypasses.
 
-After any change under `web/`, both `npx tsc --noEmit` and `npm run build` must pass. CI runs both.
+After any change under `web/`, `npm run design:check`, `npx tsc --noEmit`, and `npm run build` must pass.
+CI runs all three.
 
 ### The loop runtime
 

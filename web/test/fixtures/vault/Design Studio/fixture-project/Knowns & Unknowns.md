@@ -19,7 +19,11 @@ load_bearing: true
 assumption: true
 attempts: 2
 spawned_by: L0
-ask: Do you, as a reviewer, act on the restated problem, or keep working from the original brief?
+ask: Do you, as a reviewer, act on the restated problem, or keep
+working from the original brief?
+why: Research cannot observe which framing a real reviewer will trust without your judgment or a live test.
+changes: Choose the restated problem and scope follows the reframed goal; keep the original brief and current scope stays.
+evidence: One reviewer distrusted a screenshot proxy, but no evidence shows which problem statement they would act on.
 receipts: [[02 Research/Interviews|R1]] "The screenshot lied to me."
 note: Desk research is exhausted; this needs a real reviewer in the room.
 
@@ -35,6 +39,9 @@ state: research-exhausted
 attempts: 2
 spawned_by: L1
 ask: Which omissions have burned you before, so we surface those first?
+why: Research cannot rank hidden workflow failures without your experience of where handoffs usually break.
+changes: Your answer decides which skipped steps the first build must make visible.
+evidence: The team values honest omissions, but the available research does not identify which omissions cause the most harm.
 
 ### L4: Is one signal enough to interrupt the team?
 kind: unknown

@@ -184,7 +184,16 @@ async function makeProject(blocks: string[]): Promise<{ vaultRoot: string; proje
     `# Scratch\n\n## Current stage\n\n${TERMINAL_FENCE}\n`,
     "utf8",
   );
-  const ledger = ["# Knowns & Unknowns", "", "## Review log", "", blocks.join("\n\n"), ""].join("\n");
+  const recordedBlock = `${reviewBlock(6, [
+    "- date: 2026-07-01",
+    "- reviewer: canvas",
+    "- wwb_round: 3",
+    "- entries_hash: ab12cd34",
+    "- dispositions:",
+    "  - W1: build-now",
+    "  - W2: dont-build",
+  ])}\n<!-- review:6:done -->`;
+  const ledger = ["# Knowns & Unknowns", "", "## Review log", "", recordedBlock, blocks.join("\n\n"), ""].join("\n");
   await fs.writeFile(path.join(projectDir, "Knowns & Unknowns.md"), ledger, "utf8");
   const decision = path.join(projectDir, "Decisions", "0006 review-6-dispositions.md");
   await fs.writeFile(decision, DISPOSITIONS_DECISION, "utf8");
@@ -255,7 +264,14 @@ async function stubInvocations(logFile: string): Promise<string[]> {
 
 test.describe("review-queue drain", () => {
   test("a dispositions-only batch matching the recorded verdicts closes with a done marker and NO spawn", async () => {
-    const dup = ["- date: 2026-07-10", "- reviewer: canvas", "- dispositions:", "  - W1: build-now"];
+    const dup = [
+      "- date: 2026-07-10",
+      "- reviewer: canvas",
+      "- wwb_round: 3",
+      "- entries_hash: ab12cd34",
+      "- dispositions:",
+      "  - W1: build-now",
+    ];
     const { vaultRoot, projectDir, slug } = await makeProject([reviewBlock(7, dup)]);
     const { bin, logFile } = await makeStub(vaultRoot);
     process.env.CLAUDE_BIN = bin;
@@ -264,8 +280,8 @@ test.describe("review-queue drain", () => {
     try {
       expect(await newestRecordedVerdicts(projectDir)).toEqual(
         new Map([
-          ["W1", "build-now"],
-          ["W2", "dont-build"],
+          ["W1", { verdict: "build-now", batch: 6 }],
+          ["W2", { verdict: "dont-build", batch: 6 }],
         ]),
       );
       expect(await pendingReviewBatches(projectDir)).toHaveLength(1);
@@ -288,7 +304,14 @@ test.describe("review-queue drain", () => {
   });
 
   test("notes, answers, differing verdicts, and unknown W-ids all drain through ONE recorder spawn, oldest first, ids only", async () => {
-    const dupInner = ["- date: 2026-07-10", "- reviewer: canvas", "- dispositions:", "  - W1: build-now"];
+    const dupInner = [
+      "- date: 2026-07-10",
+      "- reviewer: canvas",
+      "- wwb_round: 3",
+      "- entries_hash: ab12cd34",
+      "- dispositions:",
+      "  - W1: build-now",
+    ];
     const noteInner = ["- date: 2026-07-11", "- reviewer: canvas", "- dispositions:", '  - W2: backlog, "park it for later"'];
     const answersInner = ["- date: 2026-07-12", "- reviewer: canvas", "- answers:", '  - L7: "yes, they rely on CSV"'];
     const differInner = ["- date: 2026-07-13", "- reviewer: canvas", "- dispositions:", "  - W1: backlog"];

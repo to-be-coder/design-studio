@@ -77,6 +77,12 @@
   --card-pad: 2rem;
   --gutter: 3rem;
   --spine-gap: 4rem;
+
+  /* Review-tab motion (DESIGN.md motion.*). */
+  --motion-duration-fast: 140ms;
+  --motion-duration-tab-glide: 240ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-easing-tab-glide: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── Dark — first-class, given in DESIGN.md Colors prose. ─────────────────── */

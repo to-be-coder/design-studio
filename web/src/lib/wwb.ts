@@ -90,6 +90,13 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
     }
   }
 
+  // Old renders can contain exhausted entries whose own ask says the question
+  // is closed or does not need an answer. They are evidence history, not work
+  // for the reviewer, so keep them out of the action queue. The research
+  // contract now requires these entries to be answered or retired upstream;
+  // this compatibility fence prevents stale renders from creating fake work.
+  model.questions = model.questions.filter((q) => !explicitlyNeedsNoAnswer(q.ask));
+
   // Evidence-moved cross-check: a confirmed entry whose cited L-id retired or
   // dropped a grade wants re-ruling.
   if (ledger) {
@@ -105,13 +112,19 @@ export async function getWwb(slug: string, ledger?: LedgerModel | null): Promise
 
   // Questions fall back to the ledger's escalated entries when the WWB has none.
   if (model.questions.length === 0 && ledger) {
-    model.questions = ledger.escalated.map((e) => ({
-      id: e.id,
-      ask: e.ask ?? e.title,
-      receipts: e.receipts,
-      blocks: e.blocks,
-      answered: null,
-    }));
+    model.questions = ledger.escalated
+      .filter((e) => !explicitlyNeedsNoAnswer(e.ask ?? ""))
+      .map((e) => ({
+        id: e.id,
+        ask: e.ask ?? e.title,
+        why: e.why,
+        changes: e.changes,
+        evidenceSummary: e.evidenceSummary,
+        options: e.options,
+        receipts: e.receipts,
+        blocks: e.blocks,
+        answered: null,
+      }));
   }
 
   // An answer already in the ledger's Review log marks its question answered
@@ -157,6 +170,18 @@ function numFrom(v: unknown): number | null {
     if (m) return parseInt(m[0], 10);
   }
   return null;
+}
+
+/** Legacy safety net for questions that explicitly withdraw their own ask. */
+function explicitlyNeedsNoAnswer(ask: string): boolean {
+  const text = ask.replace(/\s+/g, " ").trim().toLowerCase();
+  return (
+    /\b(?:do not|don't) (?:have to|need to) answer\b/.test(text) ||
+    /\bno (?:answer|decision|response) (?:is )?(?:needed|required)\b/.test(text) ||
+    /\bclosed for now rather than waiting on you\b/.test(text) ||
+    /\bnot waiting on you\b/.test(text) ||
+    /\bfor completeness rather than for a decision\b/.test(text)
+  );
 }
 
 interface Section {
@@ -419,9 +444,18 @@ function normalizeDisposition(v: string): WwbDisposition | null {
   return null;
 }
 
-const QUESTION_LABELS = new Set(["ask", "receipts", "blocks", "kind"]);
+const QUESTION_LABELS = new Set([
+  "ask",
+  "why",
+  "changes",
+  "evidence",
+  "receipts",
+  "blocks",
+  "kind",
+  "options",
+]);
 
-/** Parse the `## Questions for you` tier: L-id, ask, receipts, note blocks. */
+/** Parse Questions for you: the judgment brief, receipts, and note blocks. */
 async function parseQuestions(
   rawLines: string[],
   files: string[],
@@ -433,8 +467,21 @@ async function parseQuestions(
       const { id: hid, title } = parseHeadingId(g.heading);
       const id = hid ?? `q-${slug(title)}`;
       let ask: string | null = null;
+      let why: string | null = null;
+      let changes: string | null = null;
+      let evidenceSummary: string | null = null;
+      const options: { label: string; text: string }[] = [];
+      let inOptions = false;
       const prose: string[] = [];
       for (const line of g.lines) {
+        if (inOptions) {
+          const option = line.match(/^\s*-\s*([A-Za-z0-9]{1,3}):\s*(.+)$/);
+          if (option) {
+            options.push({ label: option[1], text: option[2].trim() });
+            continue;
+          }
+          inOptions = false;
+        }
         // Keep blank lines: they are the paragraph breaks the markdown
         // renderer needs, or adjacent paragraphs fuse into one.
         if (!line.trim()) {
@@ -443,7 +490,12 @@ async function parseQuestions(
         }
         const lab = labeledLine(line, QUESTION_LABELS);
         if (lab) {
-          if (lab.key === "ask") ask = lab.value || null;
+          if (lab.key === "options") {
+            inOptions = true;
+          } else if (lab.key === "ask") ask = lab.value || null;
+          else if (lab.key === "why") why = lab.value || null;
+          else if (lab.key === "changes") changes = lab.value || null;
+          else if (lab.key === "evidence") evidenceSummary = lab.value || null;
           continue;
         }
         if (/^\s*>\s?/.test(line)) continue;
@@ -456,7 +508,17 @@ async function parseQuestions(
         bodies,
       );
       const blocks = prose.some((s) => s.trim()) ? await parseMarkdownBody(prose.join("\n")) : [];
-      return { id, ask: ask ?? title, receipts, blocks, answered: null };
+      return {
+        id,
+        ask: ask ?? title,
+        why,
+        changes,
+        evidenceSummary,
+        options,
+        receipts,
+        blocks,
+        answered: null,
+      };
     }),
   );
 }
@@ -468,6 +530,9 @@ const PARKED_LABELS = new Set([
   "blocks",
   "receipts",
   "ask",
+  "why",
+  "changes",
+  "evidence",
   "options",
 ]);
 
@@ -486,6 +551,10 @@ async function parseParked(
       let supersedes: string | null = null;
       let blocks: string | null = null;
       let ask: string | null = null;
+      let why: string | null = null;
+      let changes: string | null = null;
+      let evidenceSummary: string | null = null;
+      const comparison = parkedFramingComparison(g.lines);
       const options: { label: string; text: string }[] = [];
       let inOptions = false;
       const quoteLines: string[] = [];
@@ -510,6 +579,9 @@ async function parseParked(
             supersedes = stripWiki(unquote(lab.value)) || null;
           else if (lab.key === "blocks") blocks = lab.value || null;
           else if (lab.key === "ask") ask = unquote(lab.value) || null;
+          else if (lab.key === "why") why = lab.value || null;
+          else if (lab.key === "changes") changes = lab.value || null;
+          else if (lab.key === "evidence") evidenceSummary = lab.value || null;
           continue;
         }
         const bq = line.match(/^\s*>\s?(.*)$/);
@@ -532,6 +604,13 @@ async function parseParked(
         kind,
         title,
         ask,
+        why,
+        changes,
+        evidenceSummary,
+        currentFraming: comparison.current,
+        proposedFraming: comparison.proposed,
+        acceptCost: comparison.acceptCost,
+        rejectCost: comparison.rejectCost,
         options,
         candidate: quoteLines.join(" "),
         supersedes,
@@ -542,6 +621,67 @@ async function parseParked(
       };
     }),
   );
+}
+
+function parkedFramingComparison(lines: string[]): {
+  current: string | null;
+  proposed: string | null;
+  acceptCost: string | null;
+  rejectCost: string | null;
+} {
+  const result = {
+    current: null as string | null,
+    proposed: null as string | null,
+    acceptCost: null as string | null,
+    rejectCost: null as string | null,
+  };
+
+  const paragraphAfter = (index: number, quoteOnly = false): string | null => {
+    const parts: string[] = [];
+    for (let i = index + 1; i < lines.length; i += 1) {
+      const line = lines[i].trim();
+      if (!line) {
+        if (parts.length) break;
+        continue;
+      }
+      const quote = line.match(/^>\s?(.*)$/);
+      if (quoteOnly) {
+        if (!quote) break;
+        parts.push(quote[1].trim());
+        continue;
+      }
+      if (/^\*\*/.test(line) || labeledLine(line, PARKED_LABELS)) break;
+      parts.push(line.replace(/^>\s?/, ""));
+    }
+    return parts.length ? parts.join(" ").trim() : null;
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (/^\*\*The problem as it stands today\.\*\*$/i.test(line)) {
+      result.current = paragraphAfter(i, true);
+      continue;
+    }
+
+    const candidate = line.match(/^\*\*The candidate\.?\*\*\s*(.*)$/i);
+    if (candidate) {
+      result.proposed = candidate[1].trim() || paragraphAfter(i);
+      continue;
+    }
+
+    const takeCost = line.match(/^\*\*What it costs you to take it\.\*\*\s*(.*)$/i);
+    if (takeCost) {
+      result.acceptCost = takeCost[1].trim() || paragraphAfter(i);
+      continue;
+    }
+
+    const rejectCost = line.match(/^\*\*What it costs you to reject it\.\*\*\s*(.*)$/i);
+    if (rejectCost) {
+      result.rejectCost = rejectCost[1].trim() || paragraphAfter(i);
+    }
+  }
+
+  return result;
 }
 
 function normalizeParkedKind(v: string): ParkedKind {

@@ -10,7 +10,6 @@ import { PrototypeFrames } from "./prototype-frames";
 import { DecisionStream } from "./decision-stream";
 import type { RenderableBlock } from "@/lib/types";
 import { Connectors } from "./connectors";
-import { ProjectHeader } from "./header";
 import { stageName } from "./util";
 
 export interface BoardViewProps {
@@ -69,10 +68,6 @@ export const BoardView = memo(function BoardView({
           selectedAssumption={selectedAssumption ?? null}
         />
       ) : null}
-
-      <div className="relative z-10">
-        <ProjectHeader header={model.header} />
-      </div>
 
       <FocusedBoard
         focused={focused}
@@ -186,6 +181,9 @@ function StageRow({
   onFly?: (regionId: string) => void;
 }) {
   const label = stageName(stage.stage);
+  const hasBuildOutput =
+    model.prototype.skeletonSource !== "structure" &&
+    (model.prototype.runnable || model.prototype.embeddable);
   return (
     <div id={stage.regionId} className="relative mb-16 flex w-max scroll-mt-8 items-start gap-10">
       <div className="flex items-start gap-12">
@@ -200,11 +198,16 @@ function StageRow({
           ) : null
         ) : stage.stage === "build" ? (
           <>
+            <BuildOutputGuide
+              routeCount={model.prototype.routes.length || 1}
+              hasBuildOutput={hasBuildOutput}
+              showsComponentCheck={hasBuildOutput && model.prototype.interactive && model.prototype.hasTokens}
+            />
             <PrototypeFrames prototype={model.prototype} id="prototype-frames-region" requireBuilt />
             {/* The component board lives with the frames it scans: its instance
                 counts are harvested from the loaded prototype DOMs, so isolating
                 Build keeps frames + inventory together (§ focus mode / §7). */}
-            {model.prototype.interactive && model.prototype.hasTokens ? (
+            {hasBuildOutput && model.prototype.interactive && model.prototype.hasTokens ? (
               <ComponentBoard tokens={model.tokens} id="component-board" onFly={onFly} />
             ) : null}
           </>
@@ -226,3 +229,57 @@ function StageRow({
   );
 }
 
+function BuildOutputGuide({
+  routeCount,
+  hasBuildOutput,
+  showsComponentCheck,
+}: {
+  routeCount: number;
+  hasBuildOutput: boolean;
+  showsComponentCheck: boolean;
+}) {
+  return (
+    <article
+      className="card-sheet w-[34rem] max-w-[88vw] px-8 py-7"
+      data-card-kind="build-guide"
+      data-testid="build-output-guide"
+    >
+      <p className="eyebrow mb-2">Build output</p>
+      <h3 className="font-serif text-[1.6rem] font-semibold leading-tight text-ink">
+        Review the product in two passes
+      </h3>
+      <p className="mt-3 max-w-[30rem] text-panel-body leading-relaxed text-ink-muted">
+        Start with the working pages. Then check whether the same interface pieces stay consistent across them.
+      </p>
+
+      <ol className="mt-6 space-y-3">
+        <li className="rounded-inset border border-rule-strong bg-paper-raised px-4 py-4">
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="font-sans text-[1.125rem] font-semibold text-ink">01&nbsp; Live product</p>
+            <span className="text-panel-body tabular-nums text-ink-faint">
+              {hasBuildOutput ? `${routeCount} ${routeCount === 1 ? "page" : "pages"}` : "Waiting for build"}
+            </span>
+          </div>
+          <p className="mt-1 text-panel-body leading-relaxed text-ink-muted">
+            {hasBuildOutput
+              ? "Open each page and test the real, clickable result."
+              : "The Structure skeleton is ready. Build has not produced the working prototype yet."}
+          </p>
+        </li>
+        <li className="rounded-inset border border-rule-strong bg-paper-raised px-4 py-4">
+          <div className="flex items-baseline justify-between gap-4">
+            <p className="font-sans text-[1.125rem] font-semibold text-ink">02&nbsp; UI consistency</p>
+            <span className="text-panel-body text-ink-faint">
+              {showsComponentCheck ? "Ready" : "Starts after build"}
+            </span>
+          </div>
+          <p className="mt-1 text-panel-body leading-relaxed text-ink-muted">
+            {showsComponentCheck
+              ? "Find reused components and repeated UI that is missing from the design system."
+              : "Once the prototype is running, this checks component reuse across its pages."}
+          </p>
+        </li>
+      </ol>
+    </article>
+  );
+}

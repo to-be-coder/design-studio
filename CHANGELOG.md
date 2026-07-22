@@ -6,6 +6,51 @@ All notable, user-visible changes to the design-studio skills are documented her
 
 ### Changed
 
+- **Build input now uses the same card system as Needs you and Build candidates.** Confirmed,
+  backlogged, excluded, open, newly recorded, and linked-document cards share the same surface,
+  spacing, title hierarchy, state label, and open bottom edge. Long research reasons and receipts
+  are collapsed behind a clear evidence control instead of filling the page by default.
+
+- **Override receipts no longer repeat across Build-phase boards.** Structure, Design system, and
+  Build now open directly on their task content. Project-level override history remains in the
+  dashboard source instead of occupying every Build page.
+- **Large UI changes now carry their design contract with them.** The existing
+  `design-studio-design-md` utility now starts from a design-impact classification and triggers when
+  app work adds or reshapes a shared visual rule. Repository instructions require the same review,
+  `npm run design:check` lints `web/DESIGN.md` and rejects component color literals, and CI runs the
+  guard on every web change. Implementation-only changes remain lightweight when they preserve an
+  existing documented rule.
+- **What's Worth Building navigation now reads as tabs.** The three views share one baseline rule,
+  square edges, and a two-pixel accent underline on the active view instead of appearing as separate
+  pill buttons. The underline now glides between labels while their colors crossfade, with an instant
+  reduced-motion fallback. The complete tab pattern is recorded in `web/DESIGN.md`.
+- **Build output now has a clear reading order.** A short guide explains the two review passes:
+  test the live product first, then check UI consistency. The live-page and component sections use
+  matching numbered labels, larger descriptions, and plain-language explanations of what each
+  section shows. Repeated UI outside the design system is named directly instead of called
+  uncodified.
+- **Every review card now provides enough context to judge.** A shared law covers questions, parked
+  decisions, and build candidates: show the call, why the human is needed, what each path changes,
+  and the strongest evidence signal before showing any control. Raw receipts and long notes stay
+  folded as audit material. Questions and parked decisions now carry required `ask:` / `why:` /
+  `changes:` / `evidence:` briefs, and the verifier rejects incomplete or malformed renders. Legacy
+  cards with missing context now show only the useful content and controls that remain. They no
+  longer spend review space on a "Decision brief incomplete" audit box. A content-quality problem
+  never blocks the human from responding. A cut-off question is still an
+  explicit clarification task: the card shows what research captured, asks the human to finish or
+  correct the thought, and says to skip it when the intent cannot be recovered. Candidate cards use
+  the same reading order through their research lean, exact idea, case for, case against, and named
+  outcomes. Hard-wrapped labeled fields are reconstructed as complete paragraphs before any card is
+  built, and stale research entries that explicitly say no answer is needed no longer enter Needs you.
+  Legacy framing calls now expand the current promise, proposed
+  replacement, and concrete cost of each path directly on the card. Visible judgment lines may no
+  longer use a document link or shorthand such as "the first promise" as a substitute for meaning.
+  Action buttons now name the outcome they record: keep current or take proposal for two-path calls,
+  every available answer for closed questions, and build this, save for later, or leave it out for
+  build candidates. Open questions keep the written-response field. Every actionable card now leads
+  with "Decision needed" and the direct question it expects the reviewer to settle. Legacy cards
+  containing a second question surface it separately instead of burying it in prose. The outer card
+  bottom border no longer runs underneath the action buttons.
 - **You can now drag a folder or files onto the attach area (or click to browse).** The Add-input
   and New-project boxes have a drop area: drag a whole folder or loose files onto it, or click to
   choose a folder. This avoids the folder picker greying out individual files, which used to
@@ -37,6 +82,11 @@ All notable, user-visible changes to the design-studio skills are documented her
 - **Every home card is the same height.** The quiet "Ready for review" label is gone, and any badge
   a card still earns (the review pill, or Paused at the round cap) sits beside the stage label on
   the title row instead of stacking under it, so no card grows taller than its neighbors.
+- **The canvas sidebar separates navigation from project context.** A divider now sits directly
+  below the Projects back control and above the current project title and status.
+- **Knowns & Unknowns entries are accordions.** Each ledger card now keeps its identity and status
+  visible while its metadata, question, evidence, lineage, and receipts expand on demand.
+  Native disclosure controls keep the denser view usable with a mouse, touch, or keyboard.
 - **A clicked verdict survives a refresh.** Candidate verdicts already sat safely in the review
   log, but a refresh before the recorder ran brought the card back as if unclicked. The page now
   reads queued verdicts from the log, so a clicked card stays recorded (and out of Build

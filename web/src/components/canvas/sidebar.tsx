@@ -161,8 +161,8 @@ export function Sidebar({
       className="flex h-full w-[17rem] flex-col overflow-y-auto border-r border-rule bg-paper/95 backdrop-blur"
       data-testid="sidebar"
     >
-      <div className="border-b border-rule px-4 py-3">
-        <div className="flex items-center justify-between gap-2">
+      <div className="border-b border-rule">
+        <div className="flex items-center justify-between gap-2 px-4 py-3">
           <Link
             href="/"
             className="-ml-1 shrink-0 rounded-inset px-1.5 py-0.5 text-[0.8125rem] text-ink-muted transition-colors hover:bg-paper-raised hover:text-ink"
@@ -178,10 +178,12 @@ export function Sidebar({
             <PanelCloseIcon />
           </button>
         </div>
-        <p className="eyebrow mt-2">{shortProjectName(model.project.name)}</p>
-        {model.header.statusLine ? (
-          <p className="mt-1 text-[0.75rem] leading-snug text-ink-faint">{model.header.statusLine}</p>
-        ) : null}
+        <div className="border-t border-rule px-4 py-3">
+          <p className="eyebrow">{shortProjectName(model.project.name)}</p>
+          {model.header.statusLine ? (
+            <p className="mt-1 text-[0.75rem] leading-snug text-ink-faint">{model.header.statusLine}</p>
+          ) : null}
+        </div>
       </div>
 
       <div

@@ -57,6 +57,9 @@ node scripts/sanity.mjs      # or: npm run sanity
 ### Tests
 
 ```bash
+npm run design:check # DESIGN.md validity plus component token discipline
+npx tsc --noEmit
+npm run build
 npm run test:e2e    # Playwright, against a hermetic fixture vault
 ```
 

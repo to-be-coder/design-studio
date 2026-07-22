@@ -103,68 +103,91 @@ function Row({
       id={`ledger-${entry.id}`}
       data-ledger={entry.id}
       data-state={entry.state}
-      className="rounded-inset border px-4 py-3"
+      className="rounded-inset border"
       style={{
         borderColor: "var(--rule)",
         background: retired ? "var(--paper-raised)" : "transparent",
         opacity: retired ? 0.85 : 1,
       }}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0">
-          <span className="font-mono text-[0.75rem] text-ink-faint">{entry.id}</span>{" "}
-          <span
-            className={
-              "font-sans text-[0.9375rem] font-semibold " +
-              (retired ? "text-ink-muted line-through decoration-ink-faint/60" : "text-ink")
-            }
-          >
-            {entry.title}
+      <details className="group">
+        <summary
+          className="cursor-pointer list-none px-4 py-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden"
+          data-testid={`ledger-trigger-${entry.id}`}
+        >
+          <span className="flex items-start justify-between gap-3">
+            <span className="flex min-w-0 items-start gap-2">
+              <span
+                aria-hidden="true"
+                className="mt-px inline-block shrink-0 text-[1.125rem] leading-none text-ink-faint transition-transform group-open:rotate-90"
+              >
+                &rsaquo;
+              </span>
+              <span className="min-w-0">
+                <span className="font-mono text-[0.75rem] text-ink-faint">{entry.id}</span>{" "}
+                <span
+                  className={
+                    "font-sans text-[0.9375rem] font-semibold " +
+                    (retired ? "text-ink-muted line-through decoration-ink-faint/60" : "text-ink")
+                  }
+                >
+                  {entry.title}
+                </span>
+              </span>
+            </span>
+            <LedgerChip state={entry.state} />
           </span>
-        </span>
-        <LedgerChip state={entry.state} />
-      </div>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-        {entry.assumption ? (
-          <span
-            className="rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
-            style={{ border: "1px solid var(--unverified)", color: "var(--unverified)" }}
-          >
-            Assumption
-          </span>
-        ) : null}
-        {entry.loadBearing ? (
-          <span className="text-[0.75rem] text-ink-faint">load-bearing</span>
-        ) : null}
-        {entry.attempts > 0 ? (
-          <span className="font-mono text-[0.75rem] text-ink-faint">
-            {entry.attempts} attempt{entry.attempts > 1 ? "s" : ""}
-          </span>
-        ) : null}
-      </div>
+        </summary>
 
-      {escalated && entry.ask ? (
-        <p className="mt-2 text-[0.9375rem] font-medium leading-snug text-ink" data-testid="ledger-ask">
-          {entry.ask}
-        </p>
-      ) : null}
+        <div
+          className="space-y-2 border-t border-rule px-4 pb-3 pl-[2.625rem] pt-3"
+          data-testid={`ledger-content-${entry.id}`}
+        >
+          {entry.assumption || entry.loadBearing || entry.attempts > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {entry.assumption ? (
+                <span
+                  className="rounded-pill px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.08em]"
+                  style={{ border: "1px solid var(--unverified)", color: "var(--unverified)" }}
+                >
+                  Assumption
+                </span>
+              ) : null}
+              {entry.loadBearing ? (
+                <span className="text-[0.75rem] text-ink-faint">load-bearing</span>
+              ) : null}
+              {entry.attempts > 0 ? (
+                <span className="font-mono text-[0.75rem] text-ink-faint">
+                  {entry.attempts} attempt{entry.attempts > 1 ? "s" : ""}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
 
-      {entry.blocks.length ? (
-        <div className="mt-2 text-[0.9375rem]">
-          <Reading blocks={entry.blocks} />
+          {escalated && entry.ask ? (
+            <p className="text-[0.9375rem] font-medium leading-snug text-ink" data-testid="ledger-ask">
+              {entry.ask}
+            </p>
+          ) : null}
+
+          {entry.blocks.length ? (
+            <div className="text-[0.9375rem]">
+              <Reading blocks={entry.blocks} />
+            </div>
+          ) : null}
+
+          {entry.lineage ? (
+            <p className="text-[0.75rem] text-ink-faint">{entry.lineage}</p>
+          ) : null}
+
+          {entry.receipts.length ? (
+            <div>
+              <ReceiptLinks receipts={entry.receipts} slug={slug} onFocus={onFocusReceipt} />
+            </div>
+          ) : null}
         </div>
-      ) : null}
-
-      {entry.lineage ? (
-        <p className="mt-2 text-[0.75rem] text-ink-faint">{entry.lineage}</p>
-      ) : null}
-
-      {entry.receipts.length ? (
-        <div className="mt-2">
-          <ReceiptLinks receipts={entry.receipts} slug={slug} onFocus={onFocusReceipt} />
-        </div>
-      ) : null}
+      </details>
     </li>
   );
 }

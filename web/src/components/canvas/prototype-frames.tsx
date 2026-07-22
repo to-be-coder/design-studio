@@ -271,12 +271,12 @@ function FramesView({
         <div>
           <p className="eyebrow mb-1 flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-full bg-accent" aria-hidden />
-            Live prototype — every page, live
+            01&nbsp; Live product
           </p>
-          <p className="text-[0.8125rem] text-ink-faint">
+          <p className="max-w-[34rem] text-panel-body leading-relaxed text-ink-muted">
             {direct
-              ? "The real app, one live instance per route — booted in sequence to stay under the sign-in rate limit."
-              : "The real running thing, one frame per route, embedded same-origin."}
+              ? "Open each route and test the real app. Pages load one at a time so the server stays stable."
+              : "Open each route and test the real, working prototype."}
           </p>
         </div>
         <div className="flex items-center gap-2">

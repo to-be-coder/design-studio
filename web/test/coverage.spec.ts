@@ -136,6 +136,30 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await expect(wwb).toBeVisible();
     await expect(page.getByTestId("wwb-review")).toBeVisible();
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("needs-decisions-heading")).toContainText("Decisions to make");
+    await expect(page.getByTestId("wwb-ruling").first()).toContainText("Decision needed");
+    await expect(page.getByTestId("wwb-ruling").first()).toHaveCSS("border-bottom-width", "0px");
+    await expect(page.getByTestId("ruling-ask").first()).toContainText("Should the project settle");
+    await expect(page.getByTestId("ruling-why").first()).toBeVisible();
+    await expect(page.getByTestId("ruling-changes").first()).toBeVisible();
+    await expect(page.getByTestId("ruling-evidence-summary").first()).toBeVisible();
+    await expect(page.getByTestId("needs-questions-heading")).toContainText("Questions to answer");
+    const questions = page.getByTestId("wwb-questions");
+    await expect(questions.locator('[data-question="L1"]')).toContainText("Decision needed");
+    await expect(questions.locator('[data-question="L1"]')).toHaveCSS("border-bottom-width", "0px");
+    await expect(questions.getByTestId("question-heading").first()).toHaveText("Question 1 of 2");
+    await expect(questions.getByTestId("wwb-ask").first()).toContainText(
+      "keep working from the original brief?",
+    );
+    await expect(questions.getByTestId("question-why").first()).toBeVisible();
+    await expect(questions.getByTestId("question-changes").first()).toBeVisible();
+    await expect(questions.getByTestId("question-evidence-summary").first()).toBeVisible();
+    await expect(questions.getByTestId("judgment-context-incomplete")).toHaveCount(0);
+    const questionContext = questions.getByTestId("question-context").first();
+    await expect(questionContext).not.toHaveAttribute("open", "");
+    await expect(questions.getByText("Evidence", { exact: true }).first()).toBeHidden();
+    await questionContext.locator("summary").click();
+    await expect(questions.getByText("Evidence", { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId("wwb-ruling").first()).toBeVisible();
 
     // Proposed tab: each card leads with its one-line summary (what / for /
@@ -144,9 +168,21 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await page.getByTestId("wwb-tab-proposed").click();
     const proposed = page.getByTestId("wwb-proposed");
     await expect(proposed).toBeVisible();
-    await expect(proposed.getByTestId("entry-what").first()).toContainText("One pannable board");
-    await expect(proposed.getByTestId("entry-for").first()).toContainText("one place");
-    await expect(proposed.getByTestId("entry-against").first()).toContainText("unverified");
+    await expect(proposed.getByTestId("wwb-entry").first()).toHaveCSS("border-bottom-width", "0px");
+    await expect(proposed.getByTestId("candidate-summary").first()).toContainText("Decision needed");
+    await expect(proposed.getByTestId("candidate-summary").first()).toContainText(
+      "Should this idea be built now, saved for later, or left out?",
+    );
+    await expect(proposed.getByTestId("candidate-summary").first()).toContainText("The idea");
+    await expect(proposed.getByTestId("entry-what").first().locator("p").first()).toHaveText(
+      "One pannable board that holds research, decisions, and the prototype side by side.",
+    );
+    await expect(proposed.getByTestId("entry-for").first().locator("p")).toHaveText(
+      "Everything about the project is visible in one place, no tab-hopping.",
+    );
+    await expect(proposed.getByTestId("entry-against").first().locator("p")).toHaveText(
+      "Rests on reviewers trusting a restated problem, which is unverified.",
+    );
     await expect(proposed.getByTestId("wwb-assumption")).toHaveCount(0);
     await proposed.getByTestId("entry-evidence-toggle").first().click();
     await expect(proposed.getByTestId("wwb-assumption").first()).toBeVisible();
@@ -160,6 +196,20 @@ test.describe("understand loop: ledger + What's Worth Building", () => {
     await expect(page.getByTestId("wwb-dont-build")).toBeVisible();
     await expect(page.getByTestId("wwb-register")).toBeVisible();
     await expect(page.getByTestId("wwb-build-reads")).toBeVisible();
+    const standingCard = page.getByTestId("wwb-build-now").getByTestId("wwb-entry").first();
+    await expect(standingCard).toHaveCSS("border-bottom-width", "0px");
+    await expect(standingCard).toHaveCSS("padding-top", "20px");
+    await expect(standingCard).toContainText("Accepted for build");
+    await expect(standingCard.getByTestId("wwb-reason")).toHaveCount(0);
+    await standingCard.getByTestId("standing-evidence-toggle").click();
+    await expect(standingCard.getByTestId("wwb-reason").first()).toBeVisible();
+    const buildRead = page.getByTestId("wwb-build-read").first().locator("button");
+    await expect(buildRead).toHaveCSS("border-bottom-width", "0px");
+    await expect(buildRead).toContainText("Build also reads");
+    const registerEntry = page.getByTestId("wwb-register").getByTestId("register-entry").first();
+    await expect(registerEntry).toHaveCSS("border-bottom-width", "0px");
+    await expect(registerEntry).toContainText("Build checks this");
+    await expect(registerEntry.getByTestId("register-evidence")).not.toHaveAttribute("open", "");
     const blockingReceipt = page.getByTestId("wwb-blocking").getByTestId("receipt-link").first();
     await expect(blockingReceipt).toBeVisible();
     await blockingReceipt.click();
@@ -282,6 +332,30 @@ test.describe("home badges", () => {
 // ── WWB review band: gating, triage, ruling two-step, batch payload ───────────
 
 test.describe("WWB review band", () => {
+  test("a cut-off research ask becomes a clear clarification task", async ({ page }) => {
+    const errors = trackConsoleErrors(page);
+    await page.goto("/canvas/fixture-incomplete-question?runs=1");
+
+    const questions = page.getByTestId("wwb-questions");
+    await expect(questions.getByRole("listitem")).toHaveCount(1);
+    await expect(questions).not.toContainText("You do not have to answer this one now");
+    const question = questions.getByRole("listitem");
+    await expect(question.getByText("Research needs clarification")).toBeVisible();
+    await expect(question).toContainText("The question was cut off");
+    await expect(question).toContainText("What research captured");
+    await expect(question).toContainText("Finish or correct the thought");
+    await expect(question).not.toContainText("Missing: a complete question");
+
+    const clarification = question.getByPlaceholder("What I meant was…");
+    await expect(clarification).toBeVisible();
+    const send = question.getByRole("button", { name: "Send clarification" });
+    await expect(send).toBeDisabled();
+    await clarification.fill("The board should wrap the starter app, not replace it.");
+    await expect(send).toBeEnabled();
+
+    expect(errors, errors.join("\n")).toEqual([]);
+  });
+
   test("verdict buttons are gated on runs: read-only when autorun is off", async ({ page }) => {
     const errors = trackConsoleErrors(page);
     // fixture-minimal has a v1 WWB with one proposed candidate (triage mode, no
@@ -331,8 +405,17 @@ test.describe("WWB review band", () => {
     // real recording, so this never spawns an agent on its own).
     await page.goto("/canvas/fixture-minimal?runs=1");
 
+    // The v1 candidate has no what / for / against brief. The canvas does not
+    // spend review space reporting that source defect; it keeps the useful
+    // evidence and the outcome controls.
+    await expect(page.getByText("Decision brief incomplete")).toHaveCount(0);
     const build = page.getByTestId("verdict-build-now").first();
     await expect(build).toBeVisible();
+    await expect(build).toHaveText("Build this");
+    await expect(page.getByTestId("verdict-backlog").first()).toHaveText("Save for later");
+    await expect(page.getByTestId("verdict-dont-build").first()).toHaveText("Leave it out");
+    await expect(page.getByTestId("verdict-backlog").first()).toBeVisible();
+    await expect(page.getByTestId("verdict-dont-build").first()).toBeVisible();
     // Accept records on the click itself: no note step, no separate button.
     await build.click();
 
@@ -389,13 +472,15 @@ test.describe("WWB review band", () => {
     expect(captured.ruling.confirmed).toBe(true);
     expect(captured.verdicts).toEqual([]);
 
-    // An answer records itself the moment its button is hit, same as a ruling,
+    // A named question option records itself the moment its button is hit, same as a ruling,
     // and it lives on the SAME tab now; the batched review below carries
     // candidate verdicts only.
-    await page.getByTestId("answer-L1").fill("I act on the restated problem.");
-    await page.getByTestId("answer-record-L1").click();
+    await expect(page.getByTestId("answer-L1")).toHaveCount(0);
+    await expect(page.getByTestId("answer-option-L1-A")).toContainText("Act on the restated problem");
+    await expect(page.getByTestId("answer-option-L1-B")).toContainText("Keep working from the original brief");
+    await page.getByTestId("answer-option-L1-A").click();
     await expect(page.getByTestId("answer-recorded-L1")).toBeVisible();
-    expect(captured.answers).toEqual([{ id: "L1", text: "I act on the restated problem." }]);
+    expect(captured.answers).toEqual([{ id: "L1", text: "A: Act on the restated problem" }]);
     expect(captured.ruling ?? null).toBeNull();
     expect(errors, errors.join("\n")).toEqual([]);
   });
@@ -421,14 +506,51 @@ test.describe("WWB tabs", () => {
     await expect(page.getByTestId("wwb-tab-context")).toHaveCount(0);
 
     // Default tab: fixture-project has a parked 🔴, so it lands on Needs you.
-    await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "true");
+    const activeTab = page.getByTestId("wwb-tab-needs-you");
+    await expect(activeTab).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-ruling").first()).toBeVisible();
+
+    // The navigation is a connected tab strip: one shared rule, square tab
+    // edges, and one animated two-pixel indicator instead of pill borders.
+    const tabStripStyles = await page.getByRole("tablist").evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { borderBottomWidth: style.borderBottomWidth, borderBottomStyle: style.borderBottomStyle };
+    });
+    expect(tabStripStyles).toEqual({ borderBottomWidth: "1px", borderBottomStyle: "solid" });
+    const activeTabStyles = await activeTab.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return {
+        borderTopLeftRadius: style.borderTopLeftRadius,
+        transitionDuration: style.transitionDuration,
+      };
+    });
+    expect(activeTabStyles).toEqual({
+      borderTopLeftRadius: "0px",
+      transitionDuration: "0.14s",
+    });
+
+    const indicator = page.getByTestId("wwb-tab-indicator");
+    await expect(indicator).toBeVisible();
+    const indicatorBefore = await indicator.evaluate((el) => {
+      const node = el as HTMLElement;
+      const style = getComputedStyle(node);
+      return {
+        left: node.style.left,
+        height: style.height,
+        transitionDuration: style.transitionDuration,
+        transitionProperty: style.transitionProperty,
+      };
+    });
+    expect(indicatorBefore.height).toBe("2px");
+    expect(indicatorBefore.transitionDuration).toBe("0.24s");
+    expect(indicatorBefore.transitionProperty).toBe("left, width, opacity");
 
     // Proposed is reachable by a click, and Needs you yields the selection.
     await page.getByTestId("wwb-tab-proposed").click();
     await expect(page.getByTestId("wwb-tab-proposed")).toHaveAttribute("aria-selected", "true");
     await expect(page.getByTestId("wwb-proposed")).toBeVisible();
     await expect(page.getByTestId("wwb-tab-needs-you")).toHaveAttribute("aria-selected", "false");
+    await expect.poll(() => indicator.evaluate((el) => (el as HTMLElement).style.left)).not.toBe(indicatorBefore.left);
 
     expect(errors, errors.join("\n")).toEqual([]);
   });
@@ -631,6 +753,12 @@ test.describe("prefers-reduced-motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/canvas/fixture-project");
     const world = page.getByTestId("canvas-world");
+
+    const tabIndicatorTransitionMs = await page.getByTestId("wwb-tab-indicator").evaluate((el) => {
+      const duration = getComputedStyle(el).transitionDuration;
+      return duration.endsWith("ms") ? Number.parseFloat(duration) : Number.parseFloat(duration) * 1000;
+    });
+    expect(tabIndicatorTransitionMs).toBeLessThanOrEqual(0.001);
 
     // Fly to a canvas board from the keyboard (focus the option, activate with
     // Enter) — a build-phase stage so there's a world to fly.
@@ -917,18 +1045,48 @@ test.describe("focus mode — one board per sidebar item", () => {
   });
 });
 
-test("a parked ruling leads with its ask; the full case stays folded until asked for", async ({ page }) => {
+test("a parked ruling leads with a complete judgment brief; the full case stays folded", async ({ page }) => {
   await page.goto("/canvas/fixture-project");
   const card = page.locator('[data-parked="W7"]');
   await expect(card).toBeVisible();
   // The ask line is the card's lead, always visible.
-  await expect(card.getByTestId("ruling-ask")).toContainText("Do we settle the problem framing");
+  await expect(card.getByTestId("ruling-ask")).toContainText("Should the project settle its problem framing");
+  await expect(card.getByTestId("ruling-why")).toContainText("product judgment");
+  await expect(card.getByTestId("ruling-changes")).toContainText("build set is rescoped");
+  await expect(card.getByTestId("ruling-evidence-summary")).toContainText("Reviewers said");
+  await expect(card.getByTestId("ruling-reject")).toHaveText("Keep current");
+  await expect(card.getByTestId("ruling-accept")).toHaveText("Take proposal");
   // The verbatim candidate is folded away until the toggle opens the case.
   await expect(card.getByTestId("ruling-candidate")).toHaveCount(0);
   await card.getByTestId("ruling-case-toggle").click();
   await expect(card.getByTestId("ruling-candidate")).toContainText("settle what problem we are solving");
   await card.getByTestId("ruling-case-toggle").click();
   await expect(card.getByTestId("ruling-candidate")).toHaveCount(0);
+});
+
+test("a legacy framing call expands both choices inline instead of sending the reviewer to another document", async ({ page }) => {
+  await page.goto("/canvas/fixture-incomplete-question?runs=1");
+  const card = page.getByTestId("wwb-ruling").filter({ hasText: "The diagnosis holds" });
+  await expect(card).toBeVisible();
+  await expect(card.getByTestId("ruling-ask")).toHaveText(
+    "Should Forma's problem change from helping somebody say what they want, to making sure they can always see what changed, with saying what they want coming after that?",
+  );
+  await expect(card.getByTestId("ruling-current-framing")).toContainText(
+    "Forma's problem is turning that gamble into steering",
+  );
+  await expect(card.getByTestId("ruling-current-framing")).toContainText(
+    "The design keeps treating \"I cannot say what is wrong\" as the problem",
+  );
+  await expect(card.getByTestId("ruling-proposed-framing")).toContainText(
+    "a person cannot see what the tool did to their picture",
+  );
+  await expect(card.getByTestId("ruling-proposed-framing")).toContainText(
+    "The pointing feature becomes the second act",
+  );
+  await expect(card).not.toContainText("[[01 Brief & Problem]]");
+  await expect(card).not.toContainText("the first promise");
+  await expect(card.getByTestId("ruling-accept")).toHaveText("Take proposal");
+  await expect(card.getByTestId("ruling-reject")).toHaveText("Keep current");
 });
 
 test("a directions pick renders its options as one-click choices: no accept, no typing", async ({ page }) => {
@@ -946,7 +1104,9 @@ test("a directions pick renders its options as one-click choices: no accept, no 
   await expect(pick).toBeVisible();
   // No single proposal to accept, and nothing to type: the drafted options are
   // the buttons, and the click is the ruling.
-  await expect(pick.getByTestId("ruling-ask")).toContainText("pick between drafted options");
+  await expect(pick.getByTestId("ruling-ask")).toContainText("Where should export live");
+  await expect(pick.getByTestId("ruling-why")).toContainText("Both directions are workable");
+  await expect(pick.getByTestId("ruling-changes")).toContainText("shared tray");
   await expect(pick.getByTestId("ruling-accept")).toHaveCount(0);
   await expect(pick.locator("textarea")).toHaveCount(0);
   await expect(pick.getByTestId("ruling-pick-A")).toContainText("Export lives on each card");

@@ -277,6 +277,12 @@ The contrast math (sRGB conversion for hex / rgb / oklch, relative luminance, WC
 same computation the Canvas uses inline on its design-system board — see `web/src/lib/color.ts`. A
 color the lint cannot parse degrades honestly (reported, never a fabricated ratio).
 
+`design-source-lint.mjs` is the companion consumer gate. Run it against component source
+directories. It rejects raw hex values and CSS color functions in JavaScript, TypeScript, Vue, and
+Svelte UI files, so a component cannot create a local color system beside the contract. Token
+references such as `var(--accent)` pass. A parser or preview fixture that intentionally carries a
+literal must mark the line with `design-source-lint: allow` and explain the exception in review.
+
 ---
 
 ## The owned export and diff

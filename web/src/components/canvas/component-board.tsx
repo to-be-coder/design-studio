@@ -61,9 +61,12 @@ export function ComponentBoard({
       data-testid="component-board"
     >
       <header className="mb-5">
-        <p className="eyebrow mb-1">Component board · the reusability map</p>
-        <p className="text-[0.8125rem] text-ink-faint">
-          Every reusable unit, with its live instances across the running frames.
+        <p className="eyebrow mb-1">02&nbsp; UI consistency</p>
+        <h3 className="font-serif text-[1.6rem] font-semibold leading-tight text-ink">
+          See what is reused across pages
+        </h3>
+        <p className="mt-2 text-panel-body leading-relaxed text-ink-muted">
+          Each card is a design-system component. Select one to highlight every live instance in the product.
         </p>
       </header>
 
@@ -93,15 +96,15 @@ export function ComponentBoard({
         })}
       </div>
 
-      {/* Uncodified — recurring signatures with no DESIGN.md component (3+ routes). */}
+      {/* Recurring signatures with no DESIGN.md component (3+ routes). */}
       <div className="mt-6 border-t border-rule pt-5">
-        <p className="eyebrow mb-1 text-ink">Uncodified</p>
-        <p className="mb-3 text-[0.75rem] text-ink-faint">
-          Recurring markup on 3+ routes that matches no component — drift waiting to happen.
+        <p className="font-sans text-[1.125rem] font-semibold text-ink">Not in the design system</p>
+        <p className="mb-3 mt-1 text-panel-body leading-relaxed text-ink-muted">
+          Repeated UI found on three or more pages without a matching component definition.
         </p>
         {uncodified.length === 0 ? (
-          <p className="text-[0.8125rem] italic text-ink-faint" data-testid="uncodified-empty">
-            None yet — visit more routes to accumulate the scan.
+          <p className="rounded-inset border border-rule bg-paper-raised px-4 py-3 text-panel-body text-ink-muted" data-testid="uncodified-empty">
+            No repeated UI drift found in the pages scanned so far.
           </p>
         ) : (
           <ul className="space-y-2" data-testid="uncodified-list">

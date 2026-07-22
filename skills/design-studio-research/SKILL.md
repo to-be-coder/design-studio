@@ -144,36 +144,55 @@ anatomy with research's craft filled in. Every round starts at step 1, including
      really occurs in the target). A grade with no conforming receipt is **downgraded and marked
      `assumption: true`**: the doc can never out-grade the evidence.
    - An unknown that survived `M` no-progress attempts **latches `research-exhausted`** and gets its
-     human-facing `ask:` line filled: it now renders into What's Worth Building's Questions for you tier.
+     four-line judgment brief filled: `ask:` is the complete question, `why:` says why evidence cannot
+     settle it, `changes:` says what the available answers change, and `evidence:` summarizes the
+     strongest known signal or exact unresolved tension. It now renders into What's Worth Building's
+     Questions for you tier.
+   - If later evidence dissolves that choice, mark the unknown `answered` or `retired`. Never leave an
+     entry `research-exhausted` while its ask says the human does not need to answer, that it is closed,
+     or that it is present only for completeness.
    - New questions an answer raised are **minted as fresh unknowns** with `spawned_by` lineage.
      `answered` is sticky: a contradiction opens a **new superseding `L`-id**, it never edits the old
      answer; after 2 reopenings on a lineage, auto-escalate to the human.
 
    Run `receipt-verify.mjs` (below) over the ledger and `What's Worth Building.md` at this point, so a
    bad receipt is caught in the round that wrote it. Run it AGAIN after step 5's recompile and fix
-   what it flags before closing the round: a render violation (a pick missing its `ask:` or
-   `options:`, a candidate missing `what:` / `for:` / `against:`, a summary line that leans on
+   what it flags before closing the round: a render violation (a question or parked call missing its
+   `ask:` / `why:` / `changes:` / `evidence:`, a pick missing its `options:`, a candidate
+   missing `what:` / `for:` / `against:`, a summary line that leans on
    another line) is yours to repair in the recompile, and the fence is never written while verify
    fails.
 
 5. **Recompile the renders.** Regenerate wholesale from the ledger plus `Decisions/`:
    - **`What's Worth Building.md`** (v2, the single review surface, exactly per CONVENTIONS' contract):
      the eight tiered sections in reading order. Tier 1: `## Parked decisions` (one entry per live
-     `proposed` 🔴 decision, opening with an `ask:` line, one plain sentence naming exactly what the
-     human is deciding and what a yes takes; a directions pick also carries an `options:` list, one
-     plain line per drafted option with an `A:` / `B:` label, each rendered as a one-click choice
+     `proposed` 🔴 decision, opening with a four-line judgment brief: `ask:` is the complete
+     question, `why:` says why only the human can settle it, `changes:` names what each path
+     changes, and `evidence:` summarizes the strongest signal or unresolved tension; a directions
+     pick also carries an `options:` list, one
+     plain sentence per drafted option with an `A:` / `B:` label, each rendered as a one-click choice
      (receipt-verify FAILS a directions pick missing its `ask:` or carrying fewer than two options,
      so a prose-only pick is a render defect, not a style choice);
      then the candidate verbatim with both sides + reframe-test
-     legs, `supersedes_if_taken:`, `blocks:`, receipts), `## Questions for you` (every research-exhausted
-     L-entry's `ask:` + receipts), `## Proposed` (untriaged `build`-lean candidates as `### W<N>:`
+     legs, `supersedes_if_taken:`, `blocks:`, receipts), `## Questions for you` (every
+     research-exhausted L-entry's `ask:` / `why:` / `changes:` / `evidence:` brief + receipts; a
+     closed choice also carries an `options:` list with every available answer, while an open
+     question has no options and accepts a short written response),
+     `## Proposed` (untriaged `build`-lean candidates as `### W<N>:`
      entries with receipts + ASSUMPTION marks). Every Proposed entry and every `dont-build`-lean card
      opens with `what:` / `for:` / `against:`, one plain sentence each (the exact feature, the
      strongest reason for, the strongest reason against); receipt-verify fails a reviewable candidate
-     missing any of the three, so the skim layer is contract, not courtesy. **Each of the three lines
-     stands completely alone.** A reader who reads only that one line follows it cold: no pronoun
+     missing any of the three, so the skim layer is contract, not courtesy. A labeled sentence may
+     wrap across physical lines; its paragraph ends at a blank line or the next label. **Each of the
+     three fields stands completely alone.** A reader who reads only that field follows it cold: no pronoun
      pointing at another line (never open with "They", "It", "That", "These"; receipt-verify fails
-     those), no reusing the candidate title's phrasing, no "X rather than Y" constructions. Say what
+     those), no reusing the candidate title's phrasing, no "X rather than Y" constructions. A
+     document name, `[[wikilink]]`, decision id, or shorthand such as "the first promise" never
+     substitutes for meaning in `ask:`, `why:`, `changes:`, `evidence:`, `what:`, `for:`, or
+     `against:`. Write the exact promise, choice, or consequence inline so the reviewer never has to
+     open another document to understand a card. A control repeats the outcome it records, never
+     generic "Accept" or "Reject". If the question names multiple answers, write every one under
+     `options:` so all answers become buttons. Say what
      the user would see or do, in concrete words: "the tool reads which part of the image an edit
      touches" beats "serve the direction of each edit". Numbers come with their meaning in the same
      sentence ("in the logs, 4 of 5 edits widen and narrow at the same time"), never bare. **Write Tier 1 prose in everyday language** (the
@@ -315,8 +334,9 @@ The three terminal lines each point somewhere:
   load-bearing assumption rides along in `Assumptions & Risks.md`; `build`'s register gate (warn, never
   block) is the only one, at build's door ([[0023 nothing-locks-before-production]]).
 - **`converged-humans-needed`** / **`capped`**: ensure every research-exhausted entry carries its
-  `ask:` field (that field is what renders into What's Worth Building's Questions for you tier; there is
-  no separate agenda to compile). Hand back to `design-studio-debrief`, which takes those questions to
+  complete `ask:` / `why:` / `changes:` / `evidence:` judgment brief (that brief renders into
+  What's Worth Building's Questions for you tier; there is no separate agenda to compile). Hand back
+  to `design-studio-debrief`, which takes those questions to
   the team and returns a batch that the next round's intake ingests (step 2).
 
 **Parked 🔴 calls are not a terminal state** ([[0036 one-continuous-cycle]]). A framing departure, a

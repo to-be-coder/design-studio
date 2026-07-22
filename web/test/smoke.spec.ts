@@ -112,13 +112,12 @@ test.describe("canvas board (/canvas/fixture-project)", () => {
     // spine — no spec stage appears in the index.
     await expect(sidebar.getByRole("option", { name: /spec/i })).toHaveCount(0);
 
-    // Open Build → its board renders (the region exists) and the override
-    // receipts show. (The board no longer repeats run-state / autonomy / the
-    // stage blurb + gate — those were removed from the stage meta.)
-    await sidebar.getByRole("option", { name: "Build", exact: true }).click();
+    // Project-level override receipts stay off all three Build-phase boards.
+    for (const label of ["Structure", "Design system", "Build"]) {
+      await sidebar.getByRole("option", { name: label, exact: true }).click();
+      await expect(page.getByTestId("overrides")).toHaveCount(0);
+    }
     await expect(page.locator("#region-build")).toBeVisible();
-    await expect(page.getByTestId("overrides")).toBeVisible();
-    await expect(page.getByTestId("overrides").getByText(/skipped reframe/i)).toBeVisible();
 
     expect(errors, `console/page errors on canvas board:\n${errors.join("\n")}`).toEqual([]);
   });

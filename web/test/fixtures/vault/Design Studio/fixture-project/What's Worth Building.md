@@ -18,7 +18,11 @@ Awaiting you: 2 to triage, 2 questions, 1 parked call.
 
 ### W7: Rule the framing before scope
 kind: framing-departure
-ask: Do we settle the problem framing before scoping features? Accepting re-scopes Build now around the reframed problem.
+ask: Should the project settle its problem framing before
+scoping features?
+why: Research points away from the current framing, but choosing the project's problem is a product judgment.
+changes: Choose framing first and the build set is rescoped; keep scope first and the team starts sooner with a risk of revisiting the frame.
+evidence: Reviewers said they need to settle the problem before features, while the current brief assumes scope comes first.
 supersedes: 0001
 blocks: build now
 receipts: [[0009 refined-direction|0009]] [[02 Research/Interviews|R2]]
@@ -29,6 +33,10 @@ Both sides: ruling framing-first re-scopes the whole Build-now set against the r
 
 ### 0042: Directions pick, where the export lives
 kind: directions-pick
+ask: Where should export live: on each card or in one board-level tray?
+why: Both directions are workable, and the choice depends on how you want people to think about export.
+changes: Card-level export keeps actions local; a shared tray makes export a board-wide workflow.
+evidence: Research found no usability evidence that clearly favors either drafted direction.
 blocks: build now
 options:
   - A: Export lives on each card
@@ -51,9 +59,12 @@ in_their_words: "The screenshot lied to me. I want the real running thing on eve
 ## Proposed
 
 ### W2: A pannable spatial canvas
-what: One pannable board that holds research, decisions, and the prototype side by side.
-for: Everything about the project is visible in one place, no tab-hopping.
-against: Rests on reviewers trusting a restated problem, which is unverified.
+what: One pannable board that holds research, decisions, and the
+prototype side by side.
+for: Everything about the project is visible in one place, no
+tab-hopping.
+against: Rests on reviewers trusting a restated problem, which is
+unverified.
 - One world shows research through prototype without the pieces fighting for a screen. [[02 Research/Company|company]] "The pain is not authoring"
 - ASSUMPTION: Reviewers will trust an AI-restated problem over their own brief. [[Knowns & Unknowns|L1]]
 
@@ -81,11 +92,21 @@ decided-by-human
 ## Questions for you
 
 ### L1: Will reviewers trust an AI-restated problem over their own brief?
-ask: Do you, as a reviewer, act on the restated problem, or keep working from the original brief?
+ask: Do you, as a reviewer, act on the restated problem, or keep
+working from the original brief?
+why: Research cannot observe which framing a real reviewer will trust without your judgment or a live test.
+changes: Choose the restated problem and scope follows the reframed goal; keep the original brief and current scope stays.
+evidence: One reviewer distrusted a screenshot proxy, but no evidence shows which problem statement they would act on.
+options:
+  - A: Act on the restated problem
+  - B: Keep working from the original brief
 receipts: [[02 Research/Interviews|R1]] "The screenshot lied to me."
 
 ### L3: Which skipped steps most need to show honestly?
 ask: Which omissions have burned you before, so we surface those first?
+why: Research cannot rank hidden workflow failures without your experience of where handoffs usually break.
+changes: Your answer decides which skipped steps the first build must make visible.
+evidence: The team values honest omissions, but the available research does not identify which omissions cause the most harm.
 
 ## Implied but unruled
 

@@ -73,6 +73,14 @@ rounded:
   pill:  "9999px"        # status chips, HUD buttons
   marker: "9999px"       # spine markers (shape carries state, not color-dot)
 
+motion:
+  duration:
+    fast:     "140ms"     # label and hover color response
+    tabGlide: "240ms"     # shared tab indicator movement
+  easing:
+    standard: "cubic-bezier(0.2, 0, 0, 1)"
+    tabGlide: "cubic-bezier(0.22, 1, 0.36, 1)"
+
 components:
   card:                                   # an artifact sheet
     backgroundColor: "{colors.paper}"
@@ -135,6 +143,18 @@ components:
     backgroundColor: "{colors.accentWash}"
     textColor:       "{colors.accent}"
     rounded:         "{rounded.inset}"
+  reviewTabList:                          # one shared baseline, never separate pills
+    backgroundColor: "transparent"
+    textColor:       "{colors.inkMuted}"
+    borderColor:     "{colors.rule}"
+    borderWidth:     "1px"
+  reviewTabActive:                        # selected tab: accent word + 2px baseline
+    backgroundColor: "transparent"
+    textColor:       "{colors.accent}"
+    borderColor:     "{colors.accent}"
+    borderWidth:     "2px"
+    duration:        "{motion.duration.tabGlide}"
+    easing:          "{motion.easing.tabGlide}"
   connector:                              # supersede / rests_on edges drawn between entries
     backgroundColor: "transparent"
     textColor:       "{colors.ruleStrong}"
@@ -201,6 +221,47 @@ uppercase section labels (`panelLabel`, 14px) caption the pane's own prose and c
 (`panelBody`, 16px), with the active accent unchanged; rendered artifact and vault documents keep
 the `body` reading size (17px), so a read page stays a read page.
 
+What's Worth Building uses that same scale as an explicit reading order. Each review list starts
+with an 18px title and plain-language instruction. Every actionable card shows one judgment brief
+before its controls: the call in a `paperRaised` lead, then labeled rows for why the human is needed,
+what the paths change, and the strongest evidence signal. Candidate cards express the evidence as
+the strongest case for and against. Raw receipts and long research notes stay folded because they
+are audit material, not the context required to decide. A card missing a judgment field does not
+show an audit warning to the reviewer. The verifier sends that source defect back to research, while
+the card shows the useful context and controls that remain. A content-quality problem never blocks
+the human from responding. A cut-off question becomes a clarification task rather than a
+fake decision: show the captured fragment, one concrete instruction, a "What I meant was" field,
+and permission to skip. No visible judgment line uses a document name, wikilink, decision id, or
+shorthand such as "the first promise" in place of the actual choice or consequence. The referent is
+expanded on the card, while the source stays in the folded evidence. A `rule` separates the action
+area from the brief. Every control names its recorded outcome. A two-path proposal uses "Keep
+current" and "Take proposal"; a closed question shows every named answer as a button; a build
+candidate uses "Build this", "Save for later", and "Leave it out". Only genuinely open questions
+use a text field. Every actionable card leads with the label "Decision needed" and a direct question.
+When legacy source material mixes two questions into one card, the second is surfaced as "Decision
+2" instead of being buried in explanation. The outer card edge stops before the action row, so no
+extra border runs underneath already bordered buttons. Primary
+choices use full `ink`, while explanations use `inkMuted`, so an available action never looks
+disabled. Question cards use an accent edge for the live human task, reduce the ledger id to
+metadata, and put a one-sentence answer directly after the complete brief.
+
+Build input uses the same card system as Needs you and Build candidates. Its read-only cards keep
+the same `paper` surface, strong rule with no bottom edge, 20px inset, 18px title, uppercase state
+eyebrow, and body hierarchy. The state, title, and short human context stay visible. Long reasons
+and receipts start folded behind a "Show the evidence" control, because moving a decision into the
+build record does not turn its audit trail into primary reading. Navigation cards for Structure and
+Design system use the same shell and type hierarchy so the tab does not switch visual languages.
+
+The three What's Worth Building views use a conventional tab strip, not pill buttons. One continuous
+`rule` runs under the group. Each tab sits directly on that baseline with square edges and no individual
+outline. A single 2px `accent` indicator glides to the active tab in 240ms using `tabGlide`; it changes
+width as well as position, so it always belongs to the selected label. The label color crossfades in
+140ms using `standard`. Inactive tabs use `inkMuted`, with `paperRaised` only on hover. The tab labels
+remain 16px semibold, counts use normal weight, and keyboard focus uses the shared focus ring. Motion
+never bounces or delays the panel change, and the global reduced-motion rule makes both transitions
+effectively instant. This connected baseline is what makes the controls read as alternate views of one
+surface rather than filters or independent actions.
+
 ## Layout
 A vertical **spine** runs down the left — the two phases (Understand / Build) as sections,
 each stage a marker. Off each marker, artifact cards run horizontally (`gutter` apart); rows are
@@ -228,7 +289,11 @@ by **fill vs outline** and label weight — `Current` (accent fill, bold), `Ran`
 `pullQuote` gives the In-their-words voice a raised, italic block. `decisionRetired` visibly retires
 a superseded entry in place. `connector` draws supersede and `rests_on` edges as thin rules;
 `connectorLive` is the accent blast-radius edge. `hudButton`, `sidebarRowActive`, and the focus ring
-complete the chrome.
+complete the chrome. `reviewTabList` and `reviewTabActive` define the connected review navigation:
+one shared rule, square tabs, and one accent indicator that glides to the current view.
+Override receipts remain project history in the source dashboard, not shared Canvas chrome. They
+never render above Structure, Design system, or Build. Those Build-phase boards stay focused on
+their own work instead of repeating process history.
 
 ## Do's and Don'ts
 - **Do** reserve indigo (`colors.accent`) for live meaning only — current stage, active selection,
@@ -249,7 +314,7 @@ complete the chrome.
   list) one shared treatment: resting `navRow`, `navRowHover` (`paperRaised` background) on hover
   and focus-visible, `sidebarRowActive` (`accentWash` background, `accent` text) when selected, all
   `rounded.inset`. **Don't** invent a different hover or selected style per list, and don't fill a
-  selected row with solid `accent` (that solid fill is for pill tabs, not list rows).
+  selected row or review tab with solid `accent`; review tabs use an accent baseline.
 
 ## Contrast (hand-checked here; enforced by the owned `design-lint.mjs`)
 Estimated WCAG AA against the canonical light theme:

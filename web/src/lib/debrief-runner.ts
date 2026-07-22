@@ -488,17 +488,27 @@ async function ingestReviewBatches(
 
 /**
  * Close every pure-duplicate batch in the queue and return the rest, oldest
- * first. A pure duplicate says nothing new (dispositions only, every one
- * matching the newest recorded verdict), so the controller appends its
- * `<!-- review:B:done -->` marker itself and never spawns for it. That marker
- * append is the app's THIRD bounded vault write, bookkeeping beside the two
- * transcription writes; it may never grow past the one marker line.
+ * first. A pure duplicate says nothing new: dispositions only, every one
+ * matching the newest recorded verdict, AND clicked against the same page as
+ * the batch that recorded it (this block's `entries_hash` equals the recording
+ * batch's). A reshaped candidate re-enters the pending pile under a new page
+ * hash, so a re-ruling of it is a fresh human verdict that must reach the
+ * recorder, never a silent close (forma-2 lost four re-rulings to the
+ * dispositions-only version of this check). When any hash is unknowable (a
+ * legacy block, a pruned block), the batch goes to the recorder: the recorder
+ * writing a redundant decision is cheap, a dropped human verdict is not.
+ * On a genuine duplicate the controller appends its `<!-- review:B:done -->`
+ * marker itself and never spawns. That marker append is the app's THIRD
+ * bounded vault write, bookkeeping beside the two transcription writes; it may
+ * never grow past the one marker line.
  */
 async function closePureDuplicates(
   projectDir: string,
   pending: ReviewIngest[],
 ): Promise<ReviewIngest[]> {
-  let recorded: Map<string, string> | null = null;
+  let recorded: Map<string, { verdict: string; batch: number }> | null = null;
+  // The page hash each recording batch ruled against, resolved once per batch.
+  const recordedPageHash = new Map<number, string | null>();
   const open: ReviewIngest[] = [];
   let closed = 0;
   for (const b of pending) {
@@ -509,7 +519,23 @@ async function closePureDuplicates(
       continue;
     }
     recorded ??= await newestRecordedVerdicts(projectDir);
-    if (!verdicts.every((v) => recorded!.get(v.id) === v.verdict)) {
+    const pageHash = reviewBlockEntriesHash(inner!);
+    let duplicate = pageHash != null;
+    for (const v of verdicts) {
+      if (!duplicate) break;
+      const r = recorded.get(v.id);
+      if (!r || r.verdict !== v.verdict) {
+        duplicate = false;
+        break;
+      }
+      if (!recordedPageHash.has(r.batch)) {
+        const oldInner = await reviewBlockInner(projectDir, String(r.batch));
+        recordedPageHash.set(r.batch, oldInner == null ? null : reviewBlockEntriesHash(oldInner));
+      }
+      const oldHash = recordedPageHash.get(r.batch);
+      if (oldHash == null || oldHash !== pageHash) duplicate = false;
+    }
+    if (!duplicate) {
       open.push(b);
       continue;
     }
@@ -523,7 +549,7 @@ async function closePureDuplicates(
     await appendDrainLog(
       projectDir,
       b.batchId,
-      `[drain] batch ${b.batchId} repeats the recorded verdicts exactly (dispositions only); closed with its done marker, no spawn.\n`,
+      `[drain] batch ${b.batchId} repeats the recorded verdicts exactly, against the same page (entries hash match); closed with its done marker, no spawn.\n`,
     );
   }
   // A one-shot heartbeat so the file is fresh even when nothing spawns.
@@ -570,6 +596,12 @@ export function pureDuplicateVerdicts(inner: string): { id: string; verdict: str
   return out.length > 0 ? out : null;
 }
 
+/** The WWB entry-set hash captured in a review block, or null for legacy blocks. */
+function reviewBlockEntriesHash(inner: string): string | null {
+  const match = inner.match(/^\s*-\s+entries_hash:\s*(\S+)\s*$/im);
+  return match?.[1]?.trim() || null;
+}
+
 /**
  * The newest recorded verdict per W-id: from the decided dispositions decisions
  * in Decisions/*.md, the highest `review_batch` number naming the id wins.
@@ -577,7 +609,9 @@ export function pureDuplicateVerdicts(inner: string): { id: string; verdict: str
  * map does not know simply never matches, so the batch goes to the recorder.
  * Exported for the drain's tests.
  */
-export async function newestRecordedVerdicts(projectDir: string): Promise<Map<string, string>> {
+export async function newestRecordedVerdicts(
+  projectDir: string,
+): Promise<Map<string, { verdict: string; batch: number }>> {
   const dir = path.join(projectDir, "Decisions");
   let names: string[];
   try {
@@ -605,9 +639,9 @@ export async function newestRecordedVerdicts(projectDir: string): Promise<Map<st
     if (verdicts.size > 0) perBatch.push({ batch: parseInt(bm[1], 10), verdicts });
   }
   perBatch.sort((a, b) => b.batch - a.batch);
-  const out = new Map<string, string>();
-  for (const { verdicts } of perBatch) {
-    for (const [id, v] of verdicts) if (!out.has(id)) out.set(id, v);
+  const out = new Map<string, { verdict: string; batch: number }>();
+  for (const { batch, verdicts } of perBatch) {
+    for (const [id, verdict] of verdicts) if (!out.has(id)) out.set(id, { verdict, batch });
   }
   return out;
 }
@@ -1151,6 +1185,7 @@ function researchRoundPrompt({
     "- Read 01 Brief & Problem.md (framing) and Knowns & Unknowns.md (the ledger).",
     "- Attempt EVERY open unknown with the moves you can do autonomously (desk sweeps; a pressure-test riding the riskiest load-bearing entry). Write artifacts into 02 Research/.",
     "- Grade and record: mint Knowns with conforming receipts (a quote plus a resolvable [[link]]); a grade of verified/partial REQUIRES a receipt, else downgrade and mark ASSUMPTION. Latch a twice-unprogressed unknown to research-exhausted. Spawn new unknowns with lineage.",
+    "- REVIEW QUEUE INTEGRITY: research-exhausted means a human response is still required. If evidence dissolves the choice, mark the entry answered or retired. Never render an ask that says no answer is needed, the question is closed, or it is listed only for completeness.",
     "- Recompile the renders: What's Worth Building.md (Build / Don't build / Implied but unruled / open-unknowns-blocking, every reason receipted, unevidenced clauses prefixed ASSUMPTION:) and Assumptions & Risks.md (the load-bearing Knowns).",
     "- INTEGRITY: you are headless. NEVER write `authored_by: user` or `status: decided` in any Decisions/*.md; propose only. A directions 🔴 pick or a framing lock is a human's call: record it as a `proposed` parked decision (it renders in What's Worth Building's Parked section) and KEEP RUNNING. A 🔴 never stops the loop (decision 0036); do not fabricate the human's ruling.",
     "- Write 00 Dashboard.md's Current stage line LAST, in the closed grammar, as the commit fence:",

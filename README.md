@@ -26,7 +26,8 @@ onboarding. `design-studio-compile-spec` turns the decision log into a document 
 is reading it: a one-pager for stakeholders, a handoff for engineers, or the pre-build PRD. Run it
 whenever you need one. `design-studio-design-md` safely changes or checks a `DESIGN.md` in any
 repo: it lints the file, re-exports the tokens so code stays in sync, and diffs against the last
-signed-off version. `design-studio-harvest` and `design-studio-wiki-lint` care for the wiki (see
+signed-off version. It also runs as the design-impact review whenever app work adds or reshapes a
+shared visual rule. `design-studio-harvest` and `design-studio-wiki-lint` care for the wiki (see
 *Studio memory* below).
 
 `design-studio-shared/CONVENTIONS.md` is shared reference material every skill reads first. It is
@@ -145,7 +146,8 @@ Then:
   (`node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs` in any repo, or
   `npm run design:lint` from this repo's `web/`; it checks structure and color contrast), the
   token export (`design-export.mjs`, `DESIGN.md` to CSS custom properties), and the drift diff
-  (`design-diff.mjs`, comparing resolved tokens across versions). The skills degrade gracefully
+  (`design-diff.mjs`, comparing resolved tokens across versions), plus the component source gate
+  (`design-source-lint.mjs`, rejecting color literals that bypass tokens). The skills degrade gracefully
   without it.
 
 ## Updating

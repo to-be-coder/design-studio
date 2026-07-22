@@ -11,7 +11,8 @@ const LEDGER_FILE = "Knowns & Unknowns.md";
  * Parse `Knowns & Unknowns.md` into the ledger model, the Understand loop's
  * spine. Tolerant by design: entries are `### L<N>: <text>` headings, and under
  * each a set of labeled lines (`kind:`, `state:`, `load_bearing:`, `attempts:`,
- * `spawned_by:` / `answered_by:`, `receipts:`, `note:`, `ask:`), any of which may
+ * `spawned_by:` / `answered_by:`, `receipts:`, `note:`, `ask:`, `why:`,
+ * `changes:`, `evidence:`), any of which may
  * be missing. Unlabeled prose becomes note blocks. The optional `## Human agenda`
  * and convergence sections aren't required: the rollup counts are DERIVED from
  * the entries so the parser works on a ledger that has neither.
@@ -162,6 +163,10 @@ const LABELS = new Set([
   "receipts",
   "note",
   "ask",
+  "why",
+  "changes",
+  "evidence",
+  "options",
 ]);
 
 async function buildEntry(
@@ -203,6 +208,24 @@ async function buildEntry(
   const attempts = parseAttempts(labels.get("attempts"));
   const lineage = buildLineage(labels);
   const ask = labels.get("ask") || null;
+  const why = labels.get("why") || null;
+  const changes = labels.get("changes") || null;
+  const evidenceSummary = labels.get("evidence") || null;
+  const options: { label: string; text: string }[] = [];
+  let inOptions = false;
+  for (const line of lines) {
+    if (/^\s*options:\s*$/i.test(line)) {
+      inOptions = true;
+      continue;
+    }
+    if (!inOptions) continue;
+    const option = line.match(/^\s*-\s*([A-Za-z0-9]{1,3}):\s*(.+)$/);
+    if (!option) {
+      if (line.trim()) inOptions = false;
+      continue;
+    }
+    options.push({ label: option[1], text: option[2].trim() });
+  }
 
   // Receipts can sit on the `receipts:` line or inline in the prose; extract
   // from the whole entry so none are missed, then de-dupe by target+label. A
@@ -211,12 +234,31 @@ async function buildEntry(
 
   // Note lines + unlabeled prose render as the entry body. Blank prose lines
   // stay in (paragraph breaks); only the absent note label is dropped.
-  const noteBits = [labels.get("note"), ...prose].filter((s): s is string => s != null);
+  const noteBits = [
+    labels.get("note"),
+    ...prose.filter((line) => !/^\s*-\s*[A-Za-z0-9]{1,3}:\s*\S/.test(line)),
+  ].filter((s): s is string => s != null);
   const blocks = noteBits.some((s) => s.trim())
     ? await parseMarkdownBody(noteBits.join("\n"))
     : [];
 
-  return { id, title: title || id, kind, state, loadBearing, assumption, attempts, lineage, ask, receipts, blocks };
+  return {
+    id,
+    title: title || id,
+    kind,
+    state,
+    loadBearing,
+    assumption,
+    attempts,
+    lineage,
+    ask,
+    why,
+    changes,
+    evidenceSummary,
+    options,
+    receipts,
+    blocks,
+  };
 }
 
 function detectKind(labels: Map<string, string>, title: string): "unknown" | "known" {

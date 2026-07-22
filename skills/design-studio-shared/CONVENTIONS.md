@@ -144,7 +144,7 @@ SORT file.mtime ASC
                               Building's Parked decisions section (the single review surface)
   01 Brief & Problem.md     ← restated problem, rubric, principle, success criteria (provisional early)
   Knowns & Unknowns.md      ← THE LEDGER: the Understand loop's spine. Unknowns + Knowns in one
-                              monotonic L<N> id space (each exhausted unknown keeps its ask: field),
+                              monotonic L<N> id space (each exhausted unknown keeps its judgment brief),
                               the convergence block, Retired, an append-only round log, and an
                               append-only Review log region (the durable receipt every human verdict
                               cites; there is no Human agenda section). Machine-owned: debrief seeds
@@ -459,12 +459,21 @@ across parallel build agents.
   (`node ~/.claude/skills/design-studio-shared/scripts/design-export.mjs <path>` → CSS custom
   properties, in any repo; or `npm run design:export -- <path>` from this repo's `web/`). A hardcoded
   value that bypasses the tokens is a defect, not a shortcut.
+- **Design impact review.** Classify every UI change before implementation. Contract impact means a
+  shared component, interaction, state, layout rule, responsive behavior, color, type, spacing,
+  shape, hierarchy, or motion is added or reshaped. Run `design-studio-design-md` and update the
+  canonical `DESIGN.md` in the same change. Copy, data wiring, and repairs that restore an existing
+  documented rule are implementation-only and do not need a cosmetic documentation edit. Record
+  that classification in the handoff. Judge the rule being changed, not the number of lines.
 - **Lint gate — owned, runnable everywhere.** The zero-dependency `design-lint.mjs`
   (`node ~/.claude/skills/design-studio-shared/scripts/design-lint.mjs <path>` in any repo, or
   `npm run design:lint -- <path>` from this repo's `web/`) must
   pass before `build` consumes the file: structure (required sections in order, no duplicate
   heading), reference resolution, motion/floor syntax, and WCAG contrast against the declared floors.
   It replaces the old `npx @google/design.md lint`, which was blocked in every live run.
+- **Consumer gate.** Run `design-source-lint.mjs` over component source. It rejects raw hex and CSS
+  color functions in UI files, with an explicit line marker for the rare parser or preview fixture
+  that must carry a literal. This catches the most dangerous bypass before review or build.
 - **Export and drift diff — owned too.** The two other touchpoints run on the same zero-dependency
   toolchain, living in `design-studio-shared/scripts/` (installed to
   `~/.claude/skills/design-studio-shared/scripts/`) and sharing the lint's parser (`design-md.mjs`).
@@ -675,7 +684,17 @@ answered_by:               # the round or answer-batch that answered it, once an
 receipts:                  # one per line: [[target#anchor]] "verbatim quoted span"
 note:                      # free machine note
 ask:                       # human-facing phrasing, filled only once an unknown latches exhausted
+why:                       # why evidence cannot settle it and human judgment is needed
+changes:                   # what the available answers change downstream
+evidence:                  # strongest evidence signal or unresolved tension, in plain language
+options:                   # closed choices only; one complete answer per line, all choices included
+  - A: <first answer>
+  - B: <second answer>
 ```
+
+An unknown stays `research-exhausted` only while it still needs a human response. If later evidence
+dissolves the choice, the entry becomes `answered` or `retired`; copy such as "you do not need to
+answer" is never a valid exhausted ask and never renders into Needs you.
 
 `attempts` is **derived**, always: count the entry's appearances in the round log, never trust a
 stored number. Unknown states walk `open → researching → research-exhausted → answered` (or `retired`
@@ -747,8 +766,9 @@ Every research round, in order:
    `<!-- round:N:begin -->` … `<!-- round:N:end -->` block, then write the dashboard Current stage
    line **last** as the commit fence: the status line's presence is what says the round committed.
    The fence is never written over a failing `receipt-verify`: a ledger failure downgrades grades
-   (step 4), and a render failure (a missing `ask:` or `options:`, a candidate without its
-   `what:` / `for:` / `against:`, a leaning summary line) is a defect this same round's recompile
+   (step 4), and a render failure (a decision brief missing `ask:` / `why:` / `changes:` /
+   `evidence:`, a missing `options:`, a candidate without its `what:` / `for:` / `against:`, a
+   leaning summary line) is a defect this same round's recompile
    must fix before closing.
 
 ### Crash idempotence
@@ -830,17 +850,19 @@ Eight `##` sections in three tiers, in this reading order:
 
 **Tier 1, needs your ruling.**
 - `## Parked decisions`: one entry per live 🔴, rendered from the `proposed` 🔴 decisions research
-  writes (framing-departure, directions-pick, route-call). Each entry opens with an `ask:` labeled
-  line: ONE plain sentence naming exactly what the human is being asked to decide and what a yes
-  would take (the canvas leads with it and folds the rest of the case behind a toggle, so the ask is
-  never buried). A directions pick additionally carries an `options:` list, one line per drafted
-  option (`  - A: <one plain line>`): the canvas renders each option as a one-click choice, and the
+  writes (framing-departure, directions-pick, route-call). Each entry opens with the four-line
+  judgment brief defined below: `ask:`, `why:`, `changes:`, and `evidence:`. A directions pick
+  additionally carries an `options:` list, one line per drafted
+  option (`  - A: <one plain sentence>`): the canvas renders each option as a one-click choice, and the
   click IS the pick (no typing; the chosen option's own line is the quotable span). Below these the
   entry carries the candidate text
   **verbatim** (its both-sides material and reframe-test legs intact), a `supersedes_if_taken:` target,
   a `blocks:` line, and receipts. A decision only the human can make.
-- `## Questions for you`: rendered straight from the research-exhausted L-entries' `ask:` fields plus
-  their receipts. No separate agenda file or section exists anywhere; this section is it.
+- `## Questions for you`: rendered straight from the research-exhausted L-entries' four-line
+  judgment briefs plus their receipts. A closed choice also carries an `options:` list containing
+  every available answer. Each option renders as a one-click answer. An open question has no
+  `options:` list and keeps the short written-response field. No separate agenda file or section
+  exists anywhere; this section is it.
 - `## Proposed`: untriaged `build`-lean candidates (each an `### W<N>: <title>` entry with receipts
   and ASSUMPTION marks), awaiting a triage ruling.
 
@@ -861,14 +883,46 @@ Eight `##` sections in three tiers, in this reading order:
 **Entry markup (so the render parses deterministically).** A candidate is an H3 `### W<N>: <title>`
 under Proposed / Build now / Backlog / Don't build, carrying its `lean`, receipts, and marks as
 labeled lines; Build now adds `ruled_by:` and `in_their_words:`, Backlog adds `unblocks:`. Every
-Proposed entry and every AI-proposed Don't build entry ALSO opens with three one-line labeled
+Proposed entry and every AI-proposed Don't build entry ALSO opens with three labeled sentence
 summaries the canvas leads with: `what:` (the exact thing that would be built, one plain sentence),
-`for:` (the strongest reason to build it), `against:` (the strongest reason not to). The receipted
+`for:` (the strongest reason to build it), `against:` (the strongest reason not to). A labeled
+sentence may be hard-wrapped across physical lines; its paragraph continues until a blank line or
+the next label. The receipted
 reason bullets stay below as the folded evidence; receipt-verify fails a reviewable candidate
-missing any of the three. A question
-is an H3 `### L<N>: <ask>` under Questions for you. A parked decision is an H3 naming its decision id
-under Parked decisions, its `ask:` line first. W-ids are the sticky identity from the recommendation's
+missing any of the three. A question is an H3 `### L<N>: <short title>` under Questions for you,
+followed by `ask:`, `why:`, `changes:`, and `evidence:`. A closed question follows those lines with
+`options:` and at least two complete, mutually exclusive answers. A parked decision is an H3 naming its
+decision id under Parked decisions, followed by the same four lines. W-ids are the sticky identity from the recommendation's
 Candidates table (decision-log section above).
+
+**Minimum judgment context (hard rule).** Every Tier 1 card that asks the human to act must answer
+four things before it shows a control: **the call** (`ask:` or `what:`), **why the call needs the
+human** (`why:` or the candidate's explicit research lean), **what each path changes** (`changes:`
+or the candidate's three named dispositions), and **the strongest evidence signal** (`evidence:` or
+the candidate's `for:` and `against:`). Raw receipts are audit material, not decision context, and
+stay one click deeper. For questions and parked decisions, each of `ask:`, `why:`, `changes:`, and
+`evidence:` is exactly one plain sentence that stands alone. `ask:` must be a complete question that
+ends in a question mark. `changes:` names the consequences of the available paths, not merely the
+artifact or stage that is blocked. `evidence:` summarizes the strongest known signal or the exact
+unresolved tension, never just a receipt count. A missing or malformed line is a render failure. The
+controls must name the outcome they record. Generic labels such as "Accept" and "Reject" are not
+allowed. A two-path proposal names both paths, a question with two or more answers shows every
+answer, and a build candidate always shows the three scope outcomes: build this, save for later,
+or leave it out. One click records the named outcome. Every card leads with **Decision needed** and
+the direct question it expects the human to settle. Supporting explanation never stands in for that
+question. If a legacy card contains two questions, both are named as separate decisions. The
+four visible lines must contain the meaning itself. A document name, `[[wikilink]]`, decision id, or
+ordinal shorthand such as "the first promise" can support the audit trail, but cannot stand in for
+the actual promise, choice, or consequence. Expand the exact referent inline so nobody has to open
+another document to understand the card. The same rule applies to each candidate's `what:`, `for:`,
+and `against:` lines. The
+verifier reports missing context to the research loop. The canvas does not spend review space on a
+"Decision brief incomplete" box. It shows the useful context that exists and keeps the card's
+decision controls available. A render-quality defect must never take away the human's ability to
+respond. When `ask:` itself is
+cut off, the canvas does not pretend a decision is possible: it labels the fragment as what research
+captured, asks the human to finish or correct the thought, records that response as a clarification,
+and explicitly permits skipping the card.
 
 **Plain language in Tier 1 (hard rule).** Everything under Parked decisions, Questions for you, and
 Proposed is written so a client could read it cold: everyday words, short sentences, what it means

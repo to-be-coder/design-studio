@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Impact Review"
+  short_description: "Keep UI changes aligned with DESIGN.md"
+  default_prompt: "Use $design-studio-design-md to review this UI change, update the visual contract when needed, and verify token consistency."

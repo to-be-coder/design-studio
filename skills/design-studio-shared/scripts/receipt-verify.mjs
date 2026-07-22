@@ -31,6 +31,7 @@
 //         else (a bare or wrong-batch verdict sneaked into the window) quarantines.
 //         Unscoped, it authenticates only the review_batch: B decisions and leaves prior
 //         interactive rulings alone (those are the strict --since scan's concern).
+//   (g) every question and parked call carries a complete four-line judgment brief.
 // Exit 0 with a summary when clean, 1 with one line per violation. Mirrors
 // scripts/design-lint.mjs in style.
 // Usage: node scripts/receipt-verify.mjs <project-dir> [--since <iso-date>]
@@ -45,7 +46,7 @@ const WWB = "What's Worth Building.md";
 const GRADE_RANK = { verified: 3, partial: 2, unverified: 1, accepted: 1 };
 const LEDGER_LABELS = new Set([
   "kind", "state", "load_bearing", "assumption", "attempts",
-  "spawned_by", "answered_by", "receipts", "note", "ask",
+  "spawned_by", "answered_by", "receipts", "note", "ask", "why", "changes", "evidence", "options",
 ]);
 
 const violations = [];
@@ -55,9 +56,36 @@ let entriesGraded = 0;
 
 const norm = (s) => s.replace(/\s+/g, " ").trim();
 const escRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const NO_HUMAN_ACTION_RE = /\b(?:do not|don't) (?:have to|need to) answer\b|\bno (?:answer|decision|response) (?:is )?(?:needed|required)\b|\bclosed for now rather than waiting on you\b|\bnot waiting on you\b|\bfor completeness rather than for a decision\b/i;
+const MEANING_BY_REFERENCE_RE = /\[\[[^\]]+\]\]|\b(?:the\s+)?(?:first|second|third|fourth|last|earlier|previous)\s+(?:promise|decision|line|point|statement|section)\b/i;
+const CLOSED_CHOICE_RE = /(?:^|[.!]\s+)(?:do|does|did|is|are|can|could|should|would|will|has|have)\b|\bor\b/i;
 const readFileSafe = async (p) => {
   try { return await fs.readFile(p, "utf8"); } catch { return null; }
 };
+
+// Read labeled Markdown fields as paragraphs, not physical lines. Generated
+// vault files often wrap at a fixed column with no indentation. A blank line,
+// heading, list item, or new label closes the current field.
+function labeledParagraphs(body, allowed) {
+  const out = {};
+  let current = null;
+  for (const line of body.split("\n")) {
+    if (!line.trim()) { current = null; continue; }
+    const label = line.match(/^\s*([A-Za-z_][\w-]*)\s*:\s?(.*)$/);
+    if (label) {
+      const key = label[1].toLowerCase().replace(/-/g, "_");
+      current = allowed.has(key) ? key : null;
+      if (current) out[current] = norm(`${out[current] || ""} ${label[2] || ""}`);
+      continue;
+    }
+    if (current && !/^\s*(?:#{1,6}\s|[-*+]\s+|\d+[.)]\s+|>|\|)/.test(line)) {
+      out[current] = norm(`${out[current] || ""} ${line}`);
+    } else {
+      current = null;
+    }
+  }
+  return out;
+}
 
 async function walkMd(dir) {
   const out = [];
@@ -140,7 +168,9 @@ function parseLedger(body) {
       cur.f = m[2];
       cur.fields[m[2]] = { value: (m[3] || "").trim(), lines: [] };
       if ((m[3] || "").trim()) cur.fields[m[2]].lines.push(m[3].trim());
-    } else if (cur.f && line.trim()) {
+    } else if (!line.trim()) {
+      cur.f = null;
+    } else if (cur.f) {
       cur.fields[cur.f].lines.push(line.trim());
     }
   }
@@ -310,6 +340,25 @@ async function main() {
       entriesGraded++;
       if (conforming === 0) violation(`${LEDGER} ${e.id}`, `graded ${state} but carries no conforming receipt`);
     }
+    if (state === "research-exhausted") {
+      const values = {};
+      for (const need of ["ask", "why", "changes", "evidence"])
+        values[need] = norm((e.fields[need]?.lines || []).join(" "));
+      for (const need of ["ask", "why", "changes", "evidence"])
+        if (!values[need]) violation(`${LEDGER} ${e.id}`, `research-exhausted entry lacks ${need}: judgment context`);
+      if (values.ask && !values.ask.includes("?"))
+        violation(`${LEDGER} ${e.id}`, `research-exhausted ask is not a complete question: ${values.ask.slice(0, 80)}`);
+      if (values.ask && NO_HUMAN_ACTION_RE.test(values.ask))
+        violation(`${LEDGER} ${e.id}`, `research-exhausted entry withdraws its own ask; mark it answered or retired: ${values.ask.slice(0, 80)}`);
+      for (const need of ["ask", "why", "changes", "evidence"])
+        if (values[need] && MEANING_BY_REFERENCE_RE.test(values[need]))
+          violation(`${LEDGER} ${e.id}`, `${need}: must state the meaning inline instead of sending the reviewer to another document: ${values[need].slice(0, 80)}`);
+      const optionLines = (e.fields.options?.lines || []).filter((line) => /^-\s*[A-Za-z0-9]{1,3}:\s*\S/.test(line));
+      if (values.ask && CLOSED_CHOICE_RE.test(values.ask) && optionLines.length < 2)
+        violation(`${LEDGER} ${e.id}`, `closed-choice ask must list every answer under options: ${values.ask.slice(0, 80)}`);
+      if (optionLines.length === 1)
+        violation(`${LEDGER} ${e.id}`, "options: must contain at least two answers");
+    }
   }
 
   // What's Worth Building: receipts (a), out-grade (c), reason-has-receipt (d).
@@ -350,6 +399,58 @@ async function main() {
       }
     }
 
+    // A person should never have to infer a decision from raw receipts. Every
+    // question and parked call carries the same four-line judgment brief.
+    {
+      const reviewSections = [
+        { heading: "Questions for you", key: "questions" },
+        { heading: "Parked decisions", key: "parked" },
+      ];
+      for (const { heading, key } of reviewSections) {
+        const sec = wwbRaw.match(new RegExp(`^## ${heading}\\s*$([\\s\\S]*?)(?=^## |\\n*$(?![\\s\\S]))`, "m"));
+        if (!sec) continue;
+        const reviewEntries = sec[1].split(/^### /m).slice(1);
+        for (const entry of reviewEntries) {
+          const title = entry.split("\n", 1)[0].trim();
+          const values = labeledParagraphs(entry, new Set(["ask", "why", "changes", "evidence"]));
+          for (const need of ["ask", "why", "changes", "evidence"]) {
+            if (!values[need]) {
+              violation(`${WWB} [${key}]`, `decision brief lacks a complete ${need}: ${title.slice(0, 80)}`);
+              continue;
+            }
+            if (/^(they|it|that|these|those|this)\b/i.test(values[need]))
+              violation(`${WWB} [${key}]`, `${need}: line leans on another line (opens with a pronoun): ${values[need].slice(0, 80)}`);
+            if (MEANING_BY_REFERENCE_RE.test(values[need]))
+              violation(`${WWB} [${key}]`, `${need}: must state the meaning inline instead of sending the reviewer to another document: ${values[need].slice(0, 80)}`);
+          }
+          if (values.ask && !/\?\s*$/.test(values.ask))
+            violation(`${WWB} [${key}]`, `ask: must be a complete question ending in a question mark: ${values.ask.slice(0, 80)}`);
+          if (values.ask && /[.!?](?=\s)/.test(values.ask.slice(0, -1)))
+            violation(`${WWB} [${key}]`, `ask: must be exactly one sentence: ${values.ask.slice(0, 80)}`);
+          if (values.ask && NO_HUMAN_ACTION_RE.test(values.ask))
+            violation(`${WWB} [${key}]`, `question withdraws its own ask and must not appear in Needs you: ${values.ask.slice(0, 80)}`);
+          const optionBlock = entry.match(/^options:\s*$([\s\S]*?)(?=^[A-Za-z_][\w-]*\s*:|^\S|\n\s*\n)/m);
+          const options = optionBlock
+            ? [...optionBlock[1].matchAll(/^\s*-\s*([A-Za-z0-9]{1,3}):\s*(\S.*)$/gm)]
+            : [];
+          if (key === "questions" && values.ask && CLOSED_CHOICE_RE.test(values.ask) && options.length < 2)
+            violation(`${WWB} [${key}]`, `closed-choice ask must list every answer under options: ${values.ask.slice(0, 80)}`);
+          if (optionBlock && options.length < 2)
+            violation(`${WWB} [${key}]`, `options: must contain at least two answers: ${title.slice(0, 80)}`);
+          for (const option of options)
+            if (MEANING_BY_REFERENCE_RE.test(option[2]))
+              violation(`${WWB} [${key}]`, `option ${option[1]} must state its answer inline: ${option[2].slice(0, 80)}`);
+          for (const need of ["why", "changes", "evidence"]) {
+            if (values[need] && !/[.!?]\s*$/.test(values[need]))
+              violation(`${WWB} [${key}]`, `${need}: must be a complete sentence: ${values[need].slice(0, 80)}`);
+            const marks = values[need]?.match(/[.!?](?=\s|$)/g) || [];
+            if (values[need] && marks.length !== 1)
+              violation(`${WWB} [${key}]`, `${need}: must be exactly one sentence: ${values[need].slice(0, 80)}`);
+          }
+        }
+      }
+    }
+
     // Reviewable candidates must be skimmable: every Proposed entry, and every
     // Don't build entry that is an AI proposal, carries a one-line what:, for:,
     // and against:. The receipted bullets stay as the folded evidence.
@@ -361,16 +462,18 @@ async function main() {
         for (const entry of entries) {
           const title = entry.split("\n", 1)[0].trim();
           if (secName === "Don't build" && !/proposed-by-AI/i.test(entry)) continue;
+          const values = labeledParagraphs(entry, new Set(["what", "for", "against"]));
           for (const need of ["what", "for", "against"]) {
-            const m = entry.match(new RegExp(`^${need}:\\s*(\\S.*)$`, "m"));
-            if (!m) {
-              violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `candidate lacks a one-line ${need}: ${title.slice(0, 80)}`);
+            if (!values[need]) {
+              violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `candidate lacks a complete ${need}: ${title.slice(0, 80)}`);
               continue;
             }
             // Each summary line must stand alone: an opening pronoun points at
             // another line the skimming reader did not read.
-            if (/^(they|it|that|these|those)\b/i.test(m[1].trim()))
-              violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `${need}: line leans on another line (opens with a pronoun): ${m[1].trim().slice(0, 80)}`);
+            if (/^(they|it|that|these|those)\b/i.test(values[need]))
+              violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `${need}: line leans on another line (opens with a pronoun): ${values[need].slice(0, 80)}`);
+            if (MEANING_BY_REFERENCE_RE.test(values[need]))
+              violation(`${WWB} [${secName === "Proposed" ? "proposed" : "dontbuild"}]`, `${need}: must state the meaning inline instead of sending the reviewer to another document: ${values[need].slice(0, 80)}`);
           }
         }
       }

@@ -14,11 +14,10 @@
  * parser does not recognize still keeps its own line instead of being glued
  * into a neighbour's sentence.
  *
- * One asymmetry, taken from how the skills actually write these files: a
- * wrapped label VALUE continues on an indented line (`caveat: ...` then two
- * spaces), while an unindented line after a label is a new paragraph even
- * without a blank line between. Paragraph and bullet prose joins either way,
- * per CommonMark lazy continuation.
+ * Labeled values follow the same paragraph rule as ordinary prose. A wrapped
+ * value continues until a blank line or a new block starts, whether or not the
+ * continuation is indented. This matters because generated vault files are
+ * commonly wrapped at a fixed column without indentation.
  */
 export function joinSoftWraps(
   lines: string[],
@@ -31,8 +30,7 @@ export function joinSoftWraps(
       prev != null &&
       canContinue(prev) &&
       !opensBlock(line) &&
-      !(startsBlock?.(line) ?? false) &&
-      (!LABEL_LINE.test(prev) || /^\s{2,}/.test(line))
+      !(startsBlock?.(line) ?? false)
     ) {
       out[out.length - 1] = `${prev.replace(/\s+$/, "")} ${line.trim()}`;
     } else {

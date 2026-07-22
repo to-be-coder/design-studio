@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   AssumptionNode,
   WwbDisposition,
   WwbEntry,
   WwbModel,
+  WwbOption,
   WwbParked,
   WwbQuestion,
 } from "@/lib/types";
@@ -18,7 +19,7 @@ import { RegisterCard } from "./register";
  * What's Worth Building v2, the single human review surface, organised as an
  * accessible tab bar rather than one long scroll. Three tabs: Needs you
  * (parked ruling cards + open questions, everything awaiting the human), Build
- * candidates (the triage entries with Accept / Backlog / Don't build), and
+ * candidates (the triage entries with Build this / Save for later / Leave it out), and
  * Build input (one organized doc of everything the build stage reads: the
  * Will-be-built pile, the risk register checked at build's door, links to the
  * Structure and Design system boards, then the held-back piles, the still-open
@@ -202,8 +203,8 @@ function WwbTabs({
 
   // Record answer posts one answer by itself, immediately, same as a ruling:
   // typing an answer and hitting its button should not also require the batch.
-  const recordAnswer = async (q: WwbQuestion) => {
-    const text = (answers[q.id] ?? "").trim();
+  const recordAnswer = async (q: WwbQuestion, directAnswer?: string) => {
+    const text = (directAnswer ?? answers[q.id] ?? "").trim();
     if (!text || answerBusy) return;
     setAnswerBusy(q.id);
     setAnswerError(null);
@@ -358,31 +359,48 @@ function WwbTabs({
         ) : (
           <>
             {/* Ruling-first: the parked 🔴 leads; everything re-scopes on it. */}
-            {parkedNeeds.map((p) => (
-              <RulingCard
-                key={p.id}
-                parked={p}
-                slug={slug}
-                interactive={runsEnabled}
-                picked={ruling?.id === p.id ? ruling.disposition : null}
-                busy={rulingBusy === p.id}
-                recorded={rulingDone[p.id] ?? p.recorded ?? null}
-                recordedPicks={picksDone[p.id] ?? []}
-                error={rulingError?.id === p.id ? rulingError.message : null}
-                onFocusReceipt={onFocusReceipt}
-                onPick={(disposition, words) => recordRuling(p, disposition, words)}
-              />
-            ))}
+            {parkedNeeds.length > 0 ? (
+              <section aria-labelledby="needs-decisions-heading">
+                <ReviewSectionHeader
+                  id="needs-decisions-heading"
+                  title="Decisions to make"
+                  count={parkedNeeds.length}
+                />
+                {parkedNeeds.map((p) => (
+                  <RulingCard
+                    key={p.id}
+                    parked={p}
+                    slug={slug}
+                    interactive={runsEnabled}
+                    picked={ruling?.id === p.id ? ruling.disposition : null}
+                    busy={rulingBusy === p.id}
+                    recorded={rulingDone[p.id] ?? p.recorded ?? null}
+                    recordedPicks={picksDone[p.id] ?? []}
+                    error={rulingError?.id === p.id ? rulingError.message : null}
+                    onFocusReceipt={onFocusReceipt}
+                    onPick={(disposition, words) => recordRuling(p, disposition, words)}
+                  />
+                ))}
+              </section>
+            ) : null}
             {questionsNeeds.length > 0 ? (
-              <>
-                {parkedNeeds.length > 0 ? (
-                  <p className="panel-label mb-3 mt-6">Questions for you</p>
-                ) : null}
+              <section
+                aria-labelledby="needs-questions-heading"
+                className={parkedNeeds.length > 0 ? "mt-8 border-t border-rule pt-6" : undefined}
+              >
+                <ReviewSectionHeader
+                  id="needs-questions-heading"
+                  title="Questions to answer"
+                  count={questionsNeeds.length}
+                  description="Answer a clear call, or clarify a question that research cut off."
+                />
                 <ul className="space-y-4" data-testid="wwb-questions">
-                  {questionsNeeds.map((q) => (
+                  {questionsNeeds.map((q, index) => (
                     <QuestionRow
                       key={q.id}
                       question={q}
+                      position={index + 1}
+                      total={questionsNeeds.length}
                       slug={slug}
                       interactive={runsEnabled}
                       value={answers[q.id] ?? ""}
@@ -391,11 +409,11 @@ function WwbTabs({
                       error={answerError?.id === q.id ? answerError.message : null}
                       onFocusReceipt={onFocusReceipt}
                       onChange={(text) => setAnswers((prev) => ({ ...prev, [q.id]: text }))}
-                      onRecord={() => recordAnswer(q)}
+                      onRecord={(answer) => recordAnswer(q, answer)}
                     />
                   ))}
                 </ul>
-              </>
+              </section>
             ) : null}
           </>
         )}
@@ -496,7 +514,7 @@ function WwbTabs({
                 <Unruled entries={wwb.unruled} slug={slug} onFocusReceipt={onFocusReceipt} />
                 {wwb.blocking.length ? (
                   <section
-                    className="mt-8 rounded-inset border px-4 py-3"
+                    className="mt-8 rounded-inset border border-b-0 px-5 py-5"
                     data-testid="wwb-blocking"
                     style={{ borderColor: "var(--accent-edge)", background: "var(--accent-wash)" }}
                   >
@@ -540,10 +558,12 @@ function WwbTabs({
                   <section className="mb-8" data-testid="wwb-filed-answers">
                     <p className="panel-label mb-3">Answers recorded</p>
                     <ul className="space-y-4">
-                      {questionsFiled.map((q) => (
+                      {questionsFiled.map((q, index) => (
                         <QuestionRow
                           key={q.id}
                           question={q}
+                          position={index + 1}
+                          total={questionsFiled.length}
                           slug={slug}
                           interactive={false}
                           value=""
@@ -616,13 +636,19 @@ function BoardRow({
 }) {
   const body = (
     <>
-      <span className="font-sans text-panel-body font-semibold text-ink">{label}</span>
-      <span className="text-panel-body text-ink-muted">{blurb}</span>
+      <span className="text-panel-label font-semibold uppercase tracking-[0.08em] text-ink-faint">
+        Build also reads
+      </span>
+      <span className="font-sans text-[1.125rem] font-semibold leading-snug text-ink">{label}</span>
+      <span className="text-panel-body leading-relaxed text-ink-muted">{blurb}</span>
     </>
   );
   if (!onFocusReceipt) {
     return (
-      <li data-testid="wwb-build-read" className="flex flex-col gap-0.5 rounded-inset border border-rule px-4 py-3">
+      <li
+        data-testid="wwb-build-read"
+        className="flex flex-col gap-1 rounded-inset border border-b-0 border-rule-strong bg-paper px-5 py-5"
+      >
         {body}
       </li>
     );
@@ -632,7 +658,7 @@ function BoardRow({
       <button
         type="button"
         onClick={() => onFocusReceipt(docKey)}
-        className="flex w-full flex-col gap-0.5 rounded-inset border border-rule px-4 py-3 text-left transition-colors hover:border-accent"
+        className="flex w-full flex-col gap-1 rounded-inset border border-b-0 border-rule-strong bg-paper px-5 py-5 text-left transition-colors hover:border-accent"
       >
         {body}
       </button>
@@ -640,7 +666,7 @@ function BoardRow({
   );
 }
 
-/** The accessible tab bar: roving tabindex + arrow keys, accent on the active tab. */
+/** The accessible tab strip: roving tabindex + arrow keys, accent on the active baseline. */
 function TabBar({
   counts,
   active,
@@ -650,7 +676,31 @@ function TabBar({
   active: TabKey;
   onSelect: (key: TabKey) => void;
 }) {
+  const tabListRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false });
+
+  useLayoutEffect(() => {
+    const list = tabListRef.current;
+    const selectedIndex = TABS.findIndex((tab) => tab.key === active);
+    const selected = btnRefs.current[selectedIndex];
+    if (!list || !selected) return;
+
+    const updateIndicator = () => {
+      setIndicator({
+        left: selected.offsetLeft,
+        width: selected.offsetWidth,
+        ready: true,
+      });
+    };
+
+    updateIndicator();
+    const observer = new ResizeObserver(updateIndicator);
+    observer.observe(list);
+    observer.observe(selected);
+    return () => observer.disconnect();
+  }, [active]);
+
   const onKeyDown = (e: React.KeyboardEvent, i: number) => {
     let next = i;
     if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (i + 1) % TABS.length;
@@ -664,7 +714,12 @@ function TabBar({
   };
 
   return (
-    <div role="tablist" aria-label="What's Worth Building sections" className="mb-6 flex flex-wrap gap-2">
+    <div
+      ref={tabListRef}
+      role="tablist"
+      aria-label="What's Worth Building sections"
+      className="relative mb-6 flex items-end gap-1 overflow-x-auto border-b border-rule"
+    >
       {TABS.map((t, i) => {
         const isActive = active === t.key;
         return (
@@ -682,25 +737,32 @@ function TabBar({
             tabIndex={isActive ? 0 : -1}
             onClick={() => onSelect(t.key)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className="rounded-pill border px-3 py-1.5 text-panel-body font-semibold transition-colors"
-            style={
-              isActive
-                ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-                : {
-                    // One resting color for every inactive tab: a faint tab
-                    // reads as disabled, and every tab here is clickable (an
-                    // empty one explains itself inside its panel).
-                    background: "transparent",
-                    color: "var(--ink-muted)",
-                    borderColor: "var(--rule-strong)",
-                  }
-            }
+            className="relative z-10 shrink-0 px-4 py-2.5 text-panel-body font-semibold transition-colors hover:bg-paper-raised hover:text-ink"
+            style={{
+              background: "transparent",
+              color: isActive ? "var(--accent)" : "var(--ink-muted)",
+              transitionDuration: "var(--motion-duration-fast)",
+              transitionTimingFunction: "var(--motion-easing-standard)",
+            }}
           >
             {t.label}
             {t.showCount ? <span className="ml-1.5 font-normal tabular-nums">({counts[t.key]})</span> : null}
           </button>
         );
       })}
+      <span
+        aria-hidden="true"
+        data-testid="wwb-tab-indicator"
+        className="pointer-events-none absolute bottom-0 h-0.5 bg-accent"
+        style={{
+          left: indicator.left,
+          width: indicator.width,
+          opacity: indicator.ready ? 1 : 0,
+          transitionProperty: "left, width, opacity",
+          transitionDuration: "var(--motion-duration-tab-glide)",
+          transitionTimingFunction: "var(--motion-easing-tab-glide)",
+        }}
+      />
     </div>
   );
 }
@@ -735,6 +797,199 @@ function EmptyTab({ children }: { children: React.ReactNode }) {
       {children}
     </p>
   );
+}
+
+/** A plain-language introduction that gives each review list a reading order. */
+function ReviewSectionHeader({
+  id,
+  title,
+  count,
+  description,
+}: {
+  id: string;
+  title: string;
+  count: number;
+  description?: string;
+}) {
+  return (
+    <header className="mb-4 max-w-[34rem]" data-testid={id}>
+      <div className="mb-1 flex items-baseline gap-2">
+        <h3 id={id} className="font-sans text-[1.125rem] font-semibold leading-snug text-ink">
+          {title}
+        </h3>
+        <span className="text-panel-body tabular-nums text-ink-faint">{count}</span>
+      </div>
+      {description ? (
+        <p className="text-panel-body leading-relaxed text-ink-muted">{description}</p>
+      ) : null}
+    </header>
+  );
+}
+
+type JudgmentRow = {
+  label: string;
+  text: string;
+  detail?: string | null;
+  detailLabel?: string;
+  testId?: string;
+};
+
+/**
+ * The minimum context for a judgment: the call, why it needs the human, and
+ * the smallest set of consequences and evidence needed to choose responsibly.
+ */
+function JudgmentBrief({
+  callLabel,
+  call,
+  rows,
+  callTestId,
+  testId,
+}: {
+  callLabel: string;
+  call: string;
+  rows: JudgmentRow[];
+  callTestId?: string;
+  testId?: string;
+}) {
+  return (
+    <div className="mb-4 max-w-[34rem]" data-testid={testId ?? "judgment-brief"}>
+      <div className={`${rows.length ? "rounded-t-inset" : "rounded-inset"} bg-paper-raised px-4 py-3`}>
+        <p className="panel-label mb-1">{callLabel}</p>
+        <p className="text-[1.125rem] font-semibold leading-snug text-ink" data-testid={callTestId}>
+          {call}
+        </p>
+      </div>
+      {rows.length ? (
+        <div className="divide-y divide-rule rounded-b-inset border border-t-0 border-rule bg-paper px-4 text-panel-body text-ink">
+          {rows.map((row, index) => (
+            <div key={`${row.label}-${index}`} className="grid grid-cols-[8.5rem_1fr] gap-3 py-3" data-testid={row.testId}>
+              <span className="panel-label">{row.label}</span>
+              <div>
+                <p className="leading-relaxed">{row.text}</p>
+                {row.detail ? (
+                  <p className="mt-2 leading-relaxed text-ink-muted">
+                    <span className="panel-label mr-2">{row.detailLabel ?? "Consequence"}</span>
+                    {row.detail}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function JudgmentClarification({ draft }: { draft?: string | null }) {
+  return (
+    <div
+      className="mb-4 max-w-[34rem] rounded-inset border px-4 py-3"
+      style={{ borderColor: "var(--unverified)" }}
+      data-testid="judgment-clarification"
+    >
+      <p className="panel-label mb-1" style={{ color: "var(--unverified)" }}>
+        Research needs clarification
+      </p>
+      <p className="text-panel-body leading-relaxed text-ink">
+        The question was cut off, so there is not enough here to make the intended decision.
+      </p>
+      {draft ? (
+        <div className="mt-3 rounded-inset bg-paper-raised px-3 py-2">
+          <p className="panel-label mb-1">What research captured</p>
+          <p className="text-panel-body leading-relaxed text-ink-muted">{readableReferenceText(draft)}</p>
+        </div>
+      ) : null}
+      <div className="mt-3 text-panel-body leading-relaxed text-ink">
+        <p className="panel-label mb-1">What you can do</p>
+        <p>Finish or correct the thought in your own words. If you cannot tell what was meant, skip this card.</p>
+      </div>
+    </div>
+  );
+}
+
+function questionContextMissing(item: {
+  ask: string | null;
+  why: string | null;
+  changes: string | null;
+  evidenceSummary: string | null;
+}): string[] {
+  const missing: string[] = [];
+  if (!hasCompleteQuestion(item.ask)) missing.push("a complete question");
+  if (!item.why?.trim()) missing.push("why this needs you");
+  if (!item.changes?.trim()) missing.push("what your answer changes");
+  if (!item.evidenceSummary?.trim()) missing.push("the strongest evidence signal");
+  return missing;
+}
+
+function hasCompleteQuestion(ask: string | null): boolean {
+  if (!ask) return false;
+  const text = ask.replace(/\s+/g, " ").trim();
+  if (!text.includes("?")) return false;
+  // A question can be followed by a short consequence sentence. It is still a
+  // complete ask. Fragments ending in a connector are treated as cut off.
+  return !/\b(?:and|or|so|to|the|a|an|that|which|who|with|without|than)\s*[,:;]?$/i.test(text);
+}
+
+function readableReferenceText(text: string): string {
+  return text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_match, target, label) => label ?? target);
+}
+
+function decisionQuestions(text: string | null): string[] {
+  if (!text) return [];
+  const normalized = readableReferenceText(text).replace(/\s+/g, " ").trim();
+  const sentences: string[] = [];
+  let start = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    const character = normalized[index];
+    if (!".!?".includes(character)) continue;
+    const next = normalized[index + 1];
+    if (next && !/\s/.test(next)) continue;
+    const sentence = normalized.slice(start, index + 1).trim();
+    if (character === "?" && sentence) sentences.push(sentence);
+    start = index + 1;
+  }
+  return sentences;
+}
+
+function tidyChoiceText(text: string): string {
+  let choice = text
+    .replace(/^.*\b(?:did|do|does|are|is|should|would|could|can|will)\s+(?:you|it|this|that|they|we)(?:,\s*[^,]+,)?\s+(?:specifically\s+)?(?:mean\s+)?/i, "")
+    .replace(/^you\s+(?:wanted|want)\s+to\s+/i, "")
+    .replace(/^that\s+/i, "")
+    .replace(/[?.]+$/g, "")
+    .trim();
+  if (!choice) return text.trim();
+  choice = choice[0].toUpperCase() + choice.slice(1);
+  return choice;
+}
+
+function questionChoiceOptions(question: WwbQuestion): WwbOption[] {
+  if (question.options.length >= 2) return question.options;
+  const ask = readableReferenceText(question.ask).replace(/\s+/g, " ").trim();
+  if ((ask.match(/\?/g) ?? []).length !== 1) return [];
+  const questionText = ask.slice(0, ask.indexOf("?") + 1).trim();
+
+  const orMarker = questionText.toLowerCase().lastIndexOf(", or ");
+  if (orMarker > 0) {
+    const left = tidyChoiceText(questionText.slice(0, orMarker));
+    const right = tidyChoiceText(questionText.slice(orMarker + 5));
+    if (left && right && left.length <= 180 && right.length <= 180) {
+      return [
+        { label: "A", text: left },
+        { label: "B", text: right },
+      ];
+    }
+  }
+
+  const finalQuestion = questionText.match(/(?:^|[.!]\s+)([^.!?]+\?)$/)?.[1]?.trim() ?? questionText;
+  if (/^(?:do|does|did|is|are|can|could|should|would|will|has|have)\b/i.test(finalQuestion)) {
+    return [
+      { label: "Yes", text: "Yes" },
+      { label: "No", text: "No" },
+    ];
+  }
+  return [];
 }
 
 /** The sticky review bar: the destination-split summary + the two-step submit. */
@@ -772,17 +1027,21 @@ function RulingCard({
   // kind line says (a render that forgot its kind must not regrow a dead
   // accept button).
   const isPick = parked.kind === "directions-pick" || parked.options.length > 0;
-  // Renders without an ask: line (written before the contract required one)
-  // still get a plain explanation of what kind of decision this is.
-  const FALLBACK_ASK: Record<string, string> = {
-    "directions-pick":
-      "This is a pick between drafted options, so there is no single thing to accept. Open the full case to read what each option means, then click the one you pick.",
-    "framing-departure":
-      "Research believes the evidence changes what problem this project is solving. Accepting replaces the current framing with the proposal in the full case; rejecting keeps the framing as is.",
-    "route-call":
-      "A call on how much of the pipeline this project runs. Accepting takes the proposed route; rejecting keeps the current one.",
-  };
-  const ask = parked.ask ?? FALLBACK_ASK[parked.kind] ?? null;
+  const callReady = hasCompleteQuestion(parked.ask);
+  const callPrompts = decisionQuestions(parked.ask);
+  const conciseCall = callPrompts[0] ?? null;
+  const hasInlineComparison = !!(
+    conciseCall && parked.currentFraming?.trim() && parked.proposedFraming?.trim()
+  );
+  const contextRows: JudgmentRow[] = [];
+  callPrompts.slice(1).forEach((prompt, index) => {
+    contextRows.push({ label: `Decision ${index + 2}`, text: prompt });
+  });
+  if (parked.why) contextRows.push({ label: "Why you", text: parked.why, testId: "ruling-why" });
+  if (parked.changes)
+    contextRows.push({ label: "What changes", text: parked.changes, testId: "ruling-changes" });
+  if (parked.evidenceSummary)
+    contextRows.push({ label: "What we know", text: parked.evidenceSummary, testId: "ruling-evidence-summary" });
   // The supersedes value may carry a trailing note ("(the loop's own earlier
   // proposal)"); the stakes line wants just the decision id.
   const supersededId = parked.supersedes?.match(/\b\d{3,4}\b/)?.[0] ?? null;
@@ -790,23 +1049,50 @@ function RulingCard({
     <article
       data-testid="wwb-ruling"
       data-parked={parked.id}
-      className="mb-5 rounded-inset border border-rule bg-paper px-5 py-4"
+      className="mb-5 rounded-inset border border-b-0 border-rule-strong bg-paper px-5 py-5"
     >
-      <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h4 className="font-sans text-panel-body font-semibold text-ink">{parked.title}</h4>
-        <span className="panel-label">{parked.kind.replace(/-/g, " ")}</span>
-      </div>
+      <p className="panel-label mb-1">{parked.kind.replace(/-/g, " ")}</p>
+      <h4 className="mb-4 font-sans text-[1.125rem] font-semibold leading-snug text-ink">{parked.title}</h4>
 
-      {ask ? (
-        <p className="mb-3 max-w-[34rem] text-panel-body text-ink" data-testid="ruling-ask">
-          {ask}
-        </p>
-      ) : null}
+      {hasInlineComparison ? (
+        <JudgmentBrief
+          callLabel="Decision needed"
+          call={conciseCall!}
+          callTestId="ruling-ask"
+          rows={[
+            {
+              label: "Keep current",
+              text: parked.currentFraming!,
+              detail: parked.rejectCost,
+              testId: "ruling-current-framing",
+            },
+            {
+              label: "Take proposal",
+              text: parked.proposedFraming!,
+              detail: parked.acceptCost,
+              testId: "ruling-proposed-framing",
+            },
+          ]}
+        />
+      ) : callReady ? (
+        <JudgmentBrief
+          callLabel={callPrompts.length > 1 ? "Decision 1" : "Decision needed"}
+          call={conciseCall ?? readableReferenceText(parked.ask!)}
+          callTestId="ruling-ask"
+          rows={contextRows}
+        />
+      ) : (
+        <JudgmentBrief
+          callLabel="Decision needed"
+          call={readableReferenceText(parked.ask ?? parked.title)}
+          rows={[]}
+        />
+      )}
 
-      {supersededId || parked.blocks ? (
-        <div className="mb-3 space-y-1 text-panel-body text-ink-muted" data-testid="ruling-stakes">
+      {supersededId || (parked.blocks && !hasInlineComparison) ? (
+        <div className="mb-4 border-l-2 border-rule-strong pl-3 text-panel-body text-ink-muted" data-testid="ruling-stakes">
           {supersededId ? <p>Taking this replaces decision {supersededId}.</p> : null}
-          {parked.blocks ? <p>Waiting on this: {parked.blocks}</p> : null}
+          {parked.blocks && !hasInlineComparison ? <p>Waiting on this: {parked.blocks}</p> : null}
         </div>
       ) : null}
 
@@ -845,7 +1131,9 @@ function RulingCard({
         </div>
       ) : null}
 
-      {recorded && !(isPick && recorded === "pick") ? (
+      <div className="mt-4 border-t border-rule pt-4">
+        <p className="panel-label mb-2">{recorded ? "Status" : "Your decision"}</p>
+        {recorded && !(isPick && recorded === "pick") ? (
         // Read from the ledger's Review log, so it survives a page refresh:
         // the card stays visible as a recorded ruling until research
         // re-scopes What's Worth Building, then clears with the next round.
@@ -877,7 +1165,7 @@ function RulingCard({
                       style={
                         done
                           ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-                          : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+                          : { background: "transparent", color: "var(--ink)", borderColor: "var(--rule-strong)" }
                       }
                     >
                       <span className="mr-2" style={{ color: "var(--accent)" }}>{o.label}</span>
@@ -903,7 +1191,7 @@ function RulingCard({
               style={
                 picked === "reject"
                   ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-                  : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+                  : { background: "transparent", color: "var(--ink)", borderColor: "var(--rule-strong)" }
               }
             >
               {busy && picked === "reject" ? "Recording…" : "None of these, send it back"}
@@ -914,32 +1202,36 @@ function RulingCard({
           <>
             {/* One click IS the ruling: it posts the moment you choose. */}
             <p className="mb-2 text-panel-body text-ink-muted">
-              One click records it: accept takes the proposal as written, reject turns it down.
+              One click records the path named on the button.
             </p>
             <div className="mb-1 grid grid-cols-2 gap-2">
-              {(["accept", "reject"] as const).map((d) => (
+              {([
+                { disposition: "reject" as const, label: "Keep current" },
+                { disposition: "accept" as const, label: "Take proposal" },
+              ]).map(({ disposition, label }) => (
                 <button
-                  key={d}
+                  key={disposition}
                   type="button"
-                  data-testid={`ruling-${d}`}
-                  aria-pressed={picked === d}
+                  data-testid={`ruling-${disposition}`}
+                  aria-pressed={picked === disposition}
                   disabled={busy}
-                  onClick={() => onPick(d)}
-                  className="w-full rounded-inset border px-3 py-2 text-panel-body font-semibold capitalize transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => onPick(disposition)}
+                  className="w-full rounded-inset border px-3 py-2 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                   style={
-                    picked === d
+                    picked === disposition
                       ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-                      : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+                      : { background: "transparent", color: "var(--ink)", borderColor: "var(--rule-strong)" }
                   }
                 >
-                  {busy && picked === d ? "Recording…" : d}
+                  {busy && picked === disposition ? "Recording…" : label}
                 </button>
               ))}
             </div>
             {error ? <p className="mt-1 text-panel-body text-unverified">{error}</p> : null}
           </>
         )
-      ) : null}
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -984,18 +1276,21 @@ function ProposedEntry({
   // glance: build in the verified green, don't-build in the unverified red.
   // The words stay beside the color, so the marker still reads in greyscale.
   const cutLean = entry.source === "proposed" && entry.disposition === "dont-build";
-  // When the render carries the one-line summary (what / for / against), the
-  // card leads with it and the receipted reasons fold away; a render from
-  // before that contract keeps them inline so nothing goes missing.
+  const missing = [
+    !entry.what?.trim() ? "the exact idea" : null,
+    !entry.forLine?.trim() ? "the strongest case for it" : null,
+    !entry.againstLine?.trim() ? "the strongest case against it" : null,
+  ].filter((value): value is string => value != null);
+  const judgmentReady = missing.length === 0;
   const hasSummary = !!(entry.what || entry.forLine || entry.againstLine);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   return (
     <li
       data-testid="wwb-entry"
       data-entry={entry.id}
-      className="rounded-inset border bg-paper px-4 py-3"
+      className="rounded-inset border border-b-0 bg-paper px-5 py-5"
       style={{
-        borderColor: "var(--rule)",
+        borderColor: "var(--rule-strong)",
         borderLeft: pending ? "2px solid var(--accent)" : undefined,
       }}
     >
@@ -1007,8 +1302,8 @@ function ProposedEntry({
       >
         {cutLean ? <>Research recommends: don&rsquo;t build</> : <>Research recommends: build</>}
       </p>
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <h4 className="font-sans text-panel-body font-semibold text-ink">{entry.title}</h4>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <h4 className="font-sans text-[1.125rem] font-semibold leading-snug text-ink">{entry.title}</h4>
         {recorded ? (
           <span
             className="shrink-0 rounded-pill border border-rule-strong px-2 py-0.5 text-panel-label font-semibold uppercase tracking-[0.08em] text-ink-muted"
@@ -1026,25 +1321,25 @@ function ProposedEntry({
           </span>
         ) : null}
       </div>
-      {hasSummary ? (
+      {judgmentReady ? (
         <>
-          {entry.what ? (
-            <p className="mb-2 max-w-[34rem] text-panel-body text-ink" data-testid="entry-what">
-              {entry.what}
-            </p>
-          ) : null}
-          <div className="mb-2 max-w-[34rem] space-y-1 text-panel-body text-ink">
-            {entry.forLine ? (
-              <p data-testid="entry-for">
-                <span className="text-panel-label font-semibold">For:</span> {entry.forLine}
-              </p>
-            ) : null}
-            {entry.againstLine ? (
-              <p data-testid="entry-against">
-                <span className="text-panel-label font-semibold">Against:</span> {entry.againstLine}
-              </p>
-            ) : null}
-          </div>
+          <JudgmentBrief
+            callLabel="Decision needed"
+            call="Should this idea be built now, saved for later, or left out?"
+            testId="candidate-summary"
+            rows={[
+              { label: "The idea", text: entry.what!, testId: "entry-what" },
+              {
+                label: "Why you",
+                text: cutLean
+                  ? "Research recommends leaving this out, but only you decide what enters scope."
+                  : "Research recommends building this, but only you decide what enters scope.",
+                testId: "entry-why",
+              },
+              { label: "For", text: entry.forLine!, testId: "entry-for" },
+              { label: "Against", text: entry.againstLine!, testId: "entry-against" },
+            ]}
+          />
           <button
             type="button"
             data-testid="entry-evidence-toggle"
@@ -1061,7 +1356,23 @@ function ProposedEntry({
           ) : null}
         </>
       ) : (
-        <Reasons entry={entry} slug={slug} onFocusReceipt={onFocusReceipt} />
+        <>
+          {triage ? (
+            <JudgmentBrief
+              callLabel="Decision needed"
+              call="Should this idea be built now, saved for later, or left out?"
+              rows={entry.what ? [{ label: "The idea", text: entry.what, testId: "entry-what" }] : []}
+            />
+          ) : null}
+          {hasSummary || entry.reasons.length ? (
+            <details className="mb-1">
+              <summary className="text-panel-body font-medium text-ink-muted">Review the available evidence</summary>
+              <div className="mt-2">
+                <Reasons entry={entry} slug={slug} onFocusReceipt={onFocusReceipt} />
+              </div>
+            </details>
+          ) : null}
+        </>
       )}
 
       {recorded ? (
@@ -1071,15 +1382,17 @@ function ProposedEntry({
             : `Recorded as ${VERDICT_WORDS[recorded]}. Research folds it in on the next pass.`}
         </p>
       ) : triage ? (
-        <div className="mt-3">
-          {/* Accept and Don't build record on the click. Backlog opens its
+        <div className="mt-4 border-t border-rule pt-4">
+          <p className="panel-label mb-1">Your decision</p>
+          <p className="mb-3 text-panel-body leading-relaxed text-ink-muted">
+            Choose what should happen to this idea. The button records that exact outcome.
+          </p>
+          {/* Build this and Leave it out record on the click. Save for later opens its
               optional note first, then records with its own button. */}
-          {/* On a recommended cut, "Accept" would be ambiguous (accept the card,
-              or accept the cut?), so the buttons say the action itself. */}
           <div className="grid grid-cols-3 gap-2" role="group" aria-label={`Verdict for ${entry.title}`}>
-            <VerdictButton label={busy ? "Recording…" : cutLean ? "Build it anyway" : "Accept"} verdict="build-now" testid="verdict-build-now" state={state} disabled={busy} onVerdict={onVerdict} />
-            <VerdictButton label="Backlog" verdict="backlog" testid="verdict-backlog" state={state} disabled={busy} onVerdict={onVerdict} />
-            <VerdictButton label={busy ? "Recording…" : cutLean ? "Agree, don't build" : "Don't build"} verdict="dont-build" testid="verdict-dont-build" state={state} disabled={busy} onVerdict={onVerdict} />
+            <VerdictButton label={busy ? "Recording…" : "Build this"} verdict="build-now" testid="verdict-build-now" state={state} disabled={busy} onVerdict={onVerdict} />
+            <VerdictButton label="Save for later" verdict="backlog" testid="verdict-backlog" state={state} disabled={busy} onVerdict={onVerdict} />
+            <VerdictButton label={busy ? "Recording…" : "Leave it out"} verdict="dont-build" testid="verdict-dont-build" state={state} disabled={busy} onVerdict={onVerdict} />
           </div>
           {!state && error ? <p className="mt-2 text-panel-body text-unverified">{error}</p> : null}
           {state?.verdict === "backlog" ? (
@@ -1109,7 +1422,7 @@ function ProposedEntry({
                 className="rounded-inset border px-3.5 py-1.5 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 style={{ borderColor: "var(--accent)", background: "var(--accent-wash)", color: "var(--accent)" }}
               >
-                {busy ? "Recording…" : "Record backlog"}
+                {busy ? "Recording…" : "Save for later"}
               </button>
             </div>
           ) : null}
@@ -1146,7 +1459,7 @@ function VerdictButton({
       style={
         active
           ? { background: "var(--accent-wash)", color: "var(--accent)", borderColor: "var(--accent-edge)" }
-          : { background: "transparent", color: "var(--ink-muted)", borderColor: "var(--rule-strong)" }
+          : { background: "transparent", color: "var(--ink)", borderColor: "var(--rule-strong)" }
       }
     >
       {label}
@@ -1156,6 +1469,8 @@ function VerdictButton({
 
 function QuestionRow({
   question,
+  position,
+  total,
   slug,
   interactive,
   value,
@@ -1167,6 +1482,8 @@ function QuestionRow({
   onRecord,
 }: {
   question: WwbQuestion;
+  position: number;
+  total: number;
   slug: string;
   interactive: boolean;
   value: string;
@@ -1176,63 +1493,210 @@ function QuestionRow({
   error: string | null;
   onFocusReceipt?: (docKey: string) => void;
   onChange: (text: string) => void;
-  onRecord: () => void;
+  onRecord: (answer?: string) => void;
 }) {
+  const missing = questionContextMissing(question);
+  const needsClarification = missing.includes("a complete question");
+  const callReady = !needsClarification;
+  const prompts = decisionQuestions(question.ask);
+  const contextRows: JudgmentRow[] = [];
+  prompts.slice(1).forEach((prompt, index) => {
+    contextRows.push({ label: `Decision ${index + 2}`, text: prompt });
+  });
+  if (question.why) contextRows.push({ label: "Why you", text: question.why, testId: "question-why" });
+  if (question.changes)
+    contextRows.push({ label: "What changes", text: question.changes, testId: "question-changes" });
+  if (question.evidenceSummary)
+    contextRows.push({ label: "What we know", text: question.evidenceSummary, testId: "question-evidence-summary" });
+  const choiceOptions = callReady ? questionChoiceOptions(question) : [];
   return (
-    <li id={`wwb-q-${question.id}`} data-question={question.id} className="rounded-inset border border-rule bg-paper px-4 py-3">
-      <div className="flex items-start gap-2">
-        <span className="font-mono text-panel-label text-ink-faint">{question.id}</span>
-        <p className="text-panel-body font-medium leading-snug text-ink" data-testid="wwb-ask">
-          {question.ask}
+    <li
+      id={`wwb-q-${question.id}`}
+      data-question={question.id}
+      className="rounded-inset border border-b-0 border-l-2 border-rule-strong border-l-accent bg-paper px-4 py-4"
+    >
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <p className="text-panel-body font-semibold text-ink" data-testid="question-heading">
+          Question {position} of {total}
         </p>
+        <span className="font-mono text-panel-label text-ink-faint" aria-label={`Reference ${question.id}`}>
+          {question.id}
+        </span>
       </div>
-      {question.blocks.length ? (
-        <div className="mt-1.5 text-panel-body">
-          <Reading blocks={question.blocks} />
-        </div>
-      ) : null}
-      {question.receipts.length ? (
-        <div className="mt-2">
-          <ReceiptLinks receipts={question.receipts} slug={slug} onFocus={onFocusReceipt} />
-        </div>
-      ) : null}
+
+      {callReady ? (
+        <JudgmentBrief
+          callLabel={prompts.length > 1 ? "Decision 1" : "Decision needed"}
+          call={prompts[0] ?? question.ask}
+          callTestId="wwb-ask"
+          rows={contextRows}
+        />
+      ) : (
+        <JudgmentClarification draft={question.ask} />
+      )}
+
       {answered ? (
         // Read from the ledger's Review log, so it survives a page refresh:
         // the question reads as answered until research folds it in.
-        <div className="mt-3" data-testid={`answer-recorded-${question.id}`}>
-          <p className="text-panel-body leading-relaxed text-ink-muted">{answered}</p>
+        <div className="mt-4 border-t border-rule pt-4" data-testid={`answer-recorded-${question.id}`}>
+          <p className="panel-label mb-2">Your answer</p>
+          <p className="rounded-inset bg-paper-raised px-4 py-3 text-panel-body leading-relaxed text-ink">{answered}</p>
           <p className="mt-1 text-panel-body font-semibold" style={{ color: "var(--accent)" }}>
             Answer recorded. Research picks it up, then this clears.
           </p>
         </div>
       ) : interactive ? (
-        <>
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            rows={2}
-            placeholder="Your answer…"
-            data-testid={`answer-${question.id}`}
-            className="mt-3 w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-panel-body leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
-          />
+        <div className="mt-3 border-t border-rule pt-3">
+          {choiceOptions.length >= 2 ? (
+            <>
+              <p className="mb-2 text-panel-body text-ink-muted">Choose the answer that matches your decision.</p>
+              <div
+                className={choiceOptions.length === 2 ? "grid grid-cols-2 gap-2" : "space-y-2"}
+                role="group"
+                aria-label={`Options for question ${position}`}
+              >
+                {choiceOptions.map((option) => {
+                  const answer = option.label === option.text ? option.text : `${option.label}: ${option.text}`;
+                  return (
+                    <button
+                      key={`${option.label}-${option.text}`}
+                      type="button"
+                      onClick={() => onRecord(answer)}
+                      disabled={busy}
+                      data-testid={`answer-option-${question.id}-${option.label}`}
+                      className="w-full rounded-inset border border-rule-strong px-3 py-2 text-left text-panel-body font-semibold text-ink transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {busy ? (
+                        "Recording…"
+                      ) : option.label === option.text ? (
+                        option.text
+                      ) : (
+                        <><span className="mr-2 text-accent">{option.label}</span>{option.text}</>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <>
+              <label htmlFor={`answer-${question.id}`} className="sr-only">
+                {needsClarification ? `Clarification for question ${position}` : `Decision for question ${position}`}
+              </label>
+              <textarea
+                id={`answer-${question.id}`}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                rows={2}
+                placeholder={needsClarification ? "What I meant was…" : "I would… because…"}
+                data-testid={`answer-${question.id}`}
+                className="w-full resize-y rounded-inset border border-rule bg-paper px-3 py-2 text-panel-body leading-relaxed text-ink outline-none transition-colors focus-visible:border-accent"
+              />
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-panel-body text-ink-muted">
+                  {needsClarification ? "Skip this card if you are not sure." : "One sentence is enough."}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onRecord()}
+                  disabled={!value.trim() || busy}
+                  data-testid={`answer-record-${question.id}`}
+                  className="rounded-inset border px-3 py-1 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
+                >
+                  {busy ? "Recording…" : needsClarification ? "Send clarification" : "Record my decision"}
+                </button>
+              </div>
+            </>
+          )}
           {error ? <p className="mt-2 text-panel-body text-unverified">{error}</p> : null}
-          <button
-            type="button"
-            onClick={onRecord}
-            disabled={!value.trim() || busy}
-            data-testid={`answer-record-${question.id}`}
-            className="mt-2 rounded-inset border px-3 py-1 text-panel-body font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{ borderColor: "var(--accent)", color: "var(--accent)" }}
-          >
-            {busy ? "Recording…" : "Record answer"}
-          </button>
-        </>
+        </div>
       ) : null}
+
+      <details className="mt-2 border-t border-rule" data-testid="question-context">
+        <summary className="py-2.5 text-panel-body font-medium text-ink-muted">
+          Review context and evidence{question.receipts.length ? ` (${question.receipts.length})` : ""}
+        </summary>
+        <div className="pb-2">
+          {question.blocks.length ? (
+            <div className="text-panel-body leading-relaxed text-ink-muted">
+              <Reading blocks={question.blocks} />
+            </div>
+          ) : (
+            <p className="text-panel-body leading-relaxed text-ink-muted">
+              No additional research notes were included.
+            </p>
+          )}
+          {question.receipts.length ? (
+            <div className="mt-3">
+              <p className="panel-label mb-2">Evidence</p>
+              <ReceiptLinks receipts={question.receipts} slug={slug} onFocus={onFocusReceipt} />
+            </div>
+          ) : null}
+        </div>
+      </details>
     </li>
   );
 }
 
 // ── Standing tiers (after-states) ─────────────────────────────────────────────
+
+/**
+ * One read-only shell for every entry Build input receives. It matches the
+ * review cards' spacing, title hierarchy, and folded evidence without adding
+ * decision controls to an after-state.
+ */
+function StandingEntryCard({
+  entry,
+  slug,
+  eyebrow,
+  status,
+  children,
+  onFocusReceipt,
+}: {
+  entry: WwbEntry;
+  slug: string;
+  eyebrow: string;
+  status?: React.ReactNode;
+  children?: React.ReactNode;
+  onFocusReceipt?: (docKey: string) => void;
+}) {
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  return (
+    <li
+      data-testid="wwb-entry"
+      data-entry={entry.id}
+      className="rounded-inset border border-b-0 border-rule-strong bg-paper px-5 py-5"
+    >
+      <p className="mb-1 text-panel-label font-semibold uppercase tracking-[0.08em] text-ink-faint">
+        {eyebrow}
+      </p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <h4 className="font-sans text-[1.125rem] font-semibold leading-snug text-ink">{entry.title}</h4>
+        {status ? <span className="flex flex-wrap items-center gap-2">{status}</span> : null}
+      </div>
+      {children}
+      {entry.reasons.length ? (
+        <>
+          <button
+            type="button"
+            data-testid="standing-evidence-toggle"
+            aria-expanded={evidenceOpen}
+            onClick={() => setEvidenceOpen((value) => !value)}
+            className="mt-2 rounded-pill border border-rule px-3 py-1 text-panel-body font-medium text-ink-muted transition-colors"
+          >
+            {evidenceOpen ? "Hide the evidence" : `Show the evidence (${entry.reasons.length})`}
+          </button>
+          {evidenceOpen ? (
+            <div className="mt-3" data-testid="standing-evidence">
+              <Reasons entry={entry} slug={slug} onFocusReceipt={onFocusReceipt} />
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </li>
+  );
+}
 
 function BuildNow({
   entries,
@@ -1251,18 +1715,22 @@ function BuildNow({
       <h3 className="mb-3 font-serif text-[1.25rem] font-semibold text-ink">Will be built</h3>
       <ul className="space-y-5">
         {entries.map((e) => (
-          <li key={e.id} data-testid="wwb-entry" data-entry={e.id} className="rounded-inset border border-rule px-4 py-3">
-            <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-              <h4 className="font-sans text-panel-body font-semibold text-ink">{e.title}</h4>
-              <span className="flex flex-wrap items-center gap-2">
+          <StandingEntryCard
+            key={e.id}
+            entry={e}
+            slug={slug}
+            eyebrow="Accepted for build"
+            onFocusReceipt={onFocusReceipt}
+            status={
+              <>
                 {e.evidenceMoved ? <EvidenceMovedChip /> : null}
                 <DecidedPill />
-              </span>
-            </div>
+              </>
+            }
+          >
             {e.inTheirWords ? <WordsQuote words={e.inTheirWords} /> : null}
-            {e.ruledBy ? <p className="mb-2 text-panel-body text-ink-faint">Ruled by {e.ruledBy}</p> : null}
-            <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
-          </li>
+            {e.ruledBy ? <p className="text-panel-body leading-relaxed text-ink-muted">Ruled by {e.ruledBy}</p> : null}
+          </StandingEntryCard>
         ))}
       </ul>
     </section>
@@ -1284,28 +1752,26 @@ function Backlog({
       <h3 className="mb-3 font-serif text-[1.25rem] font-semibold text-ink">Backlog</h3>
       <ul className="space-y-4">
         {entries.map((e) => (
-          <li
+          <StandingEntryCard
             key={e.id}
-            data-testid="wwb-entry"
-            data-entry={e.id}
-            className="rounded-inset border border-rule px-4 py-3"
-            style={{ background: "var(--paper-raised)", opacity: 0.9 }}
-          >
-            <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-              <h4 className="font-sans text-panel-body font-semibold text-ink-muted">{e.title}</h4>
-              <span className="flex flex-wrap items-center gap-2">
+            entry={e}
+            slug={slug}
+            eyebrow="Saved for later"
+            onFocusReceipt={onFocusReceipt}
+            status={
+              <>
                 {e.evidenceMoved ? <EvidenceMovedChip /> : null}
                 <OutlinePill label="Backlog" testid="wwb-backlog-pill" />
-              </span>
-            </div>
+              </>
+            }
+          >
             {e.unblocks ? (
-              <p className="mb-2 text-panel-body text-ink-muted">
+              <p className="text-panel-body leading-relaxed text-ink-muted">
                 <span className="text-ink-faint">Unblocks: </span>
                 {e.unblocks}
               </p>
             ) : null}
-            <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
-          </li>
+          </StandingEntryCard>
         ))}
       </ul>
     </section>
@@ -1327,13 +1793,14 @@ function DontBuild({
       <h3 className="mb-3 font-serif text-[1.25rem] font-semibold text-ink">Don&rsquo;t build</h3>
       <ul className="space-y-5">
         {entries.map((e) => (
-          <li key={e.id} data-testid="wwb-entry" data-entry={e.id} className="rounded-inset border border-rule px-4 py-3">
-            <div className="mb-2 flex items-start justify-between gap-3">
-              <h4 className="font-sans text-panel-body font-semibold text-ink">{e.title}</h4>
-              <OutlinePill label="Won't build" testid="wwb-wont-build" />
-            </div>
-            <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
-          </li>
+          <StandingEntryCard
+            key={e.id}
+            entry={e}
+            slug={slug}
+            eyebrow="Left out"
+            onFocusReceipt={onFocusReceipt}
+            status={<OutlinePill label="Won't build" testid="wwb-wont-build" />}
+          />
         ))}
       </ul>
     </section>
@@ -1365,13 +1832,16 @@ function RecordedThisSession({
             <li
               key={e.id}
               data-testid="verdict-recorded"
-              className="rounded-inset border border-rule bg-paper-raised px-4 py-3"
+              className="rounded-inset border border-b-0 border-rule-strong bg-paper px-5 py-5"
             >
+              <p className="mb-1 text-panel-label font-semibold uppercase tracking-[0.08em] text-ink-faint">
+                Recorded just now
+              </p>
               <div className="flex items-start justify-between gap-3">
-                <span className="font-sans text-panel-body font-semibold text-ink">{e.title}</span>
+                <span className="font-sans text-[1.125rem] font-semibold leading-snug text-ink">{e.title}</span>
                 <OutlinePill label={VERDICT_WORDS[d.verdict]} testid="verdict-recorded-pill" />
               </div>
-              <p className="mt-1 text-panel-body text-ink-muted">
+              <p className="mt-3 text-panel-body leading-relaxed text-ink-muted">
                 {d.queued
                   ? "Recorded and queued behind the current run. Research folds it in when that run ends."
                   : "Recorded. Research is folding it in now; it files here for real when that lands."}
@@ -1402,10 +1872,13 @@ function Unruled({
       </p>
       <ul className="space-y-5">
         {entries.map((e) => (
-          <li key={e.id} data-testid="wwb-entry" data-entry={e.id} className="rounded-inset border border-rule px-4 py-3">
-            <h4 className="mb-2 font-sans text-panel-body font-semibold text-ink">{e.title}</h4>
-            <Reasons entry={e} slug={slug} onFocusReceipt={onFocusReceipt} />
-          </li>
+          <StandingEntryCard
+            key={e.id}
+            entry={e}
+            slug={slug}
+            eyebrow="Not decided"
+            onFocusReceipt={onFocusReceipt}
+          />
         ))}
       </ul>
     </section>

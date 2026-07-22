@@ -17,6 +17,17 @@ export interface Box {
 const OVERLAY_ID = "__ds_hover_overlay";
 const PIN_LAYER_ID = "__ds_pin_layer";
 
+/** Read Canvas chrome tokens from the parent document for same-origin frame overlays. */
+function canvasToken(doc: Document, name: string, fallback: string): string {
+  try {
+    const parentWindow = doc.defaultView?.parent;
+    if (!parentWindow) return fallback;
+    return parentWindow.getComputedStyle(parentWindow.document.documentElement).getPropertyValue(name).trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** A box in the frame's document coordinate space (viewport rect + scroll). */
 export function elementBox(el: Element, win: Window): Box {
   const r = el.getBoundingClientRect();
@@ -31,6 +42,8 @@ export function elementBox(el: Element, win: Window): Box {
 export function ensureOverlay(doc: Document): HTMLElement {
   let el = doc.getElementById(OVERLAY_ID) as HTMLElement | null;
   if (!el) {
+    const accent = canvasToken(doc, "--accent", "currentColor");
+    const accentWash = canvasToken(doc, "--accent-wash", "transparent");
     el = doc.createElement("div");
     el.id = OVERLAY_ID;
     el.setAttribute("data-ds-overlay", "");
@@ -38,8 +51,8 @@ export function ensureOverlay(doc: Document): HTMLElement {
       "position:absolute",
       "z-index:2147483646",
       "pointer-events:none",
-      "border:2px solid #3b5bdb",
-      "background:rgba(59,91,219,0.10)",
+      `border:2px solid ${accent}`,
+      `background:${accentWash}`,
       "border-radius:3px",
       "transition:all 40ms linear",
       "display:none",
@@ -165,6 +178,8 @@ function ensurePinLayer(doc: Document): HTMLElement {
 
 export function renderPins(doc: Document, pins: { n: number; box: Box }[]): void {
   const layer = ensurePinLayer(doc);
+  const accent = canvasToken(doc, "--accent", "currentColor");
+  const accentInk = canvasToken(doc, "--accent-ink", "Canvas");
   layer.innerHTML = "";
   for (const p of pins) {
     const pin = doc.createElement("div");
@@ -179,11 +194,11 @@ export function renderPins(doc: Document, pins: { n: number; box: Box }[]): void
       "height:22px",
       "padding:0 4px",
       "border-radius:9999px",
-      "background:#3b5bdb",
-      "color:#fff",
+      `background:${accent}`,
+      `color:${accentInk}`,
       "font:600 12px/22px system-ui,sans-serif",
       "text-align:center",
-      "box-shadow:0 1px 3px rgba(0,0,0,0.3)",
+      "box-shadow:none",
     ].join(";");
     layer.appendChild(pin);
   }
@@ -276,11 +291,12 @@ export const FRAME_SCALE = 0.5;
 /** Briefly outline every instance of a component in a frame (click-to-flash §7). */
 export function flashComponent(doc: Document, component: string): number {
   const els = Array.from(doc.querySelectorAll(`[data-component="${component}"]`));
+  const accent = canvasToken(doc, "--accent", "currentColor");
   for (const el of els) {
     const h = el as HTMLElement;
     const prevOutline = h.style.outline;
     const prevOffset = h.style.outlineOffset;
-    h.style.outline = "3px solid #3b5bdb";
+    h.style.outline = `3px solid ${accent}`;
     h.style.outlineOffset = "2px";
     setTimeout(() => {
       h.style.outline = prevOutline;

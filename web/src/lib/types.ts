@@ -172,6 +172,14 @@ export interface LedgerEntry {
   lineage: string | null;
   /** The human-facing ask, for an escalated (research-exhausted) entry. */
   ask: string | null;
+  /** Why evidence cannot settle this and the human's judgment is needed. */
+  why: string | null;
+  /** What the available answers change downstream. */
+  changes: string | null;
+  /** The strongest evidence signal or unresolved tension, in plain language. */
+  evidenceSummary: string | null;
+  /** Closed-choice answers, empty when the question needs a written response. */
+  options: WwbOption[];
   receipts: Receipt[];
   /** Note / unlabeled prose under the entry. */
   blocks: RenderableBlock[];
@@ -242,6 +250,14 @@ export interface WwbQuestion {
   /** The ledger `L<N>` it came from. */
   id: string;
   ask: string;
+  /** Why research cannot make this call. */
+  why: string | null;
+  /** What the answer changes downstream. */
+  changes: string | null;
+  /** The strongest evidence signal or unresolved tension. */
+  evidenceSummary: string | null;
+  /** Closed-choice answers, empty when the question needs a written response. */
+  options: WwbOption[];
   receipts: Receipt[];
   /** Note / prose under the question (from the ledger entry when derived). */
   blocks: RenderableBlock[];
@@ -261,6 +277,11 @@ export type ParkedKind =
   | "route-call"
   | "other";
 
+export interface WwbOption {
+  label: string;
+  text: string;
+}
+
 /** A parked 🔴 call: a decision only the human can make, rendered verbatim. */
 export interface WwbParked {
   /** Sticky `W<N>` id, else a deterministic fallback. */
@@ -269,8 +290,22 @@ export interface WwbParked {
   title: string;
   /** One plain sentence naming what the human is being asked to decide. */
   ask: string | null;
+  /** Why this call requires human judgment. */
+  why: string | null;
+  /** What taking each path changes downstream. */
+  changes: string | null;
+  /** The strongest evidence signal or unresolved tension. */
+  evidenceSummary: string | null;
+  /** Legacy fallback: the problem statement that remains if the proposal is rejected. */
+  currentFraming: string | null;
+  /** Legacy fallback: the replacement problem statement if the proposal is taken. */
+  proposedFraming: string | null;
+  /** Legacy fallback: the concrete consequence of taking the proposal. */
+  acceptCost: string | null;
+  /** Legacy fallback: the concrete consequence of rejecting the proposal. */
+  rejectCost: string | null;
   /** A directions pick's drafted options; each renders as a one-click choice. */
-  options: { label: string; text: string }[];
+  options: WwbOption[];
   /** The candidate blockquote, verbatim: the pull-quote, never re-summarized. */
   candidate: string;
   /** The decision id a ruling would supersede, or null. */
